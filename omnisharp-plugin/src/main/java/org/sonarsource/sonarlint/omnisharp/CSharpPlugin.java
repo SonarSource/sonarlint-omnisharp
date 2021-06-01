@@ -41,8 +41,6 @@ package org.sonarsource.sonarlint.omnisharp;
 import org.sonar.api.Plugin;
 import org.sonar.api.SonarProduct;
 import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
-import org.sonarsource.dotnet.shared.plugins.DotNetPluginMetadata;
-import org.sonarsource.dotnet.shared.plugins.RoslynProfileExporter;
 
 public class CSharpPlugin implements Plugin {
 
@@ -52,12 +50,9 @@ public class CSharpPlugin implements Plugin {
   static final String REPOSITORY_KEY = "csharpsquid";
   static final String REPOSITORY_NAME = "SonarAnalyzer";
   static final String PLUGIN_KEY = "csharp";
-  static final String SONARANALYZER_NAME = "SonarAnalyzer.CSharp";
 
   static final String FILE_SUFFIXES_KEY = AbstractPropertyDefinitions.getFileSuffixProperty(LANGUAGE_KEY);
   static final String FILE_SUFFIXES_DEFVALUE = ".cs";
-
-  static final DotNetPluginMetadata METADATA = new CSharpPluginMetadata();
 
   @Override
   public void define(Context context) {
@@ -68,44 +63,10 @@ public class CSharpPlugin implements Plugin {
 
     context.addExtensions(
       // language-specific
-      METADATA,
       CSharp.class,
       CSharpSonarRulesDefinition.class);
 
-    context.addExtensions(new CSharpPropertyDefinitions(context.getRuntime()).create());
-    context.addExtensions(RoslynProfileExporter.sonarLintRepositoryProperties(METADATA));
+    context.addExtensions(new CSharpPropertyDefinitions().create());
   }
 
-  private static class CSharpPluginMetadata implements DotNetPluginMetadata {
-
-    @Override
-    public String languageKey() {
-      return LANGUAGE_KEY;
-    }
-
-    @Override
-    public String pluginKey() {
-      return PLUGIN_KEY;
-    }
-
-    @Override
-    public String languageName() {
-      return LANGUAGE_NAME;
-    }
-
-    @Override
-    public String shortLanguageName() {
-      return LANGUAGE_NAME;
-    }
-
-    @Override
-    public String sonarAnalyzerName() {
-      return SONARANALYZER_NAME;
-    }
-
-    @Override
-    public String repositoryKey() {
-      return REPOSITORY_KEY;
-    }
-  }
 }

@@ -40,28 +40,39 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.sonar.api.SonarRuntime;
 import org.sonar.api.config.PropertyDefinition;
-import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
+import org.sonar.api.resources.Qualifiers;
 
-public class CSharpPropertyDefinitions extends AbstractPropertyDefinitions {
+import static org.sonarsource.sonarlint.omnisharp.CSharpPlugin.LANGUAGE_KEY;
 
-  public CSharpPropertyDefinitions(SonarRuntime runtime) {
-    super(CSharpPlugin.LANGUAGE_KEY, CSharpPlugin.LANGUAGE_NAME, CSharpPlugin.FILE_SUFFIXES_DEFVALUE, runtime);
-  }
+public class CSharpPropertyDefinitions {
 
-  @Override
+  private static final String PROP_PREFIX = "sonar.";
+
   public List<PropertyDefinition> create() {
-    List<PropertyDefinition> result = new ArrayList<>(super.create());
+    List<PropertyDefinition> result = new ArrayList<>();
     result.add(
       PropertyDefinition.builder(getOmnisharpLocation())
         .multiValues(true)
         .hidden()
         .build());
+    result.add(
+      PropertyDefinition.builder(getFileSuffixProperty())
+        .category(CSharpPlugin.LANGUAGE_NAME)
+        .defaultValue(CSharpPlugin.FILE_SUFFIXES_DEFVALUE)
+        .name("File suffixes")
+        .description("Comma-separated list of suffixes of files to analyze.")
+        .multiValues(true)
+        .onQualifiers(Qualifiers.PROJECT)
+        .build());
     return result;
   }
 
+  public static String getFileSuffixProperty() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".file.suffixes";
+  }
+
   public static String getOmnisharpLocation() {
-    return "sonar." + CSharpPlugin.LANGUAGE_KEY + ".omnisharpPath";
+    return PROP_PREFIX + LANGUAGE_KEY + ".omnisharpPath";
   }
 }
