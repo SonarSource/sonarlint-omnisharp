@@ -9,12 +9,13 @@
     <version>59.0.29</version>
   </parent>
 
-  <artifactId>sonarlint-omnisharp-plugin</artifactId>
+  <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
+  <artifactId>omnisharp-parent</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <packaging>sonar-plugin</packaging>
+  <packaging>pom</packaging>
 
-  <name>SonarOmnisharp</name>
-  <description>Code Analyzer based on Omnisharp</description>
+  <name>SonarOmnisharp Parent</name>
+  <description>Parent POM</description>
   <inceptionYear>2021</inceptionYear>
   <organization>
     <name>SonarSource</name>
@@ -33,211 +34,9 @@
     <url>https://github.com/SonarSource/sonarlint-omnisharp</url>
   </scm>
 
-  <properties>
-    <analyzer.version>8.23.0.32424</analyzer.version>
-    <sonar.analyzer.commons>1.14.1.690</sonar.analyzer.commons>
-    <sonar.version>7.9</sonar.version>
-    <sonarLTS.version>7.9</sonarLTS.version>
-    <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <sonarAnalyzer.workDirectory>${project.build.directory}/analyzer</sonarAnalyzer.workDirectory>
-    <documentationDirectory>${project.basedir}/src/main/resources</documentationDirectory>
-  </properties>
-
-  <dependencies>
-    <!-- provided at runtime -->
-    <dependency>
-      <groupId>org.sonarsource.sonarqube</groupId>
-      <artifactId>sonar-plugin-api</artifactId>
-      <version>${sonar.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>3.0.2</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- compiled -->
-    <dependency>
-      <groupId>org.sonarsource.dotnet</groupId>
-      <artifactId>sonar-dotnet-shared-library</artifactId>
-      <version>${analyzer.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.sonarsource.analyzer-commons</groupId>
-      <artifactId>sonar-analyzer-commons</artifactId>
-      <version>${sonar.analyzer.commons}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.zeroturnaround</groupId>
-      <artifactId>zt-exec</artifactId>
-      <version>1.12</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>1.1.1</version>
-    </dependency>
-
-    <!-- test dependencies -->
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
-      <version>3.19.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-      <version>2.6</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>2.8.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>3.9.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.woodstox</groupId>
-      <artifactId>stax2-api</artifactId>
-      <version>4.2.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>stax</groupId>
-          <artifactId>stax-api</artifactId>
-        </exclusion>
-      </exclusions>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.staxmate</groupId>
-      <artifactId>staxmate</artifactId>
-      <version>2.0.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.codehaus.woodstox</groupId>
-          <artifactId>woodstox-core-asl</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>stax</groupId>
-          <artifactId>stax-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.codehaus.woodstox</groupId>
-          <artifactId>stax2-api</artifactId>
-        </exclusion>
-      </exclusions>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
-  <build>
-    <resources>
-      <resource>
-        <directory>${sonarAnalyzer.workDirectory}</directory>
-      </resource>
-    </resources>
-
-    <plugins>
-      <plugin>
-        <groupId>org.sonarsource.sonar-packaging-maven-plugin</groupId>
-        <artifactId>sonar-packaging-maven-plugin</artifactId>
-        <configuration>
-          <pluginName>C# Code Quality and Security (Omnisharp)</pluginName>
-          <pluginKey>csharp</pluginKey>
-          <pluginClass>org.sonarsource.sonarlint.omnisharp.CSharpPlugin</pluginClass>
-          <skipDependenciesPackaging>true</skipDependenciesPackaging>
-          <sonarLintSupported>true</sonarLintSupported>
-          <sonarQubeMinVersion>${sonarLTS.version}</sonarQubeMinVersion> <!-- runtime minimal API version -->
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <shadedArtifactAttached>false</shadedArtifactAttached>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <minimizeJar>true</minimizeJar>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/LICENSE*</exclude>
-                    <exclude>META-INF/NOTICE*</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>LICENSE*</exclude>
-                    <exclude>NOTICE*</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>download-artifacts</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.sonarsource.dotnet</groupId>
-                  <artifactId>sonar-csharp-plugin</artifactId>
-                  <version>${analyzer.version}</version>
-                  <overWrite>true</overWrite>
-                </artifactItem>
-              </artifactItems>
-              <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.xml,**/org/sonar/plugins/csharp/*.json</includes>
-              <outputDirectory>${sonarAnalyzer.workDirectory}</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
+  <modules>
+    <module>omnisharp-plugin</module>
+    <module>its</module>
+  </modules>
 
 </project>
