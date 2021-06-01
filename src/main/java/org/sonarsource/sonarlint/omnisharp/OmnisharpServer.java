@@ -1,3 +1,22 @@
+/*
+ * SonarOmnisharp
+ * Copyright (C) 2021-2021 SonarSource SA
+ * mailto:info AT sonarsource DOT com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package org.sonarsource.sonarlint.omnisharp;
 /*
  * SonarC#
@@ -20,6 +39,7 @@ package org.sonarsource.sonarlint.omnisharp;
  */
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.file.Path;
@@ -28,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import org.json.simple.JSONArray;
@@ -41,6 +60,8 @@ import org.sonar.api.batch.sensor.issue.NewIssue;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.System2;
+import org.sonar.api.utils.TempFolder;
+import org.sonar.api.utils.ZipUtils;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
@@ -54,6 +75,8 @@ import org.zeroturnaround.exec.stream.LogOutputStream;
 public class OmnisharpServer implements Startable {
 
   private static final Logger LOG = Loggers.get(OmnisharpServer.class);
+
+  private static final String ROSLYN_ANALYZER_LOCATION = "sonarAnalyzer";
 
   private StartedProcess process;
   private long requestId = 1;
@@ -70,22 +93,29 @@ public class OmnisharpServer implements Startable {
 
   private final System2 system2;
 
-  public OmnisharpServer(System2 system2) {
+  private Path roslynAnalyzerDir;
+
+  private final TempFolder tempFolder;
+
+  public OmnisharpServer(System2 system2, TempFolder tempFolder) {
     this.system2 = system2;
+    this.tempFolder = tempFolder;
   }
 
-  public void start(Path projectBaseDir) throws InvalidExitValueException, IOException, InterruptedException, TimeoutException {
+  public void start(Path projectBaseDir) throws InvalidExitValueException, IOException, InterruptedException {
     output = new PipedOutputStream();
     PipedInputStream input = new PipedInputStream(output);
     AtomicBoolean projectChangedEvent = new AtomicBoolean();
     ProcessExecutor processExecutor = new ProcessExecutor()
       .directory(Paths.get(cachedOmnisharpLoc).toFile());
     if (system2.isOsWindows()) {
-      processExecutor.command("OmniSharp.exe", "-v", "-s", projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths=/home/julien/tmp/SonarAnalyzer.CSharp.8.22.0.31243/analyzers/");
+      processExecutor.command("OmniSharp.exe", "-v", "-s",
+        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
+        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
     } else {
-      processExecutor.command("sh", "run", "-v", "-s", projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths=/home/julien/tmp/SonarAnalyzer.CSharp.8.22.0.31243/analyzers/");
+      processExecutor.command("sh", "run", "-v", "-s",
+        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
+        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
     }
     processExecutor.redirectOutput(new LogOutputStream() {
       @Override
@@ -132,6 +162,16 @@ public class OmnisharpServer implements Startable {
 
   @Override
   public void start() {
+    this.roslynAnalyzerDir = tempFolder.newDir(ROSLYN_ANALYZER_LOCATION).toPath();
+    InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-8.23-0-32424.zip");
+    if (bundle == null) {
+      throw new IllegalStateException("eslint-bridge not found in plugin jar");
+    }
+    try {
+      ZipUtils.unzip(bundle, roslynAnalyzerDir.toFile());
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to extract analyzers");
+    }
   }
 
   @Override

@@ -10,6 +10,7 @@
   </parent>
 
   <artifactId>sonarlint-omnisharp-plugin</artifactId>
+  <version>1.0-SNAPSHOT</version>
   <packaging>sonar-plugin</packaging>
 
   <name>SonarOmnisharp</name>
@@ -129,12 +130,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>30.1.1-jre</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.codehaus.woodstox</groupId>
       <artifactId>stax2-api</artifactId>
       <version>4.2.1</version>
@@ -180,8 +175,9 @@
         <groupId>org.sonarsource.sonar-packaging-maven-plugin</groupId>
         <artifactId>sonar-packaging-maven-plugin</artifactId>
         <configuration>
-          <pluginName>C# Code Quality and Security</pluginName>
-          <pluginClass>org.sonar.plugins.csharp.CSharpPlugin</pluginClass>
+          <pluginName>C# Code Quality and Security (Omnisharp)</pluginName>
+          <pluginKey>csharp</pluginKey>
+          <pluginClass>org.sonarsource.sonarlint.omnisharp.CSharpPlugin</pluginClass>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <sonarLintSupported>true</sonarLintSupported>
           <sonarQubeMinVersion>${sonarLTS.version}</sonarQubeMinVersion> <!-- runtime minimal API version -->
