@@ -73,6 +73,6 @@ public class CSharpPropertyDefinitions {
   }
 
   public static String getOmnisharpLocation() {
-    return PROP_PREFIX + LANGUAGE_KEY + ".omnisharpPath";
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.omnisharpLocation";
   }
 }
