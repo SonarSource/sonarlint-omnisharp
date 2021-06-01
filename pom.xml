@@ -33,6 +33,11 @@
     <connection>scm:git:git@github.com:SonarSource/sonarlint-omnisharp.git</connection>
     <url>https://github.com/SonarSource/sonarlint-omnisharp</url>
   </scm>
+  
+  <properties>
+    <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
+    <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
+  </properties>
 
   <modules>
     <module>omnisharp-plugin</module>
