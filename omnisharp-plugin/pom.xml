@@ -148,6 +148,10 @@
   <build>
     <resources>
       <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+      <resource>
         <directory>${sonarAnalyzer.workDirectory}</directory>
       </resource>
     </resources>
@@ -214,6 +218,23 @@
               </artifactItems>
               <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.xml,**/org/sonar/plugins/csharp/*.json</includes>
               <outputDirectory>${sonarAnalyzer.workDirectory}</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.kuali.maven.plugins</groupId>
+        <artifactId>strip-bom-maven-plugin</artifactId>
+        <version>1.0.5</version>
+        <executions>
+          <execution>
+            <id>strop-bom</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>strip-bom</goal>
+            </goals>
+            <configuration>
+              <file>${sonarAnalyzer.workDirectory}/org/sonar/plugins/csharp/rules.xml</file>
             </configuration>
           </execution>
         </executions>

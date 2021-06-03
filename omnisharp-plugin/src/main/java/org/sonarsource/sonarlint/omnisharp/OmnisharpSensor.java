@@ -38,9 +38,14 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import java.io.IOException;
+import org.sonar.api.batch.fs.FilePredicate;
+import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.sensor.Sensor;
 import org.sonar.api.batch.sensor.SensorContext;
 import org.sonar.api.batch.sensor.SensorDescriptor;
+import org.sonar.api.batch.sensor.issue.NewIssue;
+import org.sonar.api.rule.RuleKey;
 
 public class OmnisharpSensor implements Sensor {
 
@@ -61,7 +66,36 @@ public class OmnisharpSensor implements Sensor {
 
   @Override
   public void execute(SensorContext context) {
-    server.analyze(context);
+    FilePredicate predicate = context.fileSystem().predicates().hasLanguage(CSharpPlugin.LANGUAGE_KEY);
+    if (context.fileSystem().hasFiles(predicate)) {
+      try {
+        server.lazyStart(context.fileSystem().baseDir().toPath());
+      } catch (Exception e) {
+        throw new IllegalStateException("Unable to start OmniSharp", e);
+      }
+    }
+    for (InputFile f : context.fileSystem().inputFiles(predicate)) {
+      String buffer;
+      try {
+        buffer = f.contents();
+      } catch (IOException e) {
+        throw new IllegalStateException("Unable to read file buffer", e);
+      }
+      server.updateBuffer(f.absolutePath(), buffer);
+      server.codeCheck(f.absolutePath(), diag -> handle(context, f, diag));
+    }
+  }
+
+  private void handle(SensorContext context, InputFile f, OmnisharpDiagnostic diag) {
+    NewIssue newIssue = context.newIssue();
+    newIssue
+      .forRule(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, diag.id))
+      .at(
+        newIssue.newLocation()
+          .on(f)
+          .at(f.newRange(diag.line, diag.column - 1, diag.endLine, diag.endColumn - 1))
+          .message(diag.text))
+      .save();
   }
 
 }

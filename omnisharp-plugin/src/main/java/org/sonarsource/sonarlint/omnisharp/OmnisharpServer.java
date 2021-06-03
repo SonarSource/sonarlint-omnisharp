@@ -38,26 +38,28 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.sonar.api.Startable;
-import org.sonar.api.batch.fs.InputFile;
-import org.sonar.api.batch.sensor.SensorContext;
-import org.sonar.api.batch.sensor.issue.NewIssue;
-import org.sonar.api.rule.RuleKey;
+import org.sonar.api.config.Configuration;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.TempFolder;
@@ -82,14 +84,12 @@ public class OmnisharpServer implements Startable {
   private long requestId = 1;
   private final JSONParser parser = new JSONParser();
   private final Map<Long, JSONObject> responseQueue = new ConcurrentHashMap<>();
-  private boolean started;
+  private volatile boolean omnisharpStarted;
   private final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
 
   private RequestQueuePumper requestQueuePumper;
 
   private PipedOutputStream output;
-
-  private String cachedOmnisharpLoc;
 
   private final System2 system2;
 
@@ -97,50 +97,37 @@ public class OmnisharpServer implements Startable {
 
   private final TempFolder tempFolder;
 
-  public OmnisharpServer(System2 system2, TempFolder tempFolder) {
+  private final Optional<String> omnisharpLocOpt;
+
+  public OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config) {
     this.system2 = system2;
     this.tempFolder = tempFolder;
+    this.omnisharpLocOpt = config.get(CSharpPropertyDefinitions.getOmnisharpLocation());
   }
 
-  public void start(Path projectBaseDir) throws InvalidExitValueException, IOException, InterruptedException {
+  public synchronized void lazyStart(Path projectBaseDir) throws InvalidExitValueException, IOException, InterruptedException {
+    if (omnisharpStarted) {
+      return;
+    }
+    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     output = new PipedOutputStream();
     PipedInputStream input = new PipedInputStream(output);
-    AtomicBoolean projectChangedEvent = new AtomicBoolean();
-    ProcessExecutor processExecutor = new ProcessExecutor()
-      .directory(Paths.get(cachedOmnisharpLoc).toFile());
-    if (system2.isOsWindows()) {
-      processExecutor.command("OmniSharp.exe", "-v", "-s",
-        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
-    } else {
-      processExecutor.command("sh", "run", "-v", "-s",
-        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
-    }
+    String omnisharpLoc = omnisharpLocOpt.orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
+    ProcessExecutor processExecutor = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
     processExecutor.redirectOutput(new LogOutputStream() {
       @Override
       protected void processLine(String line) {
-        LOG.debug(line);
+        JSONObject jsonObject;
         try {
-          JSONObject jsonObject = (JSONObject) parser.parse(line);
-          String type = (String) jsonObject.get("Type");
-          switch (type) {
-            case "response":
-              long reqSeq = (long) jsonObject.get("Request_seq");
-              responseQueue.put(reqSeq, jsonObject);
-              break;
-            case "event":
-              // HACK wait for ProjectChanged event to be sure Omnisharp is ready to receive codecheck requests
-              if ("ProjectChanged".equals(jsonObject.get("Event"))) {
-                projectChangedEvent.set(true);
-              }
-              break;
-            default:
-          }
+          jsonObject = (JSONObject) parser.parse(line);
         } catch (Exception e) {
-          LOG.error(e.getMessage(), e);
+          LOG.error("Unable to parse message as Json", e);
+          return;
         }
+        handleJsonMessage(startLatch, firstUpdateProjectLatch, line, jsonObject);
       }
+
     })
       .redirectError(new LogOutputStream() {
 
@@ -151,21 +138,84 @@ public class OmnisharpServer implements Startable {
       })
       .redirectInput(input)
       .destroyOnExit();
+    LOG.info("Starting OmniSharp...");
     process = processExecutor.start();
-    while (!projectChangedEvent.get()) {
-      Thread.sleep(100);
+    if (!startLatch.await(1, TimeUnit.MINUTES)) {
+      throw new IllegalStateException("Timeout waiting for Omnisharp server to start");
     }
-    started = true;
+    LOG.info("OmniSharp successfully started");
+    LOG.info("Waiting for solution/project configuration to be loaded...");
+    if (!firstUpdateProjectLatch.await(1, TimeUnit.MINUTES)) {
+      throw new IllegalStateException("Timeout waiting for solution/project configuration to be loaded");
+    }
+    LOG.info("Solution/project configuration loaded");
+    omnisharpStarted = true;
+
     requestQueuePumper = new RequestQueuePumper(requestQueue, output);
     new Thread(requestQueuePumper).start();
   }
 
+  private ProcessExecutor buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc) {
+    ProcessExecutor processExecutor = new ProcessExecutor().directory(Paths.get(omnisharpLoc).toFile());
+    if (system2.isOsWindows()) {
+      processExecutor.command("OmniSharp.exe", "-v", "-s",
+        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
+        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
+    } else {
+      processExecutor.command("sh", "run", "-v", "-s",
+        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
+        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
+    }
+    return processExecutor;
+  }
+
+  private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JSONObject jsonObject) {
+    String type = (String) jsonObject.get("Type");
+    switch (type) {
+      case "response":
+        long reqSeq = (long) jsonObject.get("Request_seq");
+        responseQueue.put(reqSeq, jsonObject);
+        break;
+      case "event":
+        String eventType = (String) jsonObject.get("Event");
+        switch (eventType) {
+          case "log":
+            handleLog((JSONObject) jsonObject.get("Body"));
+            break;
+          case "started":
+            startLatch.countDown();
+            break;
+          case "ProjectAdded":
+          case "ProjectChanged":
+          case "ProjectRemoved":
+            firstUpdateProjectLatch.countDown();
+            break;
+          default:
+            LOG.debug(line);
+        }
+        break;
+      default:
+        LOG.debug(line);
+    }
+  }
+
+  private void handleLog(JSONObject jsonObject) {
+    String level = (String) jsonObject.get("LogLevel");
+    String message = (String) jsonObject.get("Message");
+    LOG.debug("Omnisharp: [" + level + "] " + message);
+  }
+
   @Override
   public void start() {
+    String analyzerVersion = loadAnalyzerVersion();
     this.roslynAnalyzerDir = tempFolder.newDir(ROSLYN_ANALYZER_LOCATION).toPath();
-    InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-8.23-0-32424.zip");
+    unzipAnalyzer(analyzerVersion);
+  }
+
+  private void unzipAnalyzer(String analyzerVersion) {
+    InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-" + analyzerVersion + ".zip");
     if (bundle == null) {
-      throw new IllegalStateException("eslint-bridge not found in plugin jar");
+      throw new IllegalStateException("SonarAnalyzer not found in plugin jar");
     }
     try {
       ZipUtils.unzip(bundle, roslynAnalyzerDir.toFile());
@@ -174,12 +224,23 @@ public class OmnisharpServer implements Startable {
     }
   }
 
+  private String loadAnalyzerVersion() {
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/analyzer-version.txt"), StandardCharsets.UTF_8))) {
+      return reader.lines().findFirst().orElseThrow(() -> new IllegalStateException("Unable to read analyzer version"));
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   @Override
-  public void stop() {
-    makeSyncRequest("/stopserver", null);
-    if (requestQueuePumper != null) {
-      requestQueuePumper.stopProcessing();
-      requestQueuePumper = null;
+  public synchronized void stop() {
+    if (omnisharpStarted) {
+      LOG.info("Stopping OmniSharp");
+      makeSyncRequest("/stopserver", null);
+      if (requestQueuePumper != null) {
+        requestQueuePumper.stopProcessing();
+        requestQueuePumper = null;
+      }
     }
     if (output != null) {
       try {
@@ -188,68 +249,45 @@ public class OmnisharpServer implements Startable {
         LOG.error("Unable to close", e);
       }
     }
-    process.getProcess().destroyForcibly();
-    process = null;
-    started = false;
+    if (process != null) {
+      process.getProcess().destroyForcibly();
+      process = null;
+    }
+    omnisharpStarted = false;
   }
 
-  public void analyze(SensorContext context) {
-    String omnisharpLoc = context.config().get(CSharpPropertyDefinitions.getOmnisharpLocation())
-      .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
-    if (started && !Objects.equals(cachedOmnisharpLoc, omnisharpLoc)) {
-      stop();
-    }
-    this.cachedOmnisharpLoc = omnisharpLoc;
-    if (!started) {
-      try {
-        start(context.fileSystem().baseDir().toPath());
-      } catch (Exception e) {
-        throw new IllegalStateException(e);
-      }
-    }
-    for (InputFile f : context.fileSystem().inputFiles(context.fileSystem().predicates().hasLanguage(CSharpPlugin.LANGUAGE_KEY))) {
-      updateBuffer(f);
-      codeCheck(context, f);
-    }
-  }
-
-  private void codeCheck(SensorContext context, InputFile f) {
+  public void codeCheck(String filename, Consumer<OmnisharpDiagnostic> issueHandler) {
     JSONObject args = new JSONObject();
-    args.put("FileName", f.absolutePath());
+    args.put("FileName", filename);
     JSONObject resp = makeSyncRequest("/codecheck", args);
-    handle(context, f, resp);
+    handle(resp, issueHandler);
   }
 
-  private void updateBuffer(InputFile f) {
+  public void updateBuffer(String filename, String buffer) {
     JSONObject args = new JSONObject();
-    args.put("FileName", f.absolutePath());
-    try {
-      args.put("Buffer", f.contents());
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
+    args.put("FileName", filename);
+    args.put("Buffer", buffer);
     makeSyncRequest("/updatebuffer", args);
   }
 
-  private void handle(SensorContext context, InputFile f, JSONObject response) {
+  private void handle(JSONObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
     JSONObject body = (JSONObject) response.get("Body");
     JSONArray issues = (JSONArray) body.get("QuickFixes");
     issues.forEach(i -> {
       JSONObject issue = (JSONObject) i;
-      NewIssue newIssue = context.newIssue();
       String ruleId = (String) issue.get("Id");
       if (!ruleId.startsWith("S")) {
         // Ignore non SonarCS issues
         return;
       }
-      newIssue
-        .forRule(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, ruleId))
-        .at(
-          newIssue.newLocation()
-            .on(f)
-            .at(f.newRange((int) (long) issue.get("Line"), (int) (long) issue.get("Column") - 1, (int) (long) issue.get("EndLine"), (int) (long) issue.get("EndColumn") - 1))
-            .message((String) issue.get("Text")))
-        .save();
+      OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
+      diag.id = ruleId;
+      diag.line = (int) (long) issue.get("Line");
+      diag.column = (int) (long) issue.get("Column");
+      diag.endLine = (int) (long) issue.get("EndLine");
+      diag.endColumn = (int) (long) issue.get("EndColumn");
+      diag.text = (String) issue.get("Text");
+      issueHandler.accept(diag);
     });
   }
 
