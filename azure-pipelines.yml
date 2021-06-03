@@ -152,7 +152,60 @@ stages:
                 mavenOptions: $(MAVEN_OPTS)
                 sonarQubeRunAnalysis: true
                 sqMavenPluginVersionChoice: 'latest'
+  - template: stage-with-burgr-notifications.yml@commonTemplates
+    parameters:
+      burgrName: 'qa'
+      burgrType: 'qa'
+      stageName: 'qa'
+      stageDisplayName: Run ITs
+      stageDependencies: build
+      jobs:
+        - job: its
+          displayName: Run ITs
+          variables:
+            MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+            MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+          steps:
+            - checkout: self
+              fetchDepth: 1
+            - task: Cache@2
+              inputs:
+                key: 'its | maven | "$(Agent.OS)" | **/pom.xml'
+                path: $(MAVEN_CACHE_FOLDER)
+              displayName: Cache Maven local repo
+            - task: DownloadSecureFile@1
+              displayName: 'Download Maven settings'
+              name: mavenSettings
+              inputs:
+                secureFile: 'maven-settings.xml'
+            - template: update-maven-version-steps.yml
+              parameters:
+                mavenSettingsFilePath: $(mavenSettings.secureFilePath)
+            - task: Maven@3
+              displayName: 'Run Maven ITs for SQ'
+              env:
+                ARTIFACTORY_QA_READER_USERNAME: $(ARTIFACTORY_QA_READER_USERNAME)
+                ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_QA_READER_PASSWORD)
+                # For Orchestrator
+                ARTIFACTORY_API_KEY: $(ARTIFACTORY_API_KEY)
+                GITHUB_TOKEN: $(GITHUB_TOKEN)
+                # SonarLintInstaller
+                MAVEN_LOCAL_REPOSITORY: $(MAVEN_CACHE_FOLDER)
+              inputs:
+                goals: 'verify'
+                mavenPomFile: 'its/pom.xml'
+                options: '-B --settings $(mavenSettings.secureFilePath) -Denable-repo=qa'
+                publishJUnitResults: true
+                testResultsFiles: '**/surefire-reports/TEST-*.xml'
+                testRunTitle: 'ITs'
+                javaHomeOption: 'JDKVersion'
+                jdkVersionOption: '1.11'
+                mavenOptions: $(MAVEN_OPTS)
+            - bash: git checkout .
+              name: revertPomChanges
+              displayName: Revert changes made to pom.xml to not break cache feature
   - template: promote-stage.yml@commonTemplates
     parameters:
       stageDependencies:
         - validate
+        - qa
