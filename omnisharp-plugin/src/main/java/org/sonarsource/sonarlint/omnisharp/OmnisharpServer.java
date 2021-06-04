@@ -38,10 +38,12 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -70,7 +72,6 @@ import org.sonar.api.utils.TempFolder;
 import org.sonar.api.utils.ZipUtils;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
-import org.sonarsource.analyzer.commons.internal.json.simple.JSONObject;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.zeroturnaround.exec.InvalidExitValueException;
 import org.zeroturnaround.exec.ProcessExecutor;
@@ -289,17 +290,17 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  public void codeCheck(String filename, Consumer<OmnisharpDiagnostic> issueHandler) {
-    JSONObject args = new JSONObject();
-    args.put("FileName", filename);
+  public void codeCheck(File f, Consumer<OmnisharpDiagnostic> issueHandler) {
+    JsonObject args = new JsonObject();
+    args.addProperty("FileName", f.getAbsolutePath());
     JsonObject resp = makeSyncRequest("/codecheck", args);
     handle(resp, issueHandler);
   }
 
-  public void updateBuffer(String filename, String buffer) {
-    JSONObject args = new JSONObject();
-    args.put("FileName", filename);
-    args.put("Buffer", buffer);
+  public void updateBuffer(File f, String buffer) {
+    JsonObject args = new JsonObject();
+    args.addProperty("FileName", f.getAbsolutePath());
+    args.addProperty("Buffer", buffer);
     makeSyncRequest("/updatebuffer", args);
   }
 
@@ -324,14 +325,14 @@ public class OmnisharpServer implements Startable {
     });
   }
 
-  private JsonObject makeSyncRequest(String command, @Nullable JSONObject dataJson) {
+  private JsonObject makeSyncRequest(String command, @Nullable JsonObject dataJson) {
     long id = requestId++;
-    JSONObject args = new JSONObject();
-    args.put("Type", "request");
-    args.put("Seq", id);
-    args.put("Command", command);
-    args.put("Arguments", dataJson);
-    String requestJson = args.toJSONString();
+    JsonObject args = new JsonObject();
+    args.addProperty("Type", "request");
+    args.addProperty("Seq", id);
+    args.addProperty("Command", command);
+    args.add("Arguments", dataJson);
+    String requestJson = new Gson().toJson(args);
     LOG.debug("Request: " + requestJson);
     requestQueue.add(requestJson);
     long t = System.currentTimeMillis();

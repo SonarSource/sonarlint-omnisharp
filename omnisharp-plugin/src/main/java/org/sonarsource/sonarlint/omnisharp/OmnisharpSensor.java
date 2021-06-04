@@ -88,8 +88,8 @@ public class OmnisharpSensor implements Sensor {
       } catch (IOException e) {
         throw new IllegalStateException("Unable to read file buffer", e);
       }
-      server.updateBuffer(f.absolutePath(), buffer);
-      server.codeCheck(f.absolutePath(), diag -> handle(context, f, diag));
+      server.updateBuffer(f.file(), buffer);
+      server.codeCheck(f.file(), diag -> handle(context, f, diag));
     }
   }
 
