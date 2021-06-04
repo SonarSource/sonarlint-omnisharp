@@ -101,16 +101,28 @@ public class OmnisharpServer implements Startable {
 
   private final Optional<String> omnisharpLocOpt;
 
+  private Path cachedProjectBaseDir;
+
   public OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config) {
     this.system2 = system2;
     this.tempFolder = tempFolder;
     this.omnisharpLocOpt = config.get(CSharpPropertyDefinitions.getOmnisharpLocation());
   }
 
-  public synchronized void lazyStart(Path projectBaseDir) throws InvalidExitValueException, IOException, InterruptedException {
+  public void lazyStart(Path projectBaseDir) throws InvalidExitValueException, IOException, InterruptedException {
     if (omnisharpStarted) {
-      return;
+      if (!cachedProjectBaseDir.equals(projectBaseDir)) {
+        LOG.info("Using a different project basedir, OmniSharp have to be restarted");
+        stop();
+      } else {
+        return;
+      }
     }
+    doStart(projectBaseDir);
+  }
+
+  private synchronized void doStart(Path projectBaseDir) throws IOException, InterruptedException {
+    this.cachedProjectBaseDir = projectBaseDir;
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     output = new PipedOutputStream();
