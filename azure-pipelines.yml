@@ -194,7 +194,7 @@ stages:
               inputs:
                 goals: 'verify'
                 mavenPomFile: 'its/pom.xml'
-                options: '-B --settings $(mavenSettings.secureFilePath) -Denable-repo=qa'
+                options: '-B --settings $(mavenSettings.secureFilePath) -Denable-repo=qa -DskipTests=false'
                 publishJUnitResults: true
                 testResultsFiles: '**/surefire-reports/TEST-*.xml'
                 testRunTitle: 'ITs'
