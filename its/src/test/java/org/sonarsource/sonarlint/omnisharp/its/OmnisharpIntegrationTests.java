@@ -80,7 +80,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testSampleProject(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = tmpDir.resolve("ConsoleApp1");
+    Path baseDir = tmpDir.toRealPath().resolve("ConsoleApp1");
     Files.createDirectories(baseDir);
     FileUtils.copyDirectory(new File("src/test/projects/ConsoleApp1"), baseDir.toFile());
     ProcessBuilder pb = new ProcessBuilder("dotnet", "restore")
