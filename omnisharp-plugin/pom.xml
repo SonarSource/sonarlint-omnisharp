@@ -63,9 +63,9 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>1.1.1</version>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.8.7</version>
     </dependency>
 
     <!-- test dependencies -->
@@ -200,7 +200,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.1.2</version>
         <executions>
           <execution>
             <id>download-artifacts</id>
@@ -229,18 +228,18 @@
         <version>2.1.1</version>
         <executions>
           <execution>
-            <id>strop-bom</id>
+            <id>strip-bom</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>execute</goal>
             </goals>
             <configuration>
-              <source>
+              <source><![CDATA[
                 import java.nio.ByteBuffer
                 import java.nio.file.Files
                 import java.nio.file.Path
                 import java.nio.file.Paths
-                
+
                 Path path = Paths.get(properties['sonarAnalyzer.workDirectory'] + '/org/sonar/plugins/csharp/rules.xml')
                 byte[] bytes = Files.readAllBytes(path);
                 ByteBuffer bb = ByteBuffer.wrap(bytes);
@@ -251,6 +250,7 @@
                 byte[] contentAfterFirst3Bytes = new byte[bytes.length - 3];
                 bb.get(contentAfterFirst3Bytes, 0, contentAfterFirst3Bytes.length);
                 Files.write(path, contentAfterFirst3Bytes);
+                ]]>
               </source>
             </configuration>
           </execution>

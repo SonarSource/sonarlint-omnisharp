@@ -38,6 +38,9 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,12 +55,11 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.sonar.api.Startable;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.scanner.ScannerSide;
@@ -66,6 +68,7 @@ import org.sonar.api.utils.TempFolder;
 import org.sonar.api.utils.ZipUtils;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
+import org.sonarsource.analyzer.commons.internal.json.simple.JSONObject;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.zeroturnaround.exec.InvalidExitValueException;
 import org.zeroturnaround.exec.ProcessExecutor;
@@ -82,8 +85,7 @@ public class OmnisharpServer implements Startable {
 
   private StartedProcess process;
   private long requestId = 1;
-  private final JSONParser parser = new JSONParser();
-  private final Map<Long, JSONObject> responseQueue = new ConcurrentHashMap<>();
+  private final Map<Long, JsonObject> responseQueue = new ConcurrentHashMap<>();
   private volatile boolean omnisharpStarted;
   private final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
 
@@ -118,13 +120,7 @@ public class OmnisharpServer implements Startable {
     processExecutor.redirectOutput(new LogOutputStream() {
       @Override
       protected void processLine(String line) {
-        JSONObject jsonObject;
-        try {
-          jsonObject = (JSONObject) parser.parse(line);
-        } catch (Exception e) {
-          LOG.error("Unable to parse message as Json", e);
-          return;
-        }
+        JsonObject jsonObject = JsonParser.parseString(line).getAsJsonObject();
         handleJsonMessage(startLatch, firstUpdateProjectLatch, line, jsonObject);
       }
 
@@ -169,18 +165,18 @@ public class OmnisharpServer implements Startable {
     return processExecutor;
   }
 
-  private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JSONObject jsonObject) {
-    String type = (String) jsonObject.get("Type");
+  private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JsonObject jsonObject) {
+    String type = jsonObject.get("Type").getAsString();
     switch (type) {
       case "response":
-        long reqSeq = (long) jsonObject.get("Request_seq");
+        long reqSeq = jsonObject.get("Request_seq").getAsLong();
         responseQueue.put(reqSeq, jsonObject);
         break;
       case "event":
-        String eventType = (String) jsonObject.get("Event");
+        String eventType = jsonObject.get("Event").getAsString();
         switch (eventType) {
           case "log":
-            handleLog((JSONObject) jsonObject.get("Body"));
+            handleLog(jsonObject.get("Body").getAsJsonObject());
             break;
           case "started":
             startLatch.countDown();
@@ -199,9 +195,9 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private void handleLog(JSONObject jsonObject) {
-    String level = (String) jsonObject.get("LogLevel");
-    String message = (String) jsonObject.get("Message");
+  private void handleLog(JsonObject jsonObject) {
+    String level = jsonObject.get("LogLevel").getAsString();
+    String message = jsonObject.get("Message").getAsString();
     LOG.debug("Omnisharp: [" + level + "] " + message);
   }
 
@@ -250,7 +246,17 @@ public class OmnisharpServer implements Startable {
       }
     }
     if (process != null) {
-      process.getProcess().destroyForcibly();
+      try {
+        process.getFuture().get(1, TimeUnit.MINUTES);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } catch (ExecutionException e) {
+        LOG.error("Error while executing OmniSharp", e);
+      } catch (TimeoutException e) {
+        LOG.warn("Unable to terminate OmniSharp, killing it");
+        process.getProcess().destroyForcibly();
+      }
+
       process = null;
     }
     omnisharpStarted = false;
@@ -259,7 +265,7 @@ public class OmnisharpServer implements Startable {
   public void codeCheck(String filename, Consumer<OmnisharpDiagnostic> issueHandler) {
     JSONObject args = new JSONObject();
     args.put("FileName", filename);
-    JSONObject resp = makeSyncRequest("/codecheck", args);
+    JsonObject resp = makeSyncRequest("/codecheck", args);
     handle(resp, issueHandler);
   }
 
@@ -270,28 +276,28 @@ public class OmnisharpServer implements Startable {
     makeSyncRequest("/updatebuffer", args);
   }
 
-  private void handle(JSONObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
-    JSONObject body = (JSONObject) response.get("Body");
-    JSONArray issues = (JSONArray) body.get("QuickFixes");
+  private void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
+    JsonObject body = response.get("Body").getAsJsonObject();
+    JsonArray issues = body.get("QuickFixes").getAsJsonArray();
     issues.forEach(i -> {
-      JSONObject issue = (JSONObject) i;
-      String ruleId = (String) issue.get("Id");
+      JsonObject issue = i.getAsJsonObject();
+      String ruleId = issue.get("Id").getAsString();
       if (!ruleId.startsWith("S")) {
         // Ignore non SonarCS issues
         return;
       }
       OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
       diag.id = ruleId;
-      diag.line = (int) (long) issue.get("Line");
-      diag.column = (int) (long) issue.get("Column");
-      diag.endLine = (int) (long) issue.get("EndLine");
-      diag.endColumn = (int) (long) issue.get("EndColumn");
-      diag.text = (String) issue.get("Text");
+      diag.line = issue.get("Line").getAsInt();
+      diag.column = issue.get("Column").getAsInt();
+      diag.endLine = issue.get("EndLine").getAsInt();
+      diag.endColumn = issue.get("EndColumn").getAsInt();
+      diag.text = issue.get("Text").getAsString();
       issueHandler.accept(diag);
     });
   }
 
-  private JSONObject makeSyncRequest(String command, @Nullable JSONObject dataJson) {
+  private JsonObject makeSyncRequest(String command, @Nullable JSONObject dataJson) {
     long id = requestId++;
     JSONObject args = new JSONObject();
     args.put("Type", "request");

@@ -46,8 +46,12 @@ import org.sonar.api.batch.sensor.SensorContext;
 import org.sonar.api.batch.sensor.SensorDescriptor;
 import org.sonar.api.batch.sensor.issue.NewIssue;
 import org.sonar.api.rule.RuleKey;
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
 
 public class OmnisharpSensor implements Sensor {
+
+  private static final Logger LOG = Loggers.get(OmnisharpSensor.class);
 
   private final OmnisharpServer server;
 
@@ -70,6 +74,9 @@ public class OmnisharpSensor implements Sensor {
     if (context.fileSystem().hasFiles(predicate)) {
       try {
         server.lazyStart(context.fileSystem().baseDir().toPath());
+      } catch (InterruptedException e) {
+        LOG.warn("Interrupted", e);
+        Thread.currentThread().interrupt();
       } catch (Exception e) {
         throw new IllegalStateException("Unable to start OmniSharp", e);
       }
