@@ -61,6 +61,15 @@
           <artifactId>download-maven-plugin</artifactId>
           <version>1.6.3</version>
         </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <!-- To fix https://newbedev.com/surefire-maven-plugin-corrupted-stdout-by-directly-writing-to-native-stream-in-forked-jvm -->
+          <version>3.0.0-M5</version>
+          <configuration>
+            <!-- Activate the use of TCP to transmit events to the plugin -->
+            <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory" />
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
