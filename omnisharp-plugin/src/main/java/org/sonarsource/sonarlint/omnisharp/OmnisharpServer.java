@@ -168,11 +168,11 @@ public class OmnisharpServer implements Startable {
     if (system2.isOsWindows()) {
       processExecutor.command("OmniSharp.exe", "-v", "-s",
         projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
+        "RoslynExtensionsOptions:LocationPaths:0=" + roslynAnalyzerDir.toString());
     } else {
       processExecutor.command("sh", "run", "-v", "-s",
         projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths=" + roslynAnalyzerDir.toString());
+        "RoslynExtensionsOptions:LocationPaths:0=" + roslynAnalyzerDir.toString());
     }
     return processExecutor;
   }
