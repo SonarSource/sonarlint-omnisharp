@@ -50,6 +50,8 @@ import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -164,17 +166,22 @@ public class OmnisharpServer implements Startable {
   }
 
   private ProcessExecutor buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc) {
-    ProcessExecutor processExecutor = new ProcessExecutor().directory(Paths.get(omnisharpLoc).toFile());
+    Path omnisharpPath = Paths.get(omnisharpLoc);
+    List<String> args = new ArrayList<>();
     if (system2.isOsWindows()) {
-      processExecutor.command("OmniSharp.exe", "-v", "-s",
-        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths:0=" + roslynAnalyzerDir.toString());
+      args.add(omnisharpPath.resolve("OmniSharp.exe").toString());
     } else {
-      processExecutor.command("sh", "run", "-v", "-s",
-        projectBaseDir.toString(), "RoslynExtensionsOptions:EnableAnalyzersSupport=true",
-        "RoslynExtensionsOptions:LocationPaths:0=" + roslynAnalyzerDir.toString());
+      args.add("sh");
+      args.add("run");
     }
-    return processExecutor;
+    args.add("-v");
+    args.add("-s");
+    args.add(projectBaseDir.toString());
+    args.add("RoslynExtensionsOptions:EnableAnalyzersSupport=true");
+    args.add("RoslynExtensionsOptions:LocationPaths:0=" + roslynAnalyzerDir.toString());
+    return new ProcessExecutor()
+      .directory(omnisharpPath.toFile())
+      .command(args);
   }
 
   private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JsonObject jsonObject) {
