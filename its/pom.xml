@@ -69,7 +69,6 @@
       <activation>
         <property>
           <name>env.CI</name>
-          <value>true</value>
         </property>
       </activation>
       <build>
@@ -79,7 +78,7 @@
             <artifactId>maven-dependency-plugin</artifactId>
             <executions>
               <execution>
-                <id>copy</id>
+                <id>fetch-artifact-under-test</id>
                 <phase>generate-test-resources</phase>
                 <goals>
                   <goal>copy</goal>
@@ -116,7 +115,7 @@
             <artifactId>download-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>unpack-windows</id>
+                <id>download-omnisharp-windows</id>
                 <phase>generate-test-resources</phase>
                 <goals>
                   <goal>wget</goal>
@@ -146,7 +145,7 @@
             <artifactId>download-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>unpack-windows</id>
+                <id>download-omnisharp-linux</id>
                 <phase>generate-test-resources</phase>
                 <goals>
                   <goal>wget</goal>
