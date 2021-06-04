@@ -224,18 +224,34 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.kuali.maven.plugins</groupId>
-        <artifactId>strip-bom-maven-plugin</artifactId>
-        <version>1.0.5</version>
+        <groupId>org.codehaus.gmaven</groupId>
+        <artifactId>groovy-maven-plugin</artifactId>
+        <version>2.1.1</version>
         <executions>
           <execution>
             <id>strop-bom</id>
             <phase>generate-resources</phase>
             <goals>
-              <goal>strip-bom</goal>
+              <goal>execute</goal>
             </goals>
             <configuration>
-              <file>${sonarAnalyzer.workDirectory}/org/sonar/plugins/csharp/rules.xml</file>
+              <source>
+                import java.nio.ByteBuffer
+                import java.nio.file.Files
+                import java.nio.file.Path
+                import java.nio.file.Paths
+                
+                Path path = Paths.get(properties['sonarAnalyzer.workDirectory'] + '/org/sonar/plugins/csharp/rules.xml')
+                byte[] bytes = Files.readAllBytes(path);
+                ByteBuffer bb = ByteBuffer.wrap(bytes);
+                byte[] bom = new byte[3];
+                // get the first 3 bytes
+                bb.get(bom, 0, bom.length);
+                // remaining
+                byte[] contentAfterFirst3Bytes = new byte[bytes.length - 3];
+                bb.get(contentAfterFirst3Bytes, 0, contentAfterFirst3Bytes.length);
+                Files.write(path, contentAfterFirst3Bytes);
+              </source>
             </configuration>
           </execution>
         </executions>
