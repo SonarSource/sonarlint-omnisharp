@@ -60,7 +60,7 @@ class OmnisharpIntegrationTests {
     Path slHome = tmpDir.resolve("sonarlintHome");
     Files.createDirectories(slHome);
     File pluginJar = FileUtils
-      .listFiles(Paths.get("../omnisharp-plugin/target/").toAbsolutePath().toFile(), new RegexFileFilter("^sonarlint-omnisharp-plugin-([0-9.]+)(-SNAPSHOT)*.jar$"),
+      .listFiles(Paths.get("../omnisharp-plugin/target/").toAbsolutePath().normalize().toFile(), new RegexFileFilter("^sonarlint-omnisharp-plugin-([0-9.]+)(-SNAPSHOT)*.jar$"),
         FalseFileFilter.FALSE)
       .iterator().next();
     StandaloneGlobalConfiguration config = StandaloneGlobalConfiguration.builder()

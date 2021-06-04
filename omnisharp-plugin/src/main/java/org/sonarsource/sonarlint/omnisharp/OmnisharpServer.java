@@ -238,13 +238,12 @@ public class OmnisharpServer implements Startable {
         requestQueuePumper = null;
       }
     }
-    if (output != null) {
-      try {
-        output.close();
-      } catch (IOException e) {
-        LOG.error("Unable to close", e);
-      }
-    }
+    closeOutputStream();
+    waitForProcessToEnd();
+    omnisharpStarted = false;
+  }
+
+  private void waitForProcessToEnd() {
     if (process != null) {
       try {
         process.getFuture().get(1, TimeUnit.MINUTES);
@@ -259,7 +258,16 @@ public class OmnisharpServer implements Startable {
 
       process = null;
     }
-    omnisharpStarted = false;
+  }
+
+  private void closeOutputStream() {
+    if (output != null) {
+      try {
+        output.close();
+      } catch (IOException e) {
+        LOG.error("Unable to close", e);
+      }
+    }
   }
 
   public void codeCheck(String filename, Consumer<OmnisharpDiagnostic> issueHandler) {
