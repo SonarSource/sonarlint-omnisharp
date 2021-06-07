@@ -38,12 +38,12 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
+import org.sonarsource.sonarlint.omnisharp.OmnisharpProtocol.OmnisharpRequest;
 
 public class RequestQueuePumper implements Runnable {
 
@@ -52,7 +52,7 @@ public class RequestQueuePumper implements Runnable {
   public static final int SLEEPING_TIME = 100;
 
   /** the input stream to pump from */
-  private final ConcurrentLinkedQueue<String> requestQueue;
+  private final Queue<OmnisharpRequest> requestQueue;
 
   /** the output stream to pmp into */
   private final OutputStream os;
@@ -66,7 +66,7 @@ public class RequestQueuePumper implements Runnable {
    * @param is input stream to read data from
    * @param os output stream to write data to.
    */
-  public RequestQueuePumper(final ConcurrentLinkedQueue<String> requestQueue, final OutputStream os) {
+  public RequestQueuePumper(final Queue<OmnisharpRequest> requestQueue, final OutputStream os) {
     this.requestQueue = requestQueue;
     this.os = os;
     this.stop = false;
@@ -81,9 +81,9 @@ public class RequestQueuePumper implements Runnable {
     try {
       while (!stop) {
         while (!requestQueue.isEmpty() && !stop) {
-          String requestJson = requestQueue.poll();
-          if (requestJson != null) {
-            os.write(requestJson.getBytes(StandardCharsets.UTF_8));
+          OmnisharpRequest request = requestQueue.poll();
+          if (request != null) {
+            os.write(request.getJsonPayload().getBytes(StandardCharsets.UTF_8));
             os.write("\n".getBytes(StandardCharsets.UTF_8));
           }
         }

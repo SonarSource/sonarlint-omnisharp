@@ -38,13 +38,7 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -55,16 +49,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
-import javax.annotation.Nullable;
 import org.sonar.api.Startable;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.scanner.ScannerSide;
@@ -88,12 +77,7 @@ public class OmnisharpServer implements Startable {
   private static final String ROSLYN_ANALYZER_LOCATION = "sonarAnalyzer";
 
   private StartedProcess process;
-  private long requestId = 1;
-  private final Map<Long, JsonObject> responseQueue = new ConcurrentHashMap<>();
   private volatile boolean omnisharpStarted;
-  private final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
-
-  private RequestQueuePumper requestQueuePumper;
 
   private PipedOutputStream output;
 
@@ -107,9 +91,12 @@ public class OmnisharpServer implements Startable {
 
   private Path cachedProjectBaseDir;
 
-  public OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config) {
+  private final OmnisharpProtocol omnisharpProtocol;
+
+  public OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config, OmnisharpProtocol omnisharpProtocol) {
     this.system2 = system2;
     this.tempFolder = tempFolder;
+    this.omnisharpProtocol = omnisharpProtocol;
     this.omnisharpLocOpt = config.get(CSharpPropertyDefinitions.getOmnisharpLocation());
   }
 
@@ -133,20 +120,7 @@ public class OmnisharpServer implements Startable {
     PipedInputStream input = new PipedInputStream(output);
     String omnisharpLoc = omnisharpLocOpt.orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
     ProcessExecutor processExecutor = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
-    processExecutor.redirectOutput(new LogOutputStream() {
-      @Override
-      protected void processLine(String line) {
-        JsonObject jsonObject;
-        try {
-          jsonObject = JsonParser.parseString(line).getAsJsonObject();
-        } catch (JsonParseException e) {
-          LOG.debug(line);
-          return;
-        }
-        handleJsonMessage(startLatch, firstUpdateProjectLatch, line, jsonObject);
-      }
-
-    })
+    processExecutor.redirectOutput(omnisharpProtocol.buildOutputStreamHandler(startLatch, firstUpdateProjectLatch))
       .redirectError(new LogOutputStream() {
 
         @Override
@@ -156,21 +130,25 @@ public class OmnisharpServer implements Startable {
       })
       .redirectInput(input)
       .destroyOnExit();
+
     LOG.info("Starting OmniSharp...");
     process = processExecutor.start();
     if (!startLatch.await(1, TimeUnit.MINUTES)) {
+      process.getProcess().destroyForcibly();
       throw new IllegalStateException("Timeout waiting for Omnisharp server to start");
     }
     LOG.info("OmniSharp successfully started");
+
     LOG.info("Waiting for solution/project configuration to be loaded...");
     if (!firstUpdateProjectLatch.await(1, TimeUnit.MINUTES)) {
+      process.getProcess().destroyForcibly();
       throw new IllegalStateException("Timeout waiting for solution/project configuration to be loaded");
     }
     LOG.info("Solution/project configuration loaded");
+
     omnisharpStarted = true;
 
-    requestQueuePumper = new RequestQueuePumper(requestQueue, output);
-    new Thread(requestQueuePumper).start();
+    omnisharpProtocol.startRequestQueuePumper(output);
   }
 
   private ProcessExecutor buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc) {
@@ -190,45 +168,6 @@ public class OmnisharpServer implements Startable {
     return new ProcessExecutor()
       .directory(omnisharpPath.toFile())
       .command(args);
-  }
-
-  private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JsonObject jsonObject) {
-    String type = jsonObject.get("Type").getAsString();
-    switch (type) {
-      case "response":
-        long reqSeq = jsonObject.get("Request_seq").getAsLong();
-        responseQueue.put(reqSeq, jsonObject);
-        break;
-      case "event":
-        String eventType = jsonObject.get("Event").getAsString();
-        switch (eventType) {
-          case "log":
-            handleLog(jsonObject.get("Body").getAsJsonObject());
-            break;
-          case "started":
-            startLatch.countDown();
-            break;
-          case "ProjectAdded":
-          case "ProjectChanged":
-          case "ProjectRemoved":
-            firstUpdateProjectLatch.countDown();
-            break;
-          case "Diagnostic":
-            // For now we ignore diagnostics "pushed" by Omnisharp
-            break;
-          default:
-            LOG.debug(line);
-        }
-        break;
-      default:
-        LOG.debug(line);
-    }
-  }
-
-  private void handleLog(JsonObject jsonObject) {
-    String level = jsonObject.get("LogLevel").getAsString();
-    String message = jsonObject.get("Message").getAsString();
-    LOG.debug("Omnisharp: [" + level + "] " + message);
   }
 
   @Override
@@ -262,11 +201,8 @@ public class OmnisharpServer implements Startable {
   public synchronized void stop() {
     if (omnisharpStarted) {
       LOG.info("Stopping OmniSharp");
-      makeSyncRequest("/stopserver", null);
-      if (requestQueuePumper != null) {
-        requestQueuePumper.stopProcessing();
-        requestQueuePumper = null;
-      }
+      omnisharpProtocol.stopServer();
+      omnisharpProtocol.stopRequestQueuePumper();
     }
     closeOutputStream();
     waitForProcessToEnd();
@@ -298,65 +234,6 @@ public class OmnisharpServer implements Startable {
         LOG.error("Unable to close", e);
       }
     }
-  }
-
-  public void codeCheck(File f, Consumer<OmnisharpDiagnostic> issueHandler) {
-    JsonObject args = new JsonObject();
-    args.addProperty("FileName", f.getAbsolutePath());
-    JsonObject resp = makeSyncRequest("/codecheck", args);
-    handle(resp, issueHandler);
-  }
-
-  public void updateBuffer(File f, String buffer) {
-    JsonObject args = new JsonObject();
-    args.addProperty("FileName", f.getAbsolutePath());
-    args.addProperty("Buffer", buffer);
-    makeSyncRequest("/updatebuffer", args);
-  }
-
-  private void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
-    JsonObject body = response.get("Body").getAsJsonObject();
-    JsonArray issues = body.get("QuickFixes").getAsJsonArray();
-    issues.forEach(i -> {
-      JsonObject issue = i.getAsJsonObject();
-      String ruleId = issue.get("Id").getAsString();
-      if (!ruleId.startsWith("S")) {
-        // Ignore non SonarCS issues
-        return;
-      }
-      OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
-      diag.id = ruleId;
-      diag.line = issue.get("Line").getAsInt();
-      diag.column = issue.get("Column").getAsInt();
-      diag.endLine = issue.get("EndLine").getAsInt();
-      diag.endColumn = issue.get("EndColumn").getAsInt();
-      diag.text = issue.get("Text").getAsString();
-      issueHandler.accept(diag);
-    });
-  }
-
-  private JsonObject makeSyncRequest(String command, @Nullable JsonObject dataJson) {
-    long id = requestId++;
-    JsonObject args = new JsonObject();
-    args.addProperty("Type", "request");
-    args.addProperty("Seq", id);
-    args.addProperty("Command", command);
-    args.add("Arguments", dataJson);
-    String requestJson = new Gson().toJson(args);
-    LOG.debug("Request: " + requestJson);
-    requestQueue.add(requestJson);
-    long t = System.currentTimeMillis();
-    while (System.currentTimeMillis() < t + 10_000) {
-      if (responseQueue.containsKey(id)) {
-        return responseQueue.remove(id);
-      }
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-    throw new IllegalStateException("timeout");
   }
 
 }

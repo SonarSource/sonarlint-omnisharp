@@ -57,12 +57,13 @@ public class CSharpPlugin implements Plugin {
   @Override
   public void define(Context context) {
     if (context.getRuntime().getProduct() == SonarProduct.SONARLINT) {
-      context.addExtension(OmnisharpServer.class);
-      context.addExtension(OmnisharpSensor.class);
+      context.addExtensions(
+        OmnisharpServer.class,
+        OmnisharpSensor.class,
+        OmnisharpProtocol.class);
     }
 
     context.addExtensions(
-      // language-specific
       CSharp.class,
       CSharpSonarRulesDefinition.class);
 

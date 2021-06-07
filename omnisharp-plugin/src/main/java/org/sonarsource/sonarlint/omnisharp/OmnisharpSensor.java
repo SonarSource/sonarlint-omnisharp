@@ -54,9 +54,11 @@ public class OmnisharpSensor implements Sensor {
   private static final Logger LOG = Loggers.get(OmnisharpSensor.class);
 
   private final OmnisharpServer server;
+  private final OmnisharpProtocol omnisharpProtocol;
 
-  public OmnisharpSensor(OmnisharpServer server) {
+  public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol) {
     this.server = server;
+    this.omnisharpProtocol = omnisharpProtocol;
   }
 
   @Override
@@ -88,8 +90,8 @@ public class OmnisharpSensor implements Sensor {
       } catch (IOException e) {
         throw new IllegalStateException("Unable to read file buffer", e);
       }
-      server.updateBuffer(f.file(), buffer);
-      server.codeCheck(f.file(), diag -> handle(context, f, diag));
+      omnisharpProtocol.updateBuffer(f.file(), buffer);
+      omnisharpProtocol.codeCheck(f.file(), diag -> handle(context, f, diag));
     }
   }
 
