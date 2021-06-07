@@ -41,6 +41,7 @@ package org.sonarsource.sonarlint.omnisharp;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.File;
@@ -135,7 +136,13 @@ public class OmnisharpServer implements Startable {
     processExecutor.redirectOutput(new LogOutputStream() {
       @Override
       protected void processLine(String line) {
-        JsonObject jsonObject = JsonParser.parseString(line).getAsJsonObject();
+        JsonObject jsonObject;
+        try {
+          jsonObject = JsonParser.parseString(line).getAsJsonObject();
+        } catch (JsonParseException e) {
+          LOG.debug(line);
+          return;
+        }
         handleJsonMessage(startLatch, firstUpdateProjectLatch, line, jsonObject);
       }
 
@@ -205,6 +212,9 @@ public class OmnisharpServer implements Startable {
           case "ProjectChanged":
           case "ProjectRemoved":
             firstUpdateProjectLatch.countDown();
+            break;
+          case "Diagnostic":
+            // For now we ignore diagnostics "pushed" by Omnisharp
             break;
           default:
             LOG.debug(line);
