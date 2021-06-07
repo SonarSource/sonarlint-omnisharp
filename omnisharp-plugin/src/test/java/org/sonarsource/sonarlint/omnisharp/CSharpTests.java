@@ -19,20 +19,20 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sonar.api.config.PropertyDefinitions;
 import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.resources.AbstractLanguage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CSharpTest {
+class CSharpTests {
 
   private MapSettings settings;
   private CSharp csharp;
 
-  @Before
+  @BeforeEach
   public void init() {
     PropertyDefinitions defs = new PropertyDefinitions(
       new CSharpPropertyDefinitions().create());
@@ -41,18 +41,18 @@ public class CSharpTest {
   }
 
   @Test
-  public void shouldGetDefaultFileSuffixes() {
+  void shouldGetDefaultFileSuffixes() {
     assertThat(csharp.getFileSuffixes()).containsOnly(".cs");
   }
 
   @Test
-  public void shouldGetCustomFileSuffixes() {
+  void shouldGetCustomFileSuffixes() {
     settings.setProperty(CSharpPlugin.FILE_SUFFIXES_KEY, ".cs,.csharp");
     assertThat(csharp.getFileSuffixes()).containsOnly(".cs", ".csharp");
   }
 
   @Test
-  public void equals_and_hashCode_considers_configuration() {
+  void equals_and_hashCode_considers_configuration() {
     MapSettings otherSettings = new MapSettings();
     otherSettings.setProperty("key", "value");
     CSharp otherCSharp = new CSharp(otherSettings.asConfig());

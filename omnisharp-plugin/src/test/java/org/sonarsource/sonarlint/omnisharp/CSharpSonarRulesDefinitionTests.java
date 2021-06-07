@@ -19,7 +19,7 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sonar.api.rules.RuleType;
 import org.sonar.api.server.debt.DebtRemediationFunction;
 import org.sonar.api.server.rule.RulesDefinition;
@@ -28,12 +28,12 @@ import org.sonar.api.server.rule.RulesDefinition.Rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CSharpSonarRulesDefinitionTest {
+class CSharpSonarRulesDefinitionTests {
   private static final String SECURITY_HOTSPOT_RULE_KEY = "S5766";
   private static final String VULNERABILITY_RULE_KEY = "S4426";
 
   @Test
-  public void test() {
+  void test() {
     Context context = new Context();
     assertThat(context.repositories()).isEmpty();
 
@@ -50,7 +50,7 @@ public class CSharpSonarRulesDefinitionTest {
   }
 
   @Test
-  public void test_security_hotspot() {
+  void test_security_hotspot() {
     CSharpSonarRulesDefinition definition = new CSharpSonarRulesDefinition();
     RulesDefinition.Context context = new RulesDefinition.Context();
     definition.define(context);
@@ -62,7 +62,7 @@ public class CSharpSonarRulesDefinitionTest {
   }
 
   @Test
-  public void test_security_hotspot_has_correct_type_and_security_standards() {
+  void test_security_hotspot_has_correct_type_and_security_standards() {
     CSharpSonarRulesDefinition definition = new CSharpSonarRulesDefinition();
     RulesDefinition.Context context = new RulesDefinition.Context();
     definition.define(context);
@@ -74,7 +74,7 @@ public class CSharpSonarRulesDefinitionTest {
   }
 
   @Test
-  public void test_security_standards_with_vulnerability() {
+  void test_security_standards_with_vulnerability() {
     CSharpSonarRulesDefinition definition = new CSharpSonarRulesDefinition();
     RulesDefinition.Context context = new RulesDefinition.Context();
     definition.define(context);
@@ -86,7 +86,7 @@ public class CSharpSonarRulesDefinitionTest {
   }
 
   @Test
-  public void test_all_rules_have_status_set() {
+  void test_all_rules_have_status_set() {
     CSharpSonarRulesDefinition definition = new CSharpSonarRulesDefinition();
     RulesDefinition.Context context = new RulesDefinition.Context();
     definition.define(context);

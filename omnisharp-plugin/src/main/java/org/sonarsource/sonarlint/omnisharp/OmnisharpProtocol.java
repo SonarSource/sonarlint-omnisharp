@@ -41,7 +41,6 @@ package org.sonarsource.sonarlint.omnisharp;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import java.io.File;
 import java.io.PipedOutputStream;
@@ -78,7 +77,7 @@ public class OmnisharpProtocol {
         JsonObject jsonObject;
         try {
           jsonObject = JsonParser.parseString(line).getAsJsonObject();
-        } catch (JsonParseException e) {
+        } catch (Exception e) {
           LOG.debug(line);
           return;
         }
