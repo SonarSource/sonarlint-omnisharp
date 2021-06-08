@@ -80,15 +80,17 @@ public class RequestQueuePumper implements Runnable {
   public void run() {
     try {
       while (!stop) {
-        while (!requestQueue.isEmpty() && !stop) {
-          OmnisharpRequest request = requestQueue.poll();
-          if (request != null) {
-            os.write(request.getJsonPayload().getBytes(StandardCharsets.UTF_8));
-            os.write("\n".getBytes(StandardCharsets.UTF_8));
+        synchronized (requestQueue) {
+          while (!requestQueue.isEmpty() && !stop) {
+            OmnisharpRequest request = requestQueue.poll();
+            if (request != null) {
+              os.write(request.getJsonPayload().getBytes(StandardCharsets.UTF_8));
+              os.write("\n".getBytes(StandardCharsets.UTF_8));
+            }
           }
+          os.flush();
+          requestQueue.wait(SLEEPING_TIME);
         }
-        os.flush();
-        Thread.sleep(SLEEPING_TIME);
       }
     } catch (Exception e) {
       LOG.error("Got exception while reading/writing the stream", e);

@@ -25,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.sonar.api.utils.System2;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,7 +35,7 @@ class OmnisharpProtocolTests {
   @ParameterizedTest
   @ValueSource(strings = {"ProjectAdded", "ProjectChanged", "ProjectRemoved"})
   void testStartLatch(String firstConfigEvent) throws IOException {
-    OmnisharpProtocol underTest = new OmnisharpProtocol();
+    OmnisharpProtocol underTest = new OmnisharpProtocol(System2.INSTANCE);
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateLatch = new CountDownLatch(1);
     LogOutputStream handler = underTest.buildOutputStreamHandler(startLatch, firstUpdateLatch);

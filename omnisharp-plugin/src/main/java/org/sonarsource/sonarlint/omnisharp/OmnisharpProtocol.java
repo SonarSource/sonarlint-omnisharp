@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.sonar.api.scanner.ScannerSide;
+import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
@@ -69,6 +70,12 @@ public class OmnisharpProtocol {
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
   private RequestQueuePumper requestQueuePumper;
+
+  private final System2 system2;
+
+  public OmnisharpProtocol(System2 system2) {
+    this.system2 = system2;
+  }
 
   LogOutputStream buildOutputStreamHandler(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch) {
     return new LogOutputStream() {
@@ -157,8 +164,18 @@ public class OmnisharpProtocol {
   }
 
   public void stopServer() {
-    // Don't wait for response, because on Windows the process seems to die before receiving response
-    doRequest("/stopserver", null);
+    if (system2.isOsWindows()) {
+      // Don't wait for response, because on Windows the process seems to die before receiving response
+      doRequest("/stopserver", null);
+      // Give enough time for the /stopserver request to be consummed
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    } else {
+      doRequestAndWaitForResponse("/stopserver", null);
+    }
   }
 
   private void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
@@ -188,7 +205,7 @@ public class OmnisharpProtocol {
 
     OmnisharpResponseHandler omnisharpResponseHandler = new OmnisharpResponseHandler();
     responseLatchQueue.put(id, omnisharpResponseHandler);
-    requestQueue.add(req);
+    enqueue(req);
     try {
       if (!omnisharpResponseHandler.responseLatch.await(1, TimeUnit.MINUTES)) {
         throw new IllegalStateException("Timeout waiting for request: " + command);
@@ -202,10 +219,17 @@ public class OmnisharpProtocol {
     }
   }
 
+  private void enqueue(OmnisharpRequest req) {
+    synchronized (requestQueue) {
+      requestQueue.add(req);
+      requestQueue.notifyAll();
+    }
+  }
+
   private void doRequest(String command, @Nullable JsonObject dataJson) {
     long id = requestId.getAndIncrement();
     OmnisharpRequest req = buildRequest(command, dataJson, id);
-    requestQueue.add(req);
+    enqueue(req);
   }
 
   private OmnisharpRequest buildRequest(String command, JsonObject dataJson, long id) {
