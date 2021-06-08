@@ -46,6 +46,7 @@ import org.zeroturnaround.exec.stream.LogOutputStream;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -201,7 +202,7 @@ class OmnisharpProtocolTests {
     t.start();
 
     await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
-      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/updatebuffer\",\"Arguments\":{\"FileName\":\"" + f.getAbsolutePath() + "\",\"Buffer\":\"Some content\"}}"));
+      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/updatebuffer\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\",\"Buffer\":\"Some content\"}}"));
 
     emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
 
@@ -233,7 +234,7 @@ class OmnisharpProtocolTests {
       + "        \"LogLevel\": \"Warning\","
       + "        \"Id\": \"S1118\","
       + "        \"Tags\": [],"
-      + "        \"FileName\": \"" + f.getAbsolutePath() + "\","
+      + "        \"FileName\": \"" + toJsonAbsolutePath(f) + "\","
       + "        \"Line\": 5,"
       + "        \"Column\": 11,"
       + "        \"EndLine\": 5,"
@@ -249,7 +250,7 @@ class OmnisharpProtocolTests {
       + "        \"Tags\": ["
       + "          \"Unnecessary\""
       + "        ],"
-      + "        \"FileName\": \"" + f.getAbsolutePath() + "\","
+      + "        \"FileName\": \"" + toJsonAbsolutePath(f) + "\","
       + "        \"Line\": 7,"
       + "        \"Column\": 35,"
       + "        \"EndLine\": 7,"
@@ -262,7 +263,8 @@ class OmnisharpProtocolTests {
       + "    ]"
       + "  }");
 
-    assertThat(issues).isEmpty();
+    assertThat(issues).extracting(o -> o.id, o -> o.line, o -> o.column, o -> o.endLine, o -> o.endColumn, o -> o.text)
+      .containsOnly(tuple("S1118", 5, 11, 5, 18, "Add a 'protected' constructor or the 'static' keyword to the class declaration."));
   }
 
   private void doCodeCheck(File f, List<OmnisharpDiagnostic> issues, String jsonBody) throws IOException, InterruptedException {
@@ -273,7 +275,7 @@ class OmnisharpProtocolTests {
     t.start();
 
     await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
-      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/codecheck\",\"Arguments\":{\"FileName\":\"" + f.getAbsolutePath() + "\"}}"));
+      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/codecheck\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\"}}"));
 
     emulateReceivedMessage("{"
       + "  \"Request_seq\": 1,"
@@ -288,6 +290,10 @@ class OmnisharpProtocolTests {
 
     // wait for codeCheck to finish
     t.join(1000);
+  }
+
+  private String toJsonAbsolutePath(File f) {
+    return f.getAbsolutePath().replaceAll("\\\\", "\\\\");
   }
 
   private void emulateReceivedMessage(String msg) throws IOException {
