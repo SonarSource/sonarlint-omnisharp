@@ -219,7 +219,7 @@ public class OmnisharpProtocol {
     }
   }
 
-  private void enqueue(OmnisharpRequest req) {
+  void enqueue(OmnisharpRequest req) {
     synchronized (requestQueue) {
       requestQueue.add(req);
       requestQueue.notifyAll();
@@ -242,7 +242,7 @@ public class OmnisharpProtocol {
     return new OmnisharpRequest(new Gson().toJson(args));
   }
 
-  class OmnisharpRequest {
+  static class OmnisharpRequest {
     private final String jsonPayload;
 
     OmnisharpRequest(String jsonPayload) {
@@ -254,7 +254,7 @@ public class OmnisharpProtocol {
     }
   }
 
-  class OmnisharpResponseHandler {
+  static class OmnisharpResponseHandler {
     JsonObject response;
     CountDownLatch responseLatch = new CountDownLatch(1);
   }

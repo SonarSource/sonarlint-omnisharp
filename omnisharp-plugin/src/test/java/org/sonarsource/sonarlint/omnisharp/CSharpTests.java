@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.sonar.api.config.PropertyDefinitions;
 import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.resources.AbstractLanguage;
+import org.sonar.api.utils.System2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,7 +35,7 @@ class CSharpTests {
 
   @BeforeEach
   public void init() {
-    PropertyDefinitions defs = new PropertyDefinitions(
+    PropertyDefinitions defs = new PropertyDefinitions(System2.INSTANCE,
       new CSharpPropertyDefinitions().create());
     settings = new MapSettings(defs);
     csharp = new CSharp(settings.asConfig());
