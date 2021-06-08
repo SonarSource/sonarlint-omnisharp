@@ -145,7 +145,7 @@ public class OmnisharpProtocol {
   public void codeCheck(File f, Consumer<OmnisharpDiagnostic> issueHandler) {
     JsonObject args = new JsonObject();
     args.addProperty("FileName", f.getAbsolutePath());
-    JsonObject resp = makeSyncRequest("/codecheck", args);
+    JsonObject resp = doRequestAndWaitForResponse("/codecheck", args);
     handle(resp, issueHandler);
   }
 
@@ -153,11 +153,12 @@ public class OmnisharpProtocol {
     JsonObject args = new JsonObject();
     args.addProperty("FileName", f.getAbsolutePath());
     args.addProperty("Buffer", buffer);
-    makeSyncRequest("/updatebuffer", args);
+    doRequestAndWaitForResponse("/updatebuffer", args);
   }
 
   public void stopServer() {
-    makeSyncRequest("/stopserver", null);
+    // Don't wait for response, because on Windows the process seems to die before receiving response
+    doRequest("/stopserver", null);
   }
 
   private void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
@@ -181,15 +182,13 @@ public class OmnisharpProtocol {
     });
   }
 
-  private JsonObject makeSyncRequest(String command, @Nullable JsonObject dataJson) {
+  private JsonObject doRequestAndWaitForResponse(String command, @Nullable JsonObject dataJson) {
     long id = requestId.getAndIncrement();
-    JsonObject args = new JsonObject();
-    args.addProperty("Type", "request");
-    args.addProperty("Seq", id);
-    args.addProperty("Command", command);
-    args.add("Arguments", dataJson);
+    OmnisharpRequest req = buildRequest(command, dataJson, id);
 
-    OmnisharpResponseHandler omnisharpResponseHandler = enqueue(id, args);
+    OmnisharpResponseHandler omnisharpResponseHandler = new OmnisharpResponseHandler();
+    responseLatchQueue.put(id, omnisharpResponseHandler);
+    requestQueue.add(req);
     try {
       if (!omnisharpResponseHandler.responseLatch.await(1, TimeUnit.MINUTES)) {
         throw new IllegalStateException("Timeout waiting for request: " + command);
@@ -203,13 +202,20 @@ public class OmnisharpProtocol {
     }
   }
 
-  private OmnisharpResponseHandler enqueue(long id, JsonObject args) {
-    OmnisharpRequest req = new OmnisharpRequest(new Gson().toJson(args));
-
-    OmnisharpResponseHandler omnisharpResponseHandler = new OmnisharpResponseHandler();
-    responseLatchQueue.put(id, omnisharpResponseHandler);
+  private void doRequest(String command, @Nullable JsonObject dataJson) {
+    long id = requestId.getAndIncrement();
+    OmnisharpRequest req = buildRequest(command, dataJson, id);
     requestQueue.add(req);
-    return omnisharpResponseHandler;
+  }
+
+  private OmnisharpRequest buildRequest(String command, JsonObject dataJson, long id) {
+    JsonObject args = new JsonObject();
+    args.addProperty("Type", "request");
+    args.addProperty("Seq", id);
+    args.addProperty("Command", command);
+    args.add("Arguments", dataJson);
+
+    return new OmnisharpRequest(new Gson().toJson(args));
   }
 
   class OmnisharpRequest {
