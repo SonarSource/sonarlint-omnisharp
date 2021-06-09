@@ -168,6 +168,8 @@ stages:
                imageName: 'ubuntu-latest'
              Windows:
                imageName: 'windows-latest'
+             MacOS:
+               imageName: 'macOS-latest'
           variables:
             MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
             MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'

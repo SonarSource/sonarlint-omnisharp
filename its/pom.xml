@@ -142,6 +142,7 @@
       <id>omnisharp-linux</id>
       <activation>
         <os>
+          <family>unix</family>
           <name>Linux</name>
         </os>
       </activation>
@@ -159,6 +160,36 @@
                 </goals>
                 <configuration>
                   <url>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/${omnisharp.version}/omnisharp-linux-x64.zip</url>
+                  <unpack>true</unpack>
+                  <outputDirectory>${project.build.directory}/omnisharp</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>omnisharp-macos</id>
+      <activation>
+        <os>
+          <family>mac</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.googlecode.maven-download-plugin</groupId>
+            <artifactId>download-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>download-omnisharp-macos</id>
+                <phase>generate-test-resources</phase>
+                <goals>
+                  <goal>wget</goal>
+                </goals>
+                <configuration>
+                  <url>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/${omnisharp.version}/omnisharp-osx.zip</url>
                   <unpack>true</unpack>
                   <outputDirectory>${project.build.directory}/omnisharp</outputDirectory>
                 </configuration>
