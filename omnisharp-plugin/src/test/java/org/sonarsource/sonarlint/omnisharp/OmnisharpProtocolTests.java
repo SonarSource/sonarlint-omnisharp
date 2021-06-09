@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.regex.Matcher;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -293,7 +294,7 @@ class OmnisharpProtocolTests {
   }
 
   private String toJsonAbsolutePath(File f) {
-    return f.getAbsolutePath().replaceAll("\\\\", "\\\\");
+    return f.getAbsolutePath().replaceAll("\\\\", Matcher.quoteReplacement("\\\\"));
   }
 
   private void emulateReceivedMessage(String msg) throws IOException {
