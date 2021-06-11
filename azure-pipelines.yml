@@ -4,6 +4,23 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+# Temporarily disable the "main" analysis for changes in the dotnet subfolder.
+# Will be removed as part of #2 later.
+pr:
+  branches:
+    exclude:
+    - branch-dotnet
+    - rg/*
+    - dp/*
+
+trigger:
+  branches:
+    exclude:
+    - branch-dotnet
+    - rg/*
+    - dp/*
+
+
 variables:
   - group: sonarsource-build-variables
 
