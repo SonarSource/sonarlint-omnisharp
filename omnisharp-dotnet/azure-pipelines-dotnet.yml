@@ -15,10 +15,35 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
+  slnPath: 'omnisharp-dotent/SonarLint.OmniSharp.Plugin.sln'
 
 steps:
-- script: dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --locked-mode
-  displayName: 'Restore NuGet packages (locked mode)'
+
+#- script: dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --locked-mode
+#  displayName: 'Restore NuGet packages (locked mode)'
   
-- script: dotnet build omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --configuration $(buildConfiguration)
-  displayName: 'dotnet build omnisharp-dotnet $(buildConfiguration)'
+#- script: dotnet build omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --configuration $(buildConfiguration)
+#  displayName: 'dotnet build omnisharp-dotnet $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: $(slnPath)
+    restoreArguments: '--locked-mode'
+    feedsToUse: 'select'
+    vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
+    includeNuGetOrg: false
+  
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: $(slnPath)
+    configuration: $(buildConfiguration)
+  
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'test'
+    projects: $(slnPath)
+    configuration: $(buildConfiguration)
+    nobuild: true
+    testRunTitle: '.NET unit tests'
