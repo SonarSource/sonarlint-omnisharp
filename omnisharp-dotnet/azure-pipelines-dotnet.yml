@@ -33,6 +33,14 @@ steps:
     feedsToUse: 'select'
     vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
     includeNuGetOrg: false
+
+
+- task: SonarQubePrepare@4
+  inputs:
+    SonarQube: 'Next'
+    scannerMode: 'MSBuild'
+    projectKey: 'sonarlint-omnisharp-dotnet'
+    projectName: 'sonarlint-omnisharp-dotnet'
   
 - task: DotNetCoreCLI@2
   inputs:
@@ -47,3 +55,6 @@ steps:
     configuration: $(buildConfiguration)
     nobuild: true
     testRunTitle: '.NET unit tests'
+    
+
+- task: SonarQubeAnalyze@4
