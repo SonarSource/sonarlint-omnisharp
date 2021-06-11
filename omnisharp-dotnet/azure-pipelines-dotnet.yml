@@ -15,7 +15,7 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
-  slnPath: 'omnisharp-dotent/SonarLint.OmniSharp.Plugin.sln'
+  slnPath: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
 
 steps:
 
