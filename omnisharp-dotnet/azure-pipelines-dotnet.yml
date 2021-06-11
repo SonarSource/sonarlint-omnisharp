@@ -50,6 +50,7 @@ steps:
     command: 'test'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
+    arguments: '--collect "Code coverage"'
     nobuild: true
     testRunTitle: '.NET unit tests'
     
