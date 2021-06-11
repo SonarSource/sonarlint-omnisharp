@@ -1,0 +1,21 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+# TODO - change triggers as part of #2
+trigger:
+- branch-dotnet
+
+pr:
+- branch-dotnet
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- script: dotnet build omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --configuration $(buildConfiguration)
+  displayName: 'dotnet build omnisharp-dotnet $(buildConfiguration)'
