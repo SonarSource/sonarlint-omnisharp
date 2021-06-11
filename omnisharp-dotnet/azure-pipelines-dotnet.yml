@@ -26,6 +26,7 @@ steps:
 #  displayName: 'dotnet build omnisharp-dotnet $(buildConfiguration)'
 
 - task: DotNetCoreCLI@2
+  displayName: 'Restore NuGet packages'
   inputs:
     command: 'restore'
     projects: $(slnPath)
@@ -43,12 +44,14 @@ steps:
     projectName: 'sonarlint-omnisharp-dotnet'
   
 - task: DotNetCoreCLI@2
+  displayName: 'dotnet build'
   inputs:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
   
 - task: DotNetCoreCLI@2
+  displayName: 'Run .NET unit tests'
   inputs:
     command: 'test'
     projects: $(slnPath)
@@ -56,5 +59,4 @@ steps:
     nobuild: true
     testRunTitle: '.NET unit tests'
     
-
 - task: SonarQubeAnalyze@4
