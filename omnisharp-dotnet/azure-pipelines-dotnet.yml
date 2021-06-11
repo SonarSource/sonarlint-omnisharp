@@ -17,7 +17,7 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet restore --locked-mode
+- script: dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --locked-mode
   displayName: 'Restore NuGet packages (locked mode)'
   
 - script: dotnet build omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln --configuration $(buildConfiguration)
