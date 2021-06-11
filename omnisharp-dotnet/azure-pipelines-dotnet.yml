@@ -3,8 +3,12 @@
 # Add steps that run tests, create a NuGet package, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
+# TODO - change triggers as part of #2
 trigger:
-- main
+- branch-dotnet
+
+pr:
+- branch-dotnet
 
 pool:
   vmImage: ubuntu-latest
