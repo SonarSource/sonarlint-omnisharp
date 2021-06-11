@@ -14,8 +14,11 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  buildConfiguration: 'Release'
-  slnPath: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
+  - group: sonarsource-build-variables
+  - name: buildConfiguration
+    value: 'Release'
+  - name: slnPath
+    value: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
 
 steps:
 
