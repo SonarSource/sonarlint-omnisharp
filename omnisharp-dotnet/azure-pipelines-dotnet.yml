@@ -36,6 +36,14 @@ steps:
     scannerMode: 'MSBuild'
     projectKey: 'sonarlint-omnisharp-dotnet'
     projectName: 'sonarlint-omnisharp-dotnet'
+# TODO - set project version
+#    projectVersion: '$(SONAR_PROJECT_VERSION)'
+    extraProperties: |
+      sonar.analysis.buildNumber=$(Build.BuildId)
+      sonar.analysis.pipeline=$(Build.BuildId)
+      sonar.analysis.sha1=$(System.PullRequest.SourceCommitId)
+      sonar.analysis.prNumber=$(System.PullRequest.PullRequestNumber)
+      sonar.analysis.repository=$(Build.Repository.ID)
   
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
