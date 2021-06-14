@@ -28,3 +28,6 @@ Icon?
 Thumbs.db 
 # Folder config file
 Desktop.ini
+/its/src/test/projects/ConsoleApp1/ConsoleApp1/obj
+/its/src/test/projects/ConsoleApp1/ConsoleApp1/bin
+/omnisharp-plugin/.vs
