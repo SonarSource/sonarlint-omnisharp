@@ -8,7 +8,7 @@ pr:
 - branch-dotnet
 
 pool:
-  vmImage: windows-latest
+  vmImage: ubuntu-latest
 
 variables:
   - group: sonarsource-build-variables
@@ -38,12 +38,14 @@ steps:
     projectName: 'sonarlint-omnisharp-dotnet'
 # TODO - set project version
 #    projectVersion: '$(SONAR_PROJECT_VERSION)'
+# NOTE: we're using coverlet -> openxml format for code coverage so we can run on non-Windows agents
     extraProperties: |
       sonar.analysis.buildNumber=$(Build.BuildId)
       sonar.analysis.pipeline=$(Build.BuildId)
       sonar.analysis.sha1=$(System.PullRequest.SourceCommitId)
       sonar.analysis.prNumber=$(System.PullRequest.PullRequestNumber)
       sonar.analysis.repository=$(Build.Repository.ID)
+      sonar.cs.opencover.reportsPaths="$(Build.SourcesDirectory)/**/TestResults/coverage.**.xml"
   
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
@@ -58,7 +60,7 @@ steps:
     command: 'test'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '--collect "Code coverage"'
+    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover'
     nobuild: true
     testRunTitle: '.NET unit tests'
     
