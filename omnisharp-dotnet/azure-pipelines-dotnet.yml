@@ -59,7 +59,7 @@ steps:
     command: 'test'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '--collect "Code coverage" -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover'
+    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover'
     nobuild: true
     testRunTitle: '.NET unit tests'
     
