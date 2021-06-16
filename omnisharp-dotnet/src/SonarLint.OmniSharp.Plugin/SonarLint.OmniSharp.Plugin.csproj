@@ -5,13 +5,26 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- We need to target Microsoft.CodeAnalysis version that is netstandard2.0 and 
-         is the same version or older than what OmniSharp uses. 
-         Any matching version will do, it doesn't have to be 3.9.0 --> 
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.9.0" />
-    
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.10.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.12" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.12" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.ComponentModel.Composition" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="OmniSharp.Abstractions, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="OmniSharp.Roslyn, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Roslyn.dll</HintPath>
+    </Reference>
+    <Reference Include="OmniSharp.Roslyn.CSharp, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Roslyn.CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="OmniSharp.Shared, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Shared.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

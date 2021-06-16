@@ -14,6 +14,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.10.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.6.1" />
     <PackageReference Include="Moq" Version="4.14.5" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.4.0" />
@@ -22,6 +23,18 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SonarLint.OmniSharp.Plugin\SonarLint.OmniSharp.Plugin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="OmniSharp.Abstractions, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="OmniSharp.Roslyn, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Roslyn.dll</HintPath>
+    </Reference>
+    <Reference Include="OmniSharp.Shared, Version=1.37.0.0, Culture=neutral, PublicKeyToken=7e5bf7b3b470b509">
+      <HintPath>..\..\dependencies\omnisharp\OmniSharp.Shared.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
