@@ -1,17 +1,25 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="DownloadAndUnzipOmniSharp">
+  
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- We need to target Microsoft.CodeAnalysis version that is netstandard2.0 and 
-         is the same version or older than what OmniSharp uses. 
-         Any matching version will do, it doesn't have to be 3.9.0 --> 
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.9.0" />
-    
+    <!-- We need to target the same Roslyn version as is used by OmniSharp --> 
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.10.0" />
+
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.ComponentModel.Composition" Version="5.0.0" />
   </ItemGroup>
 
+  <!-- ****************************************************-->
+  <!-- OmniSharp assembly references -->
+  <!-- ****************************************************-->
+  <Import Project="DownloadOmniSharp.targets" />
+  <ItemGroup Label="OmniSharp assemblies">
+    <Reference Include="$(OmniSharpUnzippedPath)\OmniSharp\OmniSharp.Abstractions.dll" />
+    <Reference Include="$(OmniSharpUnzippedPath)\OmniSharp\OmniSharp.Shared.dll" />
+    <Reference Include="$(OmniSharpUnzippedPath)\OmniSharp\OmniSharp.Roslyn.dll" />
+    <Reference Include="$(OmniSharpUnzippedPath)\OmniSharp\OmniSharp.Roslyn.CSharp.dll" />
+  </ItemGroup>
 </Project>
