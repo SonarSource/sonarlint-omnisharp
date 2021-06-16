@@ -18,12 +18,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using System.Collections.Immutable;
 using System.ComponentModel.Composition;
-using System.Reflection;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CodeRefactorings;
-using Microsoft.CodeAnalysis.Diagnostics;
 using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
@@ -32,15 +27,14 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     {
     }
     
-    [System.Composition.Export(typeof(ISonarLintCodeActionProvider))]
+    [Export(typeof(ISonarLintCodeActionProvider))]
     [PartCreationPolicy(CreationPolicy.Shared)]
-    internal class SonarLintCodeActionProvider : ISonarLintCodeActionProvider
+    internal class SonarLintCodeActionProvider : AbstractCodeActionProvider
     {
-        // todo: add implementation
-        
-        public ImmutableArray<CodeRefactoringProvider> CodeRefactoringProviders { get; } = ImmutableArray<CodeRefactoringProvider>.Empty;
-        public ImmutableArray<CodeFixProvider> CodeFixProviders { get; } = ImmutableArray<CodeFixProvider>.Empty;
-        public ImmutableArray<DiagnosticAnalyzer> CodeDiagnosticAnalyzerProviders { get; } = ImmutableArray<DiagnosticAnalyzer>.Empty;
-        public ImmutableArray<Assembly> Assemblies { get; } = ImmutableArray<Assembly>.Empty;
+        [ImportingConstructor]
+        public SonarLintCodeActionProvider(ISonarLintFeaturesHostServicesProvider featuresHostServicesProvider)
+            : base("SonarLint", featuresHostServicesProvider.Assemblies)
+        {
+        }
     }
 }
