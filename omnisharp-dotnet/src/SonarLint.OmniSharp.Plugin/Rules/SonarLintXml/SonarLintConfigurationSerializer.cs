@@ -45,17 +45,18 @@ namespace SonarLint.OmniSharp.Plugin.Rules.SonarLintXml
                 Encoding = Encoding.UTF8
             };
             
-            using var stream = new MemoryStream {Position = 0};
-            using var xmlWriter = XmlWriter.Create(stream, settings);
-            
-            var serializer = new XmlSerializer(typeof(SonarLintConfiguration));
-            serializer.Serialize(xmlWriter, sonarLintConfiguration);
-            xmlWriter.Flush();
-            
-            var data = stream.ToArray();
-            var sonarLintXmlFileContent = Encoding.UTF8.GetString(data);
+            using (var stream = new MemoryStream {Position = 0})
+            using (var xmlWriter = XmlWriter.Create(stream, settings))
+            {
+                var serializer = new XmlSerializer(typeof(SonarLintConfiguration));
+                serializer.Serialize(xmlWriter, sonarLintConfiguration);
+                xmlWriter.Flush();
 
-            return sonarLintXmlFileContent;
+                var data = stream.ToArray();
+                var sonarLintXmlFileContent = Encoding.UTF8.GetString(data);
+
+                return sonarLintXmlFileContent;
+            }
         }
     }
 }

@@ -21,6 +21,7 @@
 using System;
 using FluentAssertions;
 
+// Copied unchanged from SLVS
 namespace SonarLint.VisualStudio.Integration.UnitTests
 {
     /// <summary>
