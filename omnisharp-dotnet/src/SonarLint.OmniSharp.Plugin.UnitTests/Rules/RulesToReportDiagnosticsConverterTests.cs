@@ -27,7 +27,7 @@ using SonarLint.OmniSharp.Plugin.Rules;
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
 {
     [TestClass]
-    public class RulesToRulesToReportDiagnosticsConverterTests
+    public class RulesToReportDiagnosticsConverterTests
     {
         [TestMethod]
         public void Convert_NoRules_EmptyResult()
@@ -68,6 +68,6 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
         
         private RuleDefinition CreateRuleDefinition(string ruleId, bool isEnabled) => new RuleDefinition {RuleId = ruleId, IsEnabled = isEnabled};
 
-        private RulesToRulesToReportDiagnosticsConverter CreateTestSubject() => new RulesToRulesToReportDiagnosticsConverter();
+        private RulesToReportDiagnosticsConverter CreateTestSubject() => new RulesToReportDiagnosticsConverter();
     }
 }

@@ -29,10 +29,11 @@ namespace SonarLint.OmniSharp.Plugin.Rules
         Dictionary<string, ReportDiagnostic> Convert(IEnumerable<RuleDefinition> rules);
     }
 
-    internal class RulesToRulesToReportDiagnosticsConverter : IRulesToReportDiagnosticsConverter
+    internal class RulesToReportDiagnosticsConverter : IRulesToReportDiagnosticsConverter
     {
         public Dictionary<string, ReportDiagnostic> Convert(IEnumerable<RuleDefinition> rules)
         {
+            // the severity is handled on the java side; we're using 'warn' just to make sure that the rule is run. 
             var diagnosticOptions = rules
                 .ToDictionary(x => x.RuleId,
                     rule => rule.IsEnabled
