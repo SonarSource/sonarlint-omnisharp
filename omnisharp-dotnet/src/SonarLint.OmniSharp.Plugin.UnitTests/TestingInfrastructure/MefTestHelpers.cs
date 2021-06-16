@@ -24,8 +24,8 @@ using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.ComponentModel.Composition.Primitives;
 using System.Linq;
-using FluentAssertions;
 
+// Copied unchanged from SLVS
 namespace SonarLint.VisualStudio.Integration.UnitTests
 {
     public static class MefTestHelpers
