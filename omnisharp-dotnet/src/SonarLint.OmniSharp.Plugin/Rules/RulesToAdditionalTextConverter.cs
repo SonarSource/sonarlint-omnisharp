@@ -34,6 +34,10 @@ namespace SonarLint.OmniSharp.Plugin.Rules
 
     internal class RulesToAdditionalTextConverter : IRulesToAdditionalTextConverter
     {
+        /// <summary>
+        /// The file will never be written to disk so the path is irrelevant.
+        /// It only needs to be named 'SonarLint.Xml' so the sonar-dotnet analyzers could load it.
+        /// </summary>
         private static readonly string DummySonarLintXmlFilePath = Path.Combine(Path.GetTempPath(), "SonarLint.xml");
 
         private readonly IRulesToSonarLintConfigurationConverter rulesToSonarLintConfigurationConverter;

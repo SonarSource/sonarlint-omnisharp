@@ -21,6 +21,9 @@
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
+// Copied unchanged from SLVS
+// The file must be kept in line with the format that sonar-dotnet analyzers expect: 
+// https://github.com/SonarSource/sonar-dotnet/blob/1711a5f773013925e079d11e32bf0a3f592a6706/analyzers/src/SonarAnalyzer.Common/Common/RuleLoader.cs#L30
 namespace SonarLint.VisualStudio.Core.CSharpVB
 {
     /* XML-serializable classes to create a SonarLint.xml file.
