@@ -1,0 +1,48 @@
+<Project>
+
+  <!-- Downloads and unzips a version of OmniSharp.
+
+       The specified version of OmniSharp will be downloaded and unzipped.
+       
+       Note: these targets need to work on non-Windows platforms. 
+  -->
+  
+  <PropertyGroup>
+    <!-- Currently, all the OmniSharp assemblies in all three distributions target .NET Framework 4.72, so it doesn't matter which
+         one we pick. The linux zip is slightly smaller so we're downloading that.
+         
+         TODO: we should use a version built against .NET Standard when it becomes available.
+         -->
+    <!--
+    <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-osx.zip</OmniSharpZipUrl>
+    <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-win-x64.zip</OmniSharpZipUrl>
+    -->
+    <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-linux-x64.zip</OmniSharpZipUrl>
+    
+  </PropertyGroup>
+  
+  <Target Name="DownloadAndUnzipOmniSharp">
+    <!-- Note: both the DownloadFile and Unzip tasks are smart enough to skip unnecessary work 
+           i.e. only files that have not already been extracted from the zip will be extracted. -->
+
+    <Error Condition=" '$(OmniSharpVersion)' == ''" Text="OmniSharpVersion must be set" />
+    <Error Condition=" '$(OmniSharpLocalDownloadDir)' == '' " Text="OmniSharpLocalDownloadDir must be set" />
+    <Error Condition=" '$(OmniSharpUnzippedDir)' == ''" Text="OmniSharpUnzippedDir must be set" />
+    
+    <DownloadFile
+      SourceUrl="$(OmniSharpZipUrl)"
+      DestinationFolder="$(OmniSharpLocalDownloadDir)">
+      <Output TaskParameter="DownloadedFile" PropertyName="OmniSharpZipPath" />
+    </DownloadFile>
+    
+    <Message Importance="high" Text="XXX Downloaded OmniSharp zip: $(OmniSharpZipPath)" />
+
+    <Unzip
+      SourceFiles="$(OmniSharpZipPath)"
+      DestinationFolder="$(OmniSharpUnzippedDir)"
+      OverwriteReadOnlyFiles="false"/>
+
+    <Message Importance="high" Text="XXX Unzipped OmniSharp : $(OmniSharpUnzippedDir)" />
+  </Target>
+
+</Project>

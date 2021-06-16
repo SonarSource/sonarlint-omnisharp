@@ -10,6 +10,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6D6FEA7A-8AF7-4D02-882C-8343F97193D2}"
 	ProjectSection(SolutionItems) = preProject
 		azure-pipelines-dotnet.yml = azure-pipelines-dotnet.yml
+		Directory.Build.props = Directory.Build.props
+		build\DownloadOmniSharp.targets = build\DownloadOmniSharp.targets
 		nuget.config = nuget.config
 	EndProjectSection
 EndProject
