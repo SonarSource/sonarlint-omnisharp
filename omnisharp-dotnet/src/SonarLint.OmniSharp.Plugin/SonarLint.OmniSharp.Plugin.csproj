@@ -8,7 +8,9 @@
     <!-- We need to target the same Roslyn version as is used by OmniSharp --> 
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.10.0" />
 
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1">
+      <GeneratePathProperty>True</GeneratePathProperty>
+    </PackageReference>
     <PackageReference Include="System.ComponentModel.Composition" Version="5.0.0" />
   </ItemGroup>
   
@@ -20,6 +22,7 @@
          The files will be copied to the directory "JarContentFiles". -->
   <ItemGroup>
     <FilesToIncludeInJar Include="$(TargetDir)$(TargetFileName)" />
+    <FilesToIncludeInJar Include="$(PkgNewtonSoft_Json)/lib/net20/NewtonSoft.Json.dll" />
   </ItemGroup>
   
   <Target Name="CopyFilesToJarContentFolder" AfterTargets="Build" Inputs="$(TargetDir)$(TargetFileName)" Outputs="$(JarContentFolder)$(TargetFileName)">
