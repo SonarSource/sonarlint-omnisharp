@@ -11,5 +11,27 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.ComponentModel.Composition" Version="5.0.0" />
   </ItemGroup>
+  
+  
+  <!-- ********************************************** -->
+  <!-- Packaging files to be included in the Java jar -->
+  <!-- ********************************************** -->
+    <!-- Add any files that should be included in the Java plugin to the item group @"FilesToIncludeInJar".
+         The files will be copied to the directory "JarContentFiles". -->
+  <ItemGroup>
+    <FilesToIncludeInJar Include="$(TargetDir)$(TargetFileName)" />
+  </ItemGroup>
+  
+  <Target Name="CopyFilesToJarContentFolder" AfterTargets="Build" Inputs="$(TargetDir)$(TargetFileName)" Outputs="$(JarContentFolder)$(TargetFileName)">
+
+    <PropertyGroup>
+      <JarContentFolder>$([System.IO.Path]::GetFullPath($(MSBuildThisFileDirectory)..\..\JarContentFiles\))</JarContentFolder>
+    </PropertyGroup>
+
+    <Message Importance="high" Text="Copying plugin files to $(JarContentFolder)" />
+    <RemoveDir Directories="$(JarContentFolder)" />
+    
+    <Copy OverwriteReadOnlyFiles="true" SourceFiles="@(FilesToIncludeInJar)" DestinationFolder="$(JarContentFolder)" />
+  </Target>
 
 </Project>
