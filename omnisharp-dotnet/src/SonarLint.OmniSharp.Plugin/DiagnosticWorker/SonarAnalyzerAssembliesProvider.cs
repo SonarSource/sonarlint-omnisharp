@@ -39,13 +39,28 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     [PartCreationPolicy(CreationPolicy.Shared)]
     internal class SonarAnalyzerAssembliesProvider : ISonarAnalyzerAssembliesProvider
     {
-        public ImmutableArray<Assembly> Assemblies { get; }  
-
         /// <summary>
         /// It is the responsibility of the java plugin to place the analyzer assemblies in the "analyzers" sub directory.
         /// </summary>
         internal static string AnalyzersDirectory { get; } =
             Path.Combine(Path.GetDirectoryName(typeof(SonarAnalyzerAssembliesProvider).Assembly.Location), "analyzers");
+        
+        private readonly IAssemblyLoader loader;
+        private readonly Func<string, string[]> getFilesInDirectory;
+        private ImmutableArray<Assembly> loadedAssemblies;
+
+        public ImmutableArray<Assembly> Assemblies
+        {
+            get
+            {
+                if (loadedAssemblies == null)
+                {
+                    loadedAssemblies = LoadAssemblies();
+                }
+
+                return loadedAssemblies;
+            }
+        }
 
         [ImportingConstructor]
         public SonarAnalyzerAssembliesProvider(IAssemblyLoader loader)
@@ -55,6 +70,12 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
 
         internal SonarAnalyzerAssembliesProvider(IAssemblyLoader loader, Func<string, string[]> getFilesInDirectory)
         {
+            this.loader = loader;
+            this.getFilesInDirectory = getFilesInDirectory;
+        }
+
+        private ImmutableArray<Assembly> LoadAssemblies()
+        {
             var builder = ImmutableArray.CreateBuilder<Assembly>();
 
             foreach (var filePath in getFilesInDirectory(AnalyzersDirectory))
@@ -63,7 +84,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
                 builder.Add(analyzerAssembly);
             }
 
-            Assemblies = builder.ToImmutable();
+            return builder.ToImmutable();
         }
     }
 }
