@@ -22,7 +22,7 @@
          The files will be copied to the directory "JarContentFiles". -->
   <ItemGroup>
     <FilesToIncludeInJar Include="$(TargetDir)$(TargetFileName)" />
-    <FilesToIncludeInJar Include="$(PkgNewtonSoft_Json)/lib/net20/NewtonSoft.Json.dll" />
+    <FilesToIncludeInJar Include="$(PkgNewtonSoft_Json)/lib/net20/newtonSoft.json.dll" />
   </ItemGroup>
   
   <Target Name="CopyFilesToJarContentFolder" AfterTargets="Build" Inputs="$(TargetDir)$(TargetFileName)" Outputs="$(JarContentFolder)$(TargetFileName)">
