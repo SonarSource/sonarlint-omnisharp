@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Targets to handle assemblies using a pfx certificate.
+    
+       Usage:
+       The following properties should be set by the caller:
+       * $(pfxCertificatePath)  : full path to the pfx file
+       * $(pfxPassword)         : password to the certificate file
+       * $(pfxSha1)             : the sha1 for the certificate file
+       * @(AssembliesToSign)    : the list of assemblies to sign
+  -->
+
+  <!-- Signs the output assembly for the current project -->
+  <Target Name="SignOutputAssembly" AfterTargets="Build">
+    <Message Condition=" $(SignArtifacts) != 'true' " Importance="high" Text="Skipping signing assemblies - SignArtifacts = '$(SignArtifacts)'" />
+    <CallTarget Condition=" $(SignArtifacts) == 'true' " Targets="LocateOutputAssembly;SignAssemblies" />
+  </Target>
+
+  <Target Name="LocateOutputAssembly">
+    <ItemGroup>
+      <AssembliesToSign Include="$(TargetPath)" />
+    </ItemGroup>
+  </Target>
+  
+  <Target Name="SignAssemblies">
+    <Message Importance="high" Text="Assemblies to sign: %(AssembliesToSign.FullPath)" />
+    <CallTarget Targets="ValidateCommonSigningInputs" />
+    <Error Condition=" @(AssembliesToSign) == '' " Text="The list of assemblies to sign is empty." />
+    <Error Condition=" $(SIGNTOOL_PATH) == '' " Text="The location of the signtool.exe has not been set ('SIGNTOOL_PATH')" />
+    <Error Condition=" !Exists($(SIGNTOOL_PATH)) " Text="Signing tool exe does not exist at the specified location: $(SIGNTOOL_PATH)" />
+
+    <Exec Command="&quot;$(SIGNTOOL_PATH)&quot; sign /fd SHA256 /sha1 $(pfxSha1) /f &quot;$(pfxCertificatePath)&quot; /p $(pfxPassword) /tr http://timestamp.digicert.com?alg=sha256 &quot;%(AssembliesToSign.FullPath)&quot;" />
+  </Target>
+
+  <Target Name="ValidateCommonSigningInputs">
+    <Error Condition=" $(pfxCertificatePath) == '' " Text="pfxCertificatePath has not been set" />
+    <Error Condition=" $(pfxPassword) == '' " Text="pfxPassword has not been set" />
+    <Error Condition=" $(pfxSha1) == '' " Text="pfxSha1 has not been set" />
+    <Error Condition=" !Exists($(pfxCertificatePath)) " Text="The specified pfx file does not exist: $(pfxCertificatePath)" />
+  </Target>
+
+</Project>

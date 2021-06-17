@@ -1,4 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="DownloadAndUnzipOmniSharp">
+
+  <Import Project="..\..\build\Signing.targets" />
   
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>

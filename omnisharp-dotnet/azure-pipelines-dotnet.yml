@@ -21,6 +21,12 @@ variables:
 
 steps:
 
+- task: DownloadSecureFile@1
+  displayName: 'Download pfx file'
+  name: pfx
+  inputs:
+      secureFile: 'sonarsource-2019-2021.pfx'
+
 - task: DotNetCoreCLI@2
   displayName: 'Restore NuGet packages'
   inputs:
@@ -30,7 +36,6 @@ steps:
     feedsToUse: 'select'
     vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
     includeNuGetOrg: false
-
 
 - task: SonarQubePrepare@4
   inputs:
@@ -51,10 +56,15 @@ steps:
   
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
+  env:
+    SIGNTOOL_PATH: 'C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.17763.0\\x64\\signtool.exe'
+    PFX_PASSWORD: $(pfxPassword)
+    PFX_PATH: $(pfx.secureFilePath)
   inputs:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
+    arguments: '-p:SignArtifacts=true'
   
 - task: DotNetCoreCLI@2
   displayName: 'Run .NET unit tests'
