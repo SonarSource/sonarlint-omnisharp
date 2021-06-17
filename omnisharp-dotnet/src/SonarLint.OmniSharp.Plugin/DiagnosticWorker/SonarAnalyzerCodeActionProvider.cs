@@ -18,39 +18,31 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using System.Collections.Immutable;
 using System.ComponentModel.Composition;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
 using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
 {
-    internal interface ISonarLintHostServicesProvider : IHostServicesProvider
+    /// <summary>
+    /// Provide sonar-dotnet <see cref="Microsoft.CodeAnalysis.Diagnostics.DiagnosticAnalyzer"/>.
+    /// </summary>
+    internal interface ISonarAnalyzerCodeActionProvider : ICodeActionProvider
     {
     }
-    
-    [Export(typeof(ISonarLintHostServicesProvider))]
+    /// <remarks>
+    /// We only want this provider to be used by our custom diagnostic worker and not the "normal" OmniSharp workers,
+    /// so we're exporting it using a different interface.
+    /// However, we're reusing the OmniSharp <see cref="AbstractCodeActionProvider"/> class because it makes it easy to
+    /// load assemblies from and extract diagnostic analyzers from them.
+    /// </remarks>
+    [Export(typeof(ISonarAnalyzerCodeActionProvider))]
     [PartCreationPolicy(CreationPolicy.Shared)]
-    internal class SonarLintHostServicesProvider : ISonarLintHostServicesProvider
+    internal class SonarAnalyzerCodeActionProvider : AbstractCodeActionProvider, ISonarAnalyzerCodeActionProvider
     {
-        public ImmutableArray<Assembly> Assemblies { get; }
-
         [ImportingConstructor]
-        public SonarLintHostServicesProvider(IAssemblyLoader loader)
+        public SonarAnalyzerCodeActionProvider(ISonarAnalyzerAssembliesProvider sonarAnalyzerAssembliesProvider)
+            : base("SonarLint", sonarAnalyzerAssembliesProvider.Assemblies)
         {
-            var builder = ImmutableArray.CreateBuilder<Assembly>();
-            var analyzersDirectory = Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location), "analyzers");
-
-            foreach (var filePath in Directory.GetFiles(analyzersDirectory))
-            {
-                var fullPath = Path.Combine(analyzersDirectory, filePath);
-                Debug.Assert(File.Exists(fullPath), $"Analyzer assembly could not be found: {fullPath}");
-                builder.Add(loader.LoadFrom(fullPath));
-            }
-
-            Assemblies = builder.ToImmutable();
         }
     }
 }

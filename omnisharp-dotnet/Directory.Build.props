@@ -15,7 +15,6 @@
 
     <OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)</OmniSharpLocalDownloadDir>
     <OmniSharpUnzippedDir>$(OmniSharpLocalDownloadDir)\unzipped</OmniSharpUnzippedDir>
-    
   </PropertyGroup>
   <Import Project="build\DownloadOmniSharp.targets"/>
 
@@ -25,29 +24,5 @@
     <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" />
     <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" />
   </ItemGroup>
-
-  <!-- ****************************************************-->
-  <!-- sonar-dotnet assembly references                       -->
-  <!-- ****************************************************-->
-  <PropertyGroup>
-    <SonarDotnetAnalyzerVersion>8.24.0.32949</SonarDotnetAnalyzerVersion>
-  </PropertyGroup>
-  
-  <ItemGroup Label="SonarDotnetAnalyzers">
-    <PackageReference Include="SonarAnalyzer.CSharp" 
-                      Version="$(SonarDotnetAnalyzerVersion)" 
-                      IncludeAssets="none" 
-                      ExcludeAssets="all" 
-                      GeneratePathProperty="true" />
-  </ItemGroup>
-
-  <Target Name="IncludeSonarAnalyzersInOutput" BeforeTargets="BeforeBuild">
-    <Message Importance="high" Text="XXX Locating SonarAnalyzer assemblies to copy: $(PkgSonarAnalyzer_CSharp)" />
-    <ItemGroup>
-      <AnalyzerFiles Include="$(PkgSonarAnalyzer_CSharp)\**\analyzers\*.*"/>
-    </ItemGroup>
-    <Copy SourceFiles="@(AnalyzerFiles)" 
-          DestinationFolder="$(OutputPath)analyzers\" />
-  </Target>
 
 </Project>

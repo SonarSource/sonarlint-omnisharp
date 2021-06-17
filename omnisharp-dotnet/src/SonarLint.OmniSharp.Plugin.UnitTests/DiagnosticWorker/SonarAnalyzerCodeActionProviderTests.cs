@@ -34,14 +34,14 @@ using SonarLint.VisualStudio.Integration.UnitTests;
 namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 {
     [TestClass]
-    public class SonarLintCodeActionProviderTests
+    public class SonarAnalyzerCodeActionProviderTests
     {
         [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            MefTestHelpers.CheckTypeCanBeImported<SonarLintCodeActionProvider, ISonarLintCodeActionProvider>(null, new []
+            MefTestHelpers.CheckTypeCanBeImported<SonarAnalyzerCodeActionProvider, ISonarAnalyzerCodeActionProvider>(null, new []
             {
-                MefTestHelpers.CreateExport<ISonarLintHostServicesProvider>(SetupHostServicesProvider().Object)
+                MefTestHelpers.CreateExport<ISonarAnalyzerAssembliesProvider>(SetupAssembliesProvider().Object)
             });
         }
 
@@ -58,7 +58,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         {
             var testAssemblies = new[]
             {
-                Assembly.GetAssembly(typeof(SonarLintCodeActionProvider)),
+                Assembly.GetAssembly(typeof(SonarAnalyzerCodeActionProvider)),
                 Assembly.GetAssembly(GetType()),
                 Assembly.GetAssembly(typeof(ImmutableDictionary))
             };
@@ -98,16 +98,16 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             testSubject.CodeFixProviders[1].Should().BeOfType<DummyCodeFixProvider2>();
         }
 
-        private SonarLintCodeActionProvider CreateTestSubject(params Assembly[] assemblies)
+        private SonarAnalyzerCodeActionProvider CreateTestSubject(params Assembly[] assemblies)
         {
-            var hostServicesProvider = SetupHostServicesProvider(assemblies);
+            var hostServicesProvider = SetupAssembliesProvider(assemblies);
 
-            return new SonarLintCodeActionProvider(hostServicesProvider.Object);
+            return new SonarAnalyzerCodeActionProvider(hostServicesProvider.Object);
         }
 
-        private static Mock<ISonarLintHostServicesProvider> SetupHostServicesProvider(params Assembly[] assemblies)
+        private static Mock<ISonarAnalyzerAssembliesProvider> SetupAssembliesProvider(params Assembly[] assemblies)
         {
-            var sonarLintHostServicesProvider = new Mock<ISonarLintHostServicesProvider>();
+            var sonarLintHostServicesProvider = new Mock<ISonarAnalyzerAssembliesProvider>();
             sonarLintHostServicesProvider.Setup(x => x.Assemblies).Returns(assemblies.ToImmutableArray());
             
             return sonarLintHostServicesProvider;
