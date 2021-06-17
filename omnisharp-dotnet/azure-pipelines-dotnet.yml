@@ -10,7 +10,7 @@ pr:
 - dp/*
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: windows-latest
 
 variables:
   - group: sonarsource-build-variables
