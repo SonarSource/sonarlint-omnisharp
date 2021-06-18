@@ -61,7 +61,7 @@ steps:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="junk.snk" $(additionalMSBuildProperties) '
+    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(Build.SourcesDirectory)/omnisharp-dotnet/src/SonarLint.OmniSharp.Plugin/junk.snk" $(additionalMSBuildProperties) '
   
 - task: DotNetCoreCLI@2
   displayName: 'Run .NET unit tests'
