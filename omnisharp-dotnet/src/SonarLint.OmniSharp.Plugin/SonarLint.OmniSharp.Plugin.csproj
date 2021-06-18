@@ -2,6 +2,9 @@
   
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+
+    <!-- We don't want to ship the OmniSharp assemblies -->
+    <CopyOmniSharpToOutput>false</CopyOmniSharpToOutput>
   </PropertyGroup>
 
   <ItemGroup>
