@@ -18,6 +18,8 @@ variables:
     value: 'Release'
   - name: slnPath
     value: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
+  - name: additionalMSBuildProperties
+    value: ''
 
 steps:
 
