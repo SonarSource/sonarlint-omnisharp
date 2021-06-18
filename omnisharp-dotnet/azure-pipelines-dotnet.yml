@@ -61,7 +61,7 @@ steps:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" -v:diag $(additionalMSBuildProperties) '
+    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" $(additionalMSBuildProperties) '
   
 - task: DotNetCoreCLI@2
   displayName: 'Run .NET unit tests'
