@@ -69,8 +69,7 @@ steps:
     command: 'test'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover'
-    nobuild: true
+    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover --no-build'
     testRunTitle: '.NET unit tests'
 
 - task: PublishPipelineArtifact@1
