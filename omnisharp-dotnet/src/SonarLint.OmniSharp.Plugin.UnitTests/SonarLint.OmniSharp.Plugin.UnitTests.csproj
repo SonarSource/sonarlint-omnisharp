@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>.netcoreapp3.1</TargetFramework>
+    
+    <!-- We need the OmniSharp assemblies to execute the tests-->
+    <CopyOmniSharpToOutput>true</CopyOmniSharpToOutput>
   </PropertyGroup>
 
   <ItemGroup>

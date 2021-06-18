@@ -19,10 +19,10 @@
   <Import Project="build\DownloadOmniSharp.targets"/>
 
   <ItemGroup Label="OmniSharp assemblies">
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Abstractions.dll" />
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Shared.dll" />
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" />
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" />
+    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Abstractions.dll" Private="$(CopyOmniSharpToOutput)" />
+    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Shared.dll" Private="$(CopyOmniSharpToOutput)" />
+    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
+    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
   </ItemGroup>
 
 </Project>
