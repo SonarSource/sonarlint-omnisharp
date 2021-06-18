@@ -2,8 +2,11 @@
 
   <PropertyGroup Label="Package locking">
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-  </PropertyGroup>
 
+    <!-- Set the compilation constant if strong-naming -->
+    <DefineConstants Condition=" '$(SignAssembly)' == true ">$(DefineConstants);SignAssembly</DefineConstants>
+  </PropertyGroup>
+  
   <!-- ****************************************************-->
   <!-- OmniSharp assembly references                       -->
   <!-- ****************************************************-->
