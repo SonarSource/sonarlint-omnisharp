@@ -18,6 +18,8 @@ variables:
     value: 'Release'
   - name: slnPath
     value: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
+  - name: additionalMSBuildProperties
+    value: ''
 
 steps:
 
@@ -61,7 +63,7 @@ steps:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)"'
+    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" $(additionalMSBuildProperties) '
   
 - task: DotNetCoreCLI@2
   displayName: 'Run .NET unit tests'
