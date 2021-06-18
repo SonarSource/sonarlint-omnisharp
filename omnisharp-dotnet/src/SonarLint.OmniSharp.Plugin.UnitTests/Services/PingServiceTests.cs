@@ -32,7 +32,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
     [TestClass]
     public class PingServiceTests
     {
-        [TestMethod, Ignore]
+        [TestMethod, Ignore] // see below
         public void MefCtor_CheckIsExported()
         {
             // For some reason our normal MEF test helper doesn't work with this type.

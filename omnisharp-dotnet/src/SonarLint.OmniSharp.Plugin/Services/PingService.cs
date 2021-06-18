@@ -40,7 +40,7 @@ namespace SonarLint.OmniSharp.Plugin.Services
     [OmniSharpHandler(ServiceEndpoint, LanguageNames.CSharp)]
     public class PingService : IRequestHandler<PingRequest, PingResponse>
     {
-        public const string ServiceEndpoint = "/sonarlint/ping";
+        internal const string ServiceEndpoint = "/sonarlint/ping";
 
         public Task<PingResponse> Handle(PingRequest request)
         {
