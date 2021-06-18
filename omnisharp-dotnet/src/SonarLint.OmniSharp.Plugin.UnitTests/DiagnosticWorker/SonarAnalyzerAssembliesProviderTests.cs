@@ -52,31 +52,72 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                 "analyzer3.dll"
             };
 
-            var filesProvider = new Mock<Func<string, string[]>>();
-            filesProvider
-                .Setup(x=> x(SonarAnalyzerAssembliesProvider.AnalyzersDirectory))
-                .Returns(filesInAnalyzerDirectory);
-            
+            var filesProvider = CreateFilesProvider(filesInAnalyzerDirectory);
+
             var dummyAssembly = Assembly.GetExecutingAssembly();
-            var assemblyLoader = new Mock<IAssemblyLoader>();
-            assemblyLoader
-                .Setup(x => x.LoadFrom(It.IsAny<string>(), false))
-                .Returns(dummyAssembly);
+            var assemblyLoader = CreateAssemblyLoader(dummyAssembly);
 
             var testSubject = CreateTestSubject(assemblyLoader.Object, filesProvider.Object);
 
             testSubject.Assemblies.Length.Should().Be(filesInAnalyzerDirectory.Length);
             testSubject.Assemblies.Should().AllBeEquivalentTo(dummyAssembly);
-            
+
             filesProvider.Verify(x=> x(It.IsAny<string>()), Times.Once());
-            
+
             foreach (var analyzerFilePath in filesInAnalyzerDirectory)
             {
                 assemblyLoader.Verify(x => x.LoadFrom(analyzerFilePath, false), Times.Once);
             }
         }
 
+        [TestMethod]
+        public void Assemblies_UnloadableAssembly_Throws()
+        {
+            var filesProvider = CreateFilesProvider("any.dll");
+            var assemblyLoader = CreateAssemblyLoader(null);
+
+            var testSubject = CreateTestSubject(assemblyLoader.Object, filesProvider.Object);
+
+            Action act = () => _ = testSubject.Assemblies;
+
+            act.Should().ThrowExactly<InvalidOperationException>()
+                .And.Message.Contains("any.dll").Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void Assemblies_NoAssemblies_Throws()
+        {
+            var filesProvider = CreateFilesProvider();
+
+            var testSubject = CreateTestSubject(Mock.Of<IAssemblyLoader>(), filesProvider.Object);
+
+            Action act = () => _ = testSubject.Assemblies;
+
+            act.Should().ThrowExactly<InvalidOperationException>()
+                .And.Message.Contains(SonarAnalyzerAssembliesProvider.AnalyzersDirectory).Should().BeTrue();
+        }
+
         private SonarAnalyzerAssembliesProvider CreateTestSubject(IAssemblyLoader assemblyLoader,
             Func<string, string[]> getFiles) => new SonarAnalyzerAssembliesProvider(assemblyLoader, getFiles);
+
+
+        private static Mock<Func<string, string[]>> CreateFilesProvider(params string[] filesToReturn)
+        {
+            var filesProvider = new Mock<Func<string, string[]>>();
+            filesProvider
+                .Setup(x => x(SonarAnalyzerAssembliesProvider.AnalyzersDirectory))
+                .Returns(filesToReturn);
+
+            return filesProvider;
+        }
+
+        private static Mock<IAssemblyLoader> CreateAssemblyLoader(Assembly assemblyToReturn)
+        {
+            var assemblyLoader = new Mock<IAssemblyLoader>();
+            assemblyLoader
+                .Setup(x => x.LoadFrom(It.IsAny<string>(), false))
+                .Returns(assemblyToReturn);
+            return assemblyLoader;
+        }
     }
 }

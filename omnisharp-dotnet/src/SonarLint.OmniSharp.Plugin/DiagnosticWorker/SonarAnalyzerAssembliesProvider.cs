@@ -81,7 +81,20 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
             foreach (var filePath in getFilesInDirectory(AnalyzersDirectory))
             {
                 var analyzerAssembly = loader.LoadFrom(filePath);
+                
+                if (analyzerAssembly == null)
+                {
+                    var message = string.Format(Resources.DiagWorker_Error_UnloadableAssembly, filePath);
+                    throw new InvalidOperationException(message);
+                }
+
                 builder.Add(analyzerAssembly);
+            }
+
+            if (builder.Count == 0)
+            {
+                var message = string.Format(Resources.DiagWorker_Error_NoAnalyzerAssemblies, AnalyzersDirectory);
+                throw new InvalidOperationException(message);
             }
 
             return builder.ToImmutable();
