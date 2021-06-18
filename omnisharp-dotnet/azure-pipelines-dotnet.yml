@@ -21,6 +21,12 @@ variables:
 
 steps:
 
+- task: DownloadSecureFile@1
+  displayName: 'Download snk file'
+  name: snk
+  inputs:
+    secureFile: SonarSourceSecret.snk
+
 - task: DotNetCoreCLI@2
   displayName: 'Restore NuGet packages'
   inputs:
@@ -55,6 +61,7 @@ steps:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
+    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)"'
   
 - task: DotNetCoreCLI@2
   displayName: 'Run .NET unit tests'
