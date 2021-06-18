@@ -27,7 +27,7 @@ using System.Threading.Tasks;
 
 namespace SonarLint.OmniSharp.Plugin.Services
 {
-    [OmniSharpEndpoint(PingSonarLintExtensionService.ServiceEndpoint, typeof(PingRequest), typeof(PingResponse))]
+    [OmniSharpEndpoint(PingService.ServiceEndpoint, typeof(PingRequest), typeof(PingResponse))]
     public class PingRequest : Request
     {
     }
@@ -38,9 +38,9 @@ namespace SonarLint.OmniSharp.Plugin.Services
     }
 
     [OmniSharpHandler(ServiceEndpoint, LanguageNames.CSharp)]
-    public class PingSonarLintExtensionService : IRequestHandler<PingRequest, PingResponse>
+    public class PingService : IRequestHandler<PingRequest, PingResponse>
     {
-        public const string ServiceEndpoint = "/ping_sonarlint";
+        public const string ServiceEndpoint = "/sonarlint/ping";
 
         public Task<PingResponse> Handle(PingRequest request)
         {

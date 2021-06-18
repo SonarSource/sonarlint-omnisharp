@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
 {
     [TestClass]
-    public class PingSonarLintExtensionServiceTests
+    public class PingServiceTests
     {
         [TestMethod, Ignore]
         public void MefCtor_CheckIsExported()
@@ -42,17 +42,17 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             // The only obvious difference with PingSonarLintExtensionService is that it is using a 
             // custom Export attribute type, rather than just "[Export(...)]"
             // However, the new service *is* discovered when running in OmniSharp.
-            var typeCatalog = new TypeCatalog(typeof(PingSonarLintExtensionService));
+            var typeCatalog = new TypeCatalog(typeof(PingService));
             var compositionElement = (ICompositionElement)typeCatalog;
             compositionElement.DisplayName.Should().NotContain("Empty");
 
-            MefTestHelpers.CheckTypeCanBeImported<PingSonarLintExtensionService, IRequestHandler>(null, null);
+            MefTestHelpers.CheckTypeCanBeImported<PingService, IRequestHandler>(null, null);
         }
 
         [TestMethod]
         public async Task TestHandle()
         {
-            var testSubject = new PingSonarLintExtensionService();
+            var testSubject = new PingService();
             var response = await testSubject.Handle(new PingRequest());
             response.Message.Should().NotBeNullOrEmpty();
         }
