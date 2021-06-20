@@ -18,6 +18,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
@@ -113,13 +114,20 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
             
             var additionalFiles = workspaceAnalyzerOptions.AdditionalFiles;
             var builder = ImmutableArray.CreateBuilder<AdditionalText>();
-            builder.AddRange(additionalFiles.Where(x => !x.Path.EndsWith(sonarLintAdditionalFileName)));
+            builder.AddRange(additionalFiles.Where(x => !IsSonarLintAdditionalFile(x)));
             builder.Add(sonarLintAdditionalFile);
             
             var modifiedAdditionalFiles = builder.ToImmutable();
             var finalAnalyzerOptions = new AnalyzerOptions(modifiedAdditionalFiles, workspaceAnalyzerOptions.AnalyzerConfigOptionsProvider);
             
             return finalAnalyzerOptions;
+
+            bool IsSonarLintAdditionalFile(AdditionalText existingAdditionalFile)
+            {
+                return Path.GetFileName(existingAdditionalFile.Path).Equals(
+                    sonarLintAdditionalFileName,
+                    StringComparison.OrdinalIgnoreCase);
+            }
         }
     }
 }
