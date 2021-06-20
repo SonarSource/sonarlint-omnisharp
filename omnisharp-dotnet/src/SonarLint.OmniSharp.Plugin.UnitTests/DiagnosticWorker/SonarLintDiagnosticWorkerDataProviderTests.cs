@@ -115,11 +115,11 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         [TestMethod]
         public void Get_HasExistingSonarAdditionalFile_OverridesSonarAdditionalFile()
         {
-            var existingSonarAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("c:\\test\\sonar.xml", "some content1");
+            var existingSonarAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("a/test/sonar.xml", "some content1");
             var existingUnrelatedAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("asonar.xml", "some content2");
             var existingOptions = CreateOptions(existingSonarAdditionalFile, existingUnrelatedAdditionalFile);
             
-            var sonarAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("c:\\SONAR.XML", "some new content"); // same file name
+            var sonarAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("b/sonar.xml", "some new content");
             var testSubject = CreateTestSubject(additionalFile: sonarAdditionalFile);
             
             var diagnosticWorkerModifications = testSubject.Get(CreateCompilation(), existingOptions);
