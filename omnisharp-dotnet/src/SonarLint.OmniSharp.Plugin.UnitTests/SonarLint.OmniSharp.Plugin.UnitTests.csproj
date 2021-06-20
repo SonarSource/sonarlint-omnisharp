@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>.netcoreapp3.1</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +23,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SonarLint.OmniSharp.Plugin\SonarLint.OmniSharp.Plugin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Label="OmniSharp assemblies">
+    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Host.dll" />
   </ItemGroup>
 
 </Project>
