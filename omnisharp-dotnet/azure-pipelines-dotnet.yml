@@ -21,6 +21,12 @@ variables:
 
 steps:
 
+- task: DownloadSecureFile@1
+  displayName: 'Download snk file'
+  name: snk
+  inputs:
+    secureFile: SonarSourceSecret.snk
+
 - task: DotNetCoreCLI@2
   displayName: 'Restore NuGet packages'
   inputs:
@@ -55,15 +61,23 @@ steps:
     command: 'build'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-  
+    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" $(additionalMSBuildProperties) '
+
+# NOTE: specifying the "nobuild: true" input did not seem to work - the project was being rebuilt,
+# overwriting the signed version with an unsigned version
 - task: DotNetCoreCLI@2
   displayName: 'Run .NET unit tests'
   inputs:
     command: 'test'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover'
-    nobuild: true
+    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover --no-build --no-restore'
     testRunTitle: '.NET unit tests'
-    
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish the jar content files as a pipeline artifact'
+  inputs:
+    path: omnisharp-dotnet/JarContentFiles 
+    artifact: DotNetJarContentFiles
+      
 - task: SonarQubeAnalyze@4

@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <LangVersion>8</LangVersion>
+    <!-- We need the OmniSharp assemblies to execute the tests-->
+    <CopyOmniSharpToOutput>true</CopyOmniSharpToOutput>
   </PropertyGroup>
 
   <ItemGroup>

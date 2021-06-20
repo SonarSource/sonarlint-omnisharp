@@ -155,8 +155,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "13.0.1",
-        "contentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A=="
+        "resolved": "12.0.3",
+        "contentHash": "6mgjfnRB4jKMlzHSl+VD+oUc1IebOZabkbyWj2RiTgWwYPPuaK1H97G1sHqGwPlS5npiF5Q0OrxN1wni2n5QWg=="
       },
       "System.Buffers": {
         "type": "Transitive",
@@ -289,7 +289,7 @@
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "3.10.0",
           "Microsoft.Extensions.Logging.Abstractions": "3.1.12",
           "Microsoft.Extensions.Options": "3.1.12",
-          "Newtonsoft.Json": "13.0.1",
+          "Newtonsoft.Json": "12.0.3",
           "System.ComponentModel.Composition": "5.0.0"
         }
       }

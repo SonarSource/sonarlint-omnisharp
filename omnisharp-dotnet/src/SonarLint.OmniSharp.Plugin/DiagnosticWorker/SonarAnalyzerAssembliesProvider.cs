@@ -18,8 +18,12 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using System;
 using System.Collections.Immutable;
+using System.ComponentModel.Composition;
+using System.IO;
 using System.Reflection;
+using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
 {
@@ -29,5 +33,71 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     internal interface ISonarAnalyzerAssembliesProvider
     {
         ImmutableArray<Assembly> Assemblies { get; }
+    }
+
+    [Export(typeof(ISonarAnalyzerAssembliesProvider))]
+    [PartCreationPolicy(CreationPolicy.Shared)]
+    internal class SonarAnalyzerAssembliesProvider : ISonarAnalyzerAssembliesProvider
+    {
+        /// <summary>
+        /// It is the responsibility of the java plugin to place the analyzer assemblies in the "analyzers" sub directory.
+        /// </summary>
+        internal static string AnalyzersDirectory { get; } =
+            Path.Combine(Path.GetDirectoryName(typeof(SonarAnalyzerAssembliesProvider).Assembly.Location), "analyzers");
+        
+        private readonly IAssemblyLoader loader;
+        private readonly Func<string, string[]> getFilesInDirectory;
+        private ImmutableArray<Assembly> loadedAssemblies;
+
+        public ImmutableArray<Assembly> Assemblies
+        {
+            get
+            {
+                if (loadedAssemblies == null)
+                {
+                    loadedAssemblies = LoadAssemblies();
+                }
+
+                return loadedAssemblies;
+            }
+        }
+
+        [ImportingConstructor]
+        public SonarAnalyzerAssembliesProvider(IAssemblyLoader loader)
+            : this(loader, Directory.GetFiles)
+        {
+        }
+
+        internal SonarAnalyzerAssembliesProvider(IAssemblyLoader loader, Func<string, string[]> getFilesInDirectory)
+        {
+            this.loader = loader;
+            this.getFilesInDirectory = getFilesInDirectory;
+        }
+
+        private ImmutableArray<Assembly> LoadAssemblies()
+        {
+            var builder = ImmutableArray.CreateBuilder<Assembly>();
+
+            foreach (var filePath in getFilesInDirectory(AnalyzersDirectory))
+            {
+                var analyzerAssembly = loader.LoadFrom(filePath);
+                
+                if (analyzerAssembly == null)
+                {
+                    var message = string.Format(Resources.DiagWorker_Error_UnloadableAssembly, filePath);
+                    throw new InvalidOperationException(message);
+                }
+
+                builder.Add(analyzerAssembly);
+            }
+
+            if (builder.Count == 0)
+            {
+                var message = string.Format(Resources.DiagWorker_Error_NoAnalyzerAssemblies, AnalyzersDirectory);
+                throw new InvalidOperationException(message);
+            }
+
+            return builder.ToImmutable();
+        }
     }
 }
