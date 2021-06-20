@@ -21,15 +21,6 @@ using OmniSharp.Services;
 namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
 {
     /// <summary>
-    /// Copied unchanged from OmniSharp.Configuration
-    /// https://github.com/OmniSharp/omnisharp-roslyn/blob/master/src/OmniSharp.Abstractions/Configuration.cs
-    /// </summary>
-    internal static class Configuration
-    {
-        public readonly static string OmniSharpMiscProjectName = "OmniSharpMiscellaneousFiles";
-    }
-    
-    /// <summary>
     /// Copied from OmniSharp.Roslyn.CSharp.Services.Diagnostics.CSharpDiagnosticWorkerWithAnalyzers
     /// https://github.com/OmniSharp/omnisharp-roslyn/blob/master/src/OmniSharp.Roslyn.CSharp/Workers/Diagnostics/CSharpDiagnosticWorkerWithAnalyzers.cs
     /// Nothing changed except making <see cref="AnalyzeDocument"/> protected-virtual
