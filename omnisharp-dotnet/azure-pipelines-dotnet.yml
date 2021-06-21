@@ -41,6 +41,7 @@ steps:
 
     # Set the variable to it can be used by other tasks
     Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
+  displayName: 'Fetch the analysis version from the Java pom.xml'
 
 - task: DotNetCoreCLI@2
   displayName: 'Restore NuGet packages'
