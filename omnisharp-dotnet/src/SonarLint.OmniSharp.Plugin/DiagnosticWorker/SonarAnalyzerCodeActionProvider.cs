@@ -29,8 +29,9 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     internal interface ISonarAnalyzerCodeActionProvider : ICodeActionProvider
     {
     }
+    
     /// <remarks>
-    /// We only want this provider to be used by our custom diagnostic worker and not the "normal" OmniSharp workers,
+    /// We want this provider to be used only by our custom diagnostic worker and not the "normal" OmniSharp workers,
     /// so we're exporting it using a different interface.
     /// However, we're reusing the OmniSharp <see cref="AbstractCodeActionProvider"/> class because it makes it easy to
     /// load assemblies from and extract diagnostic analyzers from them.
