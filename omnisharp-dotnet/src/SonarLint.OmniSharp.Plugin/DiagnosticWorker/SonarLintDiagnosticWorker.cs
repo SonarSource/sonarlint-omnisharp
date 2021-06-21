@@ -56,17 +56,27 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
             this.sonarLintAnalysisConfigProvider = sonarLintAnalysisConfigProvider;
         }
         
-        protected override Task<ImmutableArray<Diagnostic>> AnalyzeDocument(Project project,
+        protected override async Task<ImmutableArray<Diagnostic>> AnalyzeDocument(Project project,
             ImmutableArray<DiagnosticAnalyzer> allAnalyzers, Compilation compilation,
             AnalyzerOptions workspaceAnalyzerOptions, Document document)
         {
             var analysisConfig = sonarLintAnalysisConfigProvider.Get(compilation, workspaceAnalyzerOptions);
             
-            return base.AnalyzeDocument(project, 
+            var result = await base.AnalyzeDocument(project, 
                 analysisConfig.Analyzers, 
                 analysisConfig.Compilation, 
                 analysisConfig.AnalyzerOptions, 
                 document);
+
+            var supportedRules = analysisConfig
+                .Analyzers
+                .SelectMany(x => x.SupportedDiagnostics)
+                .Select(x => x.Id)
+                .ToImmutableHashSet();
+            
+            var resultsWithoutCompilerRules = result.Where(x => supportedRules.Contains(x.Id)).ToImmutableArray();
+
+            return resultsWithoutCompilerRules;
         }
     }
 }

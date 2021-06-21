@@ -147,6 +147,17 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             analyzer.SuppliedAdditionalFiles.Should().BeEquivalentTo(additionalFile);
         }
 
+        [TestMethod]
+        public async Task AnalyzeDocument_CompilerWarningsAndErrorsAreIgnored()
+        {
+            var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "invalid code");
+            var testSubject = CreateTestSubject(workspace);
+            var document = workspace.GetDocument("dummyFile.cs");
+            
+            var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
+            result.Should().BeEmpty();
+        }
+
         private static Mock<ISonarLintAnalysisConfigProvider> CreateAnalysisConfigProvider(
             Func<IEnumerable<DiagnosticAnalyzer>> getAnalyzers = null,
             Func<Compilation, Compilation> modifyCompilation = null,
@@ -224,13 +235,13 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             return optionsMonitor.Object;
         }
         
-        private SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintAnalysisConfigProvider analysisConfigProvider) =>
-            new SonarLintDiagnosticWorker(analysisConfigProvider,
+        private SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintAnalysisConfigProvider analysisConfigProvider = null) =>
+            new SonarLintDiagnosticWorker(analysisConfigProvider ?? CreateAnalysisConfigProvider().Object,
                 workspace,
                 Mock.Of<ILoggerFactory>(),
                 new DiagnosticEventForwarder(Mock.Of<IEventEmitter>()),
                 CreateOptionsMonitor());
-        
+
         #region Helper Classes
         
         private class InMemoryTextLoader : TextLoader
