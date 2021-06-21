@@ -65,7 +65,7 @@ namespace SonarLint.OmniSharp.Plugin.Rules
         }
 
         // There isn't a public implementation of source text so we need to create one
-        private class AdditionalTextImpl : AdditionalText
+        internal class AdditionalTextImpl : AdditionalText
         {
             private readonly SourceText sourceText;
 
