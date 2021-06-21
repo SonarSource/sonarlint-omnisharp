@@ -28,6 +28,7 @@
          The files will be copied to the directory "JarContentFiles". -->
   <ItemGroup>
     <FilesToIncludeInJar Include="$(TargetDir)$(TargetFileName)" />
+    <FilesToIncludeInJar Include="..\..\THIRD-PARTY-NOTICES" />
   </ItemGroup>
   
   <Target Name="CopyFilesToJarContentFolder" AfterTargets="Build" Inputs="$(TargetDir)$(TargetFileName)" Outputs="$(JarContentFolder)$(TargetFileName)">

@@ -1,4 +1,10 @@
-﻿using Microsoft.CodeAnalysis;
+﻿/*
+ * omnisharp-roslyn
+ * Copyright (c) .NET Foundation and Contributors All Rights Reserved
+ * https://github.com/OmniSharp/omnisharp-roslyn/blob/master/license.md
+ */
+
+using Microsoft.CodeAnalysis;
 using OmniSharp.Models.Diagnostics;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using System.Collections.Generic;
