@@ -33,6 +33,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     internal class AnalysisConfig
     {
         public ImmutableArray<DiagnosticAnalyzer> Analyzers { get; set; }
+        public ImmutableHashSet<string> AnalyzerRules { get; set; }
         public Compilation Compilation { get; set; }
         public AnalyzerOptions AnalyzerOptions { get; set; }
     }
@@ -50,9 +51,11 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     internal class SonarLintAnalysisConfigProvider : ISonarLintAnalysisConfigProvider
     {
         private readonly IRuleDefinitionsRepository ruleDefinitionsRepository;
-        private readonly ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider;
         private readonly IRulesToAdditionalTextConverter rulesToAdditionalTextConverter;
         private readonly IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter;
+        
+        private readonly ImmutableArray<DiagnosticAnalyzer> analyzers;
+        private readonly ImmutableHashSet<string> analyzerRules;
 
         [ImportingConstructor]
         public SonarLintAnalysisConfigProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
@@ -70,9 +73,15 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
             IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter)
         {
             this.ruleDefinitionsRepository = ruleDefinitionsRepository;
-            this.sonarAnalyzerCodeActionProvider = sonarAnalyzerCodeActionProvider;
             this.rulesToAdditionalTextConverter = rulesToAdditionalTextConverter;
             this.rulesToReportDiagnosticsConverter = rulesToReportDiagnosticsConverter;
+
+            // performance optimization: cache the analyzers' rule descriptors
+            analyzers = sonarAnalyzerCodeActionProvider.CodeDiagnosticAnalyzerProviders;
+            analyzerRules = analyzers
+                .SelectMany(x => x.SupportedDiagnostics)
+                .Select(x => x.Id)
+                .ToImmutableHashSet();
         }
 
         public AnalysisConfig Get(Compilation originalCompilation, AnalyzerOptions originalOptions)
@@ -81,16 +90,12 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
 
             return new AnalysisConfig
             {
-                Analyzers = GetSonarAnalyzers(),
                 Compilation = GetWithSonarLintRuleSeverities(originalCompilation, rules),
-                AnalyzerOptions = GetWithSonarLintAdditionalFiles(originalOptions, rules)
+                AnalyzerOptions = GetWithSonarLintAdditionalFiles(originalOptions, rules),
+                Analyzers = analyzers,
+                AnalyzerRules = analyzerRules,
             };
         }
-
-        /// <summary>
-        /// Ignore any other analyzers specified in the project and run only sonar-dotnet analyzers.
-        /// </summary>
-        private ImmutableArray<DiagnosticAnalyzer> GetSonarAnalyzers() => sonarAnalyzerCodeActionProvider.CodeDiagnosticAnalyzerProviders;
 
         /// <summary>
         /// Update sonar-dotnet analyzers rule severities.
