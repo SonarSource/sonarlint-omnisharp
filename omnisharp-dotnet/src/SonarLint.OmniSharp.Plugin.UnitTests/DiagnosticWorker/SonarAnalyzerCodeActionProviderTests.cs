@@ -73,9 +73,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         {
             var testSubject = CreateTestSubject(GetType().Assembly);
 
-            testSubject.CodeDiagnosticAnalyzerProviders.Length.Should().Be(2);
-            testSubject.CodeDiagnosticAnalyzerProviders[0].Should().BeOfType<DummyAnalyzer1>();
-            testSubject.CodeDiagnosticAnalyzerProviders[1].Should().BeOfType<DummyAnalyzer2>();
+            // There are other test analyzers in the project, so we can't compare the exact expected number and items
+            testSubject.CodeDiagnosticAnalyzerProviders.Should().Contain(x => x is DummyAnalyzer1);
+            testSubject.CodeDiagnosticAnalyzerProviders.Should().Contain(x => x is DummyAnalyzer2);
         }
         
         [TestMethod]
