@@ -68,12 +68,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
                 analysisConfig.AnalyzerOptions, 
                 document);
 
-            var supportedRules = analysisConfig
-                .Analyzers
-                .SelectMany(x => x.SupportedDiagnostics)
-                .Select(x => x.Id)
-                .ToImmutableHashSet();
-            
+            var supportedRules = analysisConfig.AnalyzerRules;
             var resultsWithoutCompilerRules = result.Where(x => supportedRules.Contains(x.Id)).ToImmutableArray();
 
             return resultsWithoutCompilerRules;

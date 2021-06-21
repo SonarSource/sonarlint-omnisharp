@@ -178,11 +178,20 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                     compilation = originalCompilation;
                     options = originalOptions;
                 })
-                .Returns(() => new AnalysisConfig
+                .Returns(() =>
                 {
-                    Analyzers = getAnalyzers().ToImmutableArray(),
-                    Compilation = modifyCompilation(compilation),
-                    AnalyzerOptions = modifyOptions(options)
+                    var analyzers = getAnalyzers().ToImmutableArray();
+                    var analyzerRules = analyzers.SelectMany(x => x.SupportedDiagnostics)
+                        .Select(x => x.Id)
+                        .ToImmutableHashSet();
+                    
+                    return new AnalysisConfig
+                    {
+                        Analyzers = analyzers,
+                        AnalyzerRules = analyzerRules,
+                        Compilation = modifyCompilation(compilation),
+                        AnalyzerOptions = modifyOptions(options)
+                    };
                 });
 
             return analysisConfigProvider;
