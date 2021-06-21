@@ -27,7 +27,7 @@
     <!-- Add any files that should be included in the Java plugin to the item group @"FilesToIncludeInJar".
          The files will be copied to the directory "JarContentFiles". -->
   <ItemGroup>
-    <FilesToIncludeInJar Include="$(TargetDir)$(TargetFileName)" />
+    <FilesToIncludeInJar Include="$(TargetDir)$(TargetFileName);..\..\THIRD-PARTY-NOTICES;" />
   </ItemGroup>
   
   <Target Name="CopyFilesToJarContentFolder" AfterTargets="Build" Inputs="$(TargetDir)$(TargetFileName)" Outputs="$(JarContentFolder)$(TargetFileName)">
