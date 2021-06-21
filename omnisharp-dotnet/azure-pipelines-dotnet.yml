@@ -27,6 +27,22 @@ steps:
   inputs:
     secureFile: SonarSourceSecret.snk
 
+- powershell: |
+    # Reads the Sonar project version to use from the Java POM file
+
+    # Calculate the POM file path
+    $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\omnisharp-plugin\pom.xml"
+    Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
+
+    # Read the version from the file
+    [xml]$versionProps = Get-Content "$versionFilePath"
+    $sonarProjectVersion = $versionProps.project.parent.version
+    Write-Host "Sonar project version is '${sonarProjectVersion}'"
+
+    # Set the variable to it can be used by other tasks
+    Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
+  displayName: 'Fetch the analysis version from the Java pom.xml'
+
 - task: DotNetCoreCLI@2
   displayName: 'Restore NuGet packages'
   inputs:
@@ -44,8 +60,7 @@ steps:
     scannerMode: 'MSBuild'
     projectKey: 'sonarlint-omnisharp-dotnet'
     projectName: 'sonarlint-omnisharp-dotnet'
-# TODO - set project version
-#    projectVersion: '$(SONAR_PROJECT_VERSION)'
+    projectVersion: '$(SONAR_PROJECT_VERSION)'
 # NOTE: we're using coverlet -> openxml format for code coverage so we can run on non-Windows agents
     extraProperties: |
       sonar.analysis.buildNumber=$(Build.BuildId)
