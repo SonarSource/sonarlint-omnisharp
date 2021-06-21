@@ -42,19 +42,30 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             MefTestHelpers.CheckTypeCanBeImported<SonarLintAnalysisConfigProvider, ISonarLintAnalysisConfigProvider>(null, new []
             {
                 MefTestHelpers.CreateExport<IRuleDefinitionsRepository>(Mock.Of<IRuleDefinitionsRepository>()),
-                MefTestHelpers.CreateExport<ISonarAnalyzerCodeActionProvider>(Mock.Of<ISonarAnalyzerCodeActionProvider>())
+                MefTestHelpers.CreateExport<ISonarAnalyzerCodeActionProvider>(CreateSonarCodeActionProvider(ImmutableArray<DiagnosticAnalyzer>.Empty))
             });
         }
 
         [TestMethod]
         public void Get_ReturnsCorrectAnalyzers()
         {
-            var analyzers = new DiagnosticAnalyzer[] {new DummyAnalyzer()}.ToImmutableArray();
+            var analyzers = new DiagnosticAnalyzer[] {new DummyAnalyzer()};
 
             var testSubject = CreateTestSubject(analyzers: analyzers);
             var analysisConfig = testSubject.Get(CreateCompilation(), CreateOptions());
 
             analysisConfig.Analyzers.Should().BeEquivalentTo(analyzers);
+        }
+        
+        [TestMethod]
+        public void Get_ReturnsCorrectAnalyzerRules()
+        {
+            var analyzers = new DiagnosticAnalyzer[] {new DummyAnalyzer()};
+
+            var testSubject = CreateTestSubject(analyzers: analyzers);
+            var analysisConfig = testSubject.Get(CreateCompilation(), CreateOptions());
+
+            analysisConfig.AnalyzerRules.Should().BeEquivalentTo(DummyAnalyzer.Descriptor1.Id, DummyAnalyzer.Descriptor2.Id);
         }
 
         [TestMethod]
@@ -146,18 +157,19 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 
         private SonarLintAnalysisConfigProvider CreateTestSubject(
             RuleDefinition[] rules = null,
-            ImmutableArray<DiagnosticAnalyzer> analyzers = default,
+            DiagnosticAnalyzer[] analyzers = null,
             Dictionary<string, ReportDiagnostic> ruleSeverities = null,
             AdditionalText additionalFile = null)
         {
             rules ??= Array.Empty<RuleDefinition>();
+            analyzers ??= Array.Empty<DiagnosticAnalyzer>();
             ruleSeverities ??= new Dictionary<string, ReportDiagnostic>();
             additionalFile ??= new RulesToAdditionalTextConverter.AdditionalTextImpl("some file", "some content");
             
             var ruleDefinitionsRepository = CreateRuleDefinitionsRepository(rules);
             var rulesToReportDiagnosticsConverter = CreateRulesToReportDiagnosticsConverter(rules, ruleSeverities);
             var rulesToAdditionalTextConverter = CreateRulesToAdditionalTextConverter(rules, additionalFile);
-            var sonarCodeActionProvider = CreateSonarCodeActionProvider(analyzers);
+            var sonarCodeActionProvider = CreateSonarCodeActionProvider(analyzers.ToImmutableArray());
 
             return new SonarLintAnalysisConfigProvider(ruleDefinitionsRepository,
                 sonarCodeActionProvider,
@@ -168,6 +180,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         private static ISonarAnalyzerCodeActionProvider CreateSonarCodeActionProvider(ImmutableArray<DiagnosticAnalyzer> sonarAnalyzers)
         {
             var sonarCodeActionProvider = new Mock<ISonarAnalyzerCodeActionProvider>();
+            
             sonarCodeActionProvider
                 .Setup(x => x.CodeDiagnosticAnalyzerProviders)
                 .Returns(sonarAnalyzers);
@@ -211,11 +224,18 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         
         private class DummyAnalyzer : DiagnosticAnalyzer
         {
+            public static DiagnosticDescriptor Descriptor1 = 
+                new DiagnosticDescriptor("id1", "title1","message1","category1",DiagnosticSeverity.Error, true);
+            
+            public static DiagnosticDescriptor Descriptor2 = 
+                new DiagnosticDescriptor("id2", "title2","message2","category2",DiagnosticSeverity.Warning, false);
+            
             public override void Initialize(AnalysisContext context)
             {
             }
 
-            public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; }
+            public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
+                new[] {Descriptor1, Descriptor2}.ToImmutableArray();
         }
         
         #endregion
