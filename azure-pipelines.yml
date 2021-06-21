@@ -22,6 +22,10 @@ variables:
   - group: sonarsource-build-variables
 
 resources:
+  pipelines:
+    - pipeline: dotnetbuild
+      source: 'SonarLint OmniSharp .NET'
+      trigger: true
   repositories:
     - repository: commonTemplates
       type: git
