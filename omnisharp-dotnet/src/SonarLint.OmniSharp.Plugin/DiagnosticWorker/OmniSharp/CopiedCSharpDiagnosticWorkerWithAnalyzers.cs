@@ -1,4 +1,10 @@
-﻿using System;
+﻿/*
+ * omnisharp-roslyn
+ * Copyright (c) .NET Foundation and Contributors All Rights Reserved
+ * https://github.com/OmniSharp/omnisharp-roslyn/blob/master/license.md
+ */
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;

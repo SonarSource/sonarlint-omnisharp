@@ -1,4 +1,10 @@
-﻿namespace OmniSharp
+﻿/*
+ * omnisharp-roslyn
+ * Copyright (c) .NET Foundation and Contributors All Rights Reserved
+ * https://github.com/OmniSharp/omnisharp-roslyn/blob/master/license.md
+ */
+
+namespace OmniSharp
 {
     /// <summary>
     /// Copied with unneeded constants deleted from OmniSharp.Configuration
