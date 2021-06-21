@@ -34,12 +34,12 @@ using SonarLint.VisualStudio.Integration.UnitTests;
 namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 {
     [TestClass]
-    public class SonarLintDiagnosticWorkerDataProviderTests
+    public class SonarLintAnalysisConfigProviderTests
     {
         [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            MefTestHelpers.CheckTypeCanBeImported<SonarLintDiagnosticWorkerDataProvider, ISonarLintDiagnosticWorkerDataProvider>(null, new []
+            MefTestHelpers.CheckTypeCanBeImported<SonarLintAnalysisConfigProvider, ISonarLintAnalysisConfigProvider>(null, new []
             {
                 MefTestHelpers.CreateExport<IRuleDefinitionsRepository>(Mock.Of<IRuleDefinitionsRepository>()),
                 MefTestHelpers.CreateExport<ISonarAnalyzerCodeActionProvider>(Mock.Of<ISonarAnalyzerCodeActionProvider>())
@@ -47,18 +47,18 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         }
 
         [TestMethod]
-        public void Get_ReturnsSonarAnalyzers()
+        public void Get_ReturnsCorrectAnalyzers()
         {
-            var sonarAnalyzers = new DiagnosticAnalyzer[] {new DummyAnalyzer()}.ToImmutableArray();
+            var analyzers = new DiagnosticAnalyzer[] {new DummyAnalyzer()}.ToImmutableArray();
 
-            var testSubject = CreateTestSubject(sonarAnalyzers: sonarAnalyzers);
-            var diagnosticWorkerModifications = testSubject.Get(CreateCompilation(), CreateOptions());
+            var testSubject = CreateTestSubject(analyzers: analyzers);
+            var analysisConfig = testSubject.Get(CreateCompilation(), CreateOptions());
 
-            diagnosticWorkerModifications.Analyzers.Should().BeEquivalentTo(sonarAnalyzers);
+            analysisConfig.Analyzers.Should().BeEquivalentTo(analyzers);
         }
 
         [TestMethod]
-        public void Get_NoExistingSonarRuleSeverities_ReturnsSonarRuleSeverities()
+        public void Get_NoExistingRuleSeverities_ReturnsCorrectRuleSeverities()
         {
             var ruleSeverities = new Dictionary<string, ReportDiagnostic>
             {
@@ -70,14 +70,14 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             
             var testSubject = CreateTestSubject(ruleSeverities: ruleSeverities);
             
-            var diagnosticWorkerModifications = testSubject.Get(CreateCompilation(), CreateOptions());
+            var analysisConfig = testSubject.Get(CreateCompilation(), CreateOptions());
 
-            var severities = diagnosticWorkerModifications.Compilation.Options.SpecificDiagnosticOptions;
+            var severities = analysisConfig.Compilation.Options.SpecificDiagnosticOptions;
             severities.Should().BeEquivalentTo(ruleSeverities);
         }
         
         [TestMethod]
-        public void Get_HasExistingSonarRuleSeverities_OverridesSonarRuleSeverities()
+        public void Get_HasExistingRuleSeverities_OverridesRuleSeverities()
         {
             var existingRuleSeverities = new Dictionary<string, ReportDiagnostic>
             {
@@ -88,45 +88,46 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             
             var existingCompilation = CreateCompilation(existingRuleSeverities);
             
-            var sonarRuleSeverities = new Dictionary<string, ReportDiagnostic>
+            var newRuleSeverities = new Dictionary<string, ReportDiagnostic>
             {
                 {"rule1", ReportDiagnostic.Suppress},
                 {"rule2", ReportDiagnostic.Info}
             };
             
-            var testSubject = CreateTestSubject(ruleSeverities: sonarRuleSeverities);
-            var diagnosticWorkerModifications = testSubject.Get(existingCompilation, CreateOptions());
+            var testSubject = CreateTestSubject(ruleSeverities: newRuleSeverities);
+            var analysisConfig = testSubject.Get(existingCompilation, CreateOptions());
 
-            var severities = diagnosticWorkerModifications.Compilation.Options.SpecificDiagnosticOptions;
-            severities.Should().BeEquivalentTo(sonarRuleSeverities);
+            var severities = analysisConfig.Compilation.Options.SpecificDiagnosticOptions;
+            severities.Should().BeEquivalentTo(newRuleSeverities);
         }
         
         [TestMethod]
-        public void Get_NoExistingSonarAdditionalFile_AddsSonarAdditionalFile()
+        public void Get_NoExistingAdditionalFiles_AddsAdditionalFile()
         {
-            var additionalText = new RulesToAdditionalTextConverter.AdditionalTextImpl("some path", "some content");
-            var testSubject = CreateTestSubject(additionalFile: additionalText);
+            var additionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("some path", "some content");
+            var testSubject = CreateTestSubject(additionalFile: additionalFile);
             
-            var diagnosticWorkerModifications = testSubject.Get(CreateCompilation(), CreateOptions());
+            var analysisConfig = testSubject.Get(CreateCompilation(), CreateOptions());
 
-            diagnosticWorkerModifications.AnalyzerOptions.AdditionalFiles.Should().BeEquivalentTo(additionalText);
+            analysisConfig.AnalyzerOptions.AdditionalFiles.Should().BeEquivalentTo(additionalFile);
         }
         
         [TestMethod]
-        public void Get_HasExistingSonarAdditionalFile_OverridesSonarAdditionalFile()
+        public void Get_HasExistingAdditionalFiles_OverridesAdditionalFileWithSameName()
         {
-            var existingSonarAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("a/test/sonar.xml", "some content1");
+            var existingAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("a/test/sonar.xml", "some content1");
             var existingUnrelatedAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("asonar.xml", "some content2");
-            var existingOptions = CreateOptions(existingSonarAdditionalFile, existingUnrelatedAdditionalFile);
+            var existingOptions = CreateOptions(existingAdditionalFile, existingUnrelatedAdditionalFile);
             
-            var sonarAdditionalFile = new RulesToAdditionalTextConverter.AdditionalTextImpl("b/sonar.xml", "some new content");
-            var testSubject = CreateTestSubject(additionalFile: sonarAdditionalFile);
+            var newAdditionalFileWithSameName = new RulesToAdditionalTextConverter.AdditionalTextImpl("b/sonar.xml", "some new content");
+            var testSubject = CreateTestSubject(additionalFile: newAdditionalFileWithSameName);
             
-            var diagnosticWorkerModifications = testSubject.Get(CreateCompilation(), existingOptions);
+            var analysisConfig = testSubject.Get(CreateCompilation(), existingOptions);
             
-            diagnosticWorkerModifications.AnalyzerOptions.AdditionalFiles.Should().BeEquivalentTo(sonarAdditionalFile, existingUnrelatedAdditionalFile);
-            diagnosticWorkerModifications.AnalyzerOptions.AdditionalFiles[0].GetText().ToString().Should().Be("some content2");
-            diagnosticWorkerModifications.AnalyzerOptions.AdditionalFiles[1].GetText().ToString().Should().Be("some new content");
+            var additionalFiles = analysisConfig.AnalyzerOptions.AdditionalFiles;
+            additionalFiles.Should().BeEquivalentTo(existingUnrelatedAdditionalFile, newAdditionalFileWithSameName);
+            additionalFiles[0].GetText().ToString().Should().Be("some content2");
+            additionalFiles[1].GetText().ToString().Should().Be("some new content");
         }
 
         private Compilation CreateCompilation(Dictionary<string, ReportDiagnostic> existingRuleSeverities = null)
@@ -143,9 +144,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             return new AnalyzerOptions(existingAdditionalFiles.ToImmutableArray());
         }
 
-        private SonarLintDiagnosticWorkerDataProvider CreateTestSubject(
+        private SonarLintAnalysisConfigProvider CreateTestSubject(
             RuleDefinition[] rules = null,
-            ImmutableArray<DiagnosticAnalyzer> sonarAnalyzers = default,
+            ImmutableArray<DiagnosticAnalyzer> analyzers = default,
             Dictionary<string, ReportDiagnostic> ruleSeverities = null,
             AdditionalText additionalFile = null)
         {
@@ -156,9 +157,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             var ruleDefinitionsRepository = CreateRuleDefinitionsRepository(rules);
             var rulesToReportDiagnosticsConverter = CreateRulesToReportDiagnosticsConverter(rules, ruleSeverities);
             var rulesToAdditionalTextConverter = CreateRulesToAdditionalTextConverter(rules, additionalFile);
-            var sonarCodeActionProvider = CreateSonarCodeActionProvider(sonarAnalyzers);
+            var sonarCodeActionProvider = CreateSonarCodeActionProvider(analyzers);
 
-            return new SonarLintDiagnosticWorkerDataProvider(ruleDefinitionsRepository,
+            return new SonarLintAnalysisConfigProvider(ruleDefinitionsRepository,
                 sonarCodeActionProvider,
                 rulesToAdditionalTextConverter,
                 rulesToReportDiagnosticsConverter);

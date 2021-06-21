@@ -30,24 +30,24 @@ using SonarLint.OmniSharp.Plugin.Rules;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
 {
-    internal class DiagnosticWorkerModifications
+    internal class AnalysisConfig
     {
         public ImmutableArray<DiagnosticAnalyzer> Analyzers { get; set; }
         public Compilation Compilation { get; set; }
         public AnalyzerOptions AnalyzerOptions { get; set; }
     }
     
-    internal interface ISonarLintDiagnosticWorkerDataProvider
+    internal interface ISonarLintAnalysisConfigProvider
     {
         /// <summary>
         /// Provide modified data for <see cref="ISonarLintDiagnosticWorker"/> 
         /// </summary>
-        DiagnosticWorkerModifications Get(Compilation originalCompilation, AnalyzerOptions originalOptions);
+        AnalysisConfig Get(Compilation originalCompilation, AnalyzerOptions originalOptions);
     }
     
-    [Export(typeof(ISonarLintDiagnosticWorkerDataProvider))]
+    [Export(typeof(ISonarLintAnalysisConfigProvider))]
     [PartCreationPolicy(CreationPolicy.Shared)]
-    internal class SonarLintDiagnosticWorkerDataProvider : ISonarLintDiagnosticWorkerDataProvider
+    internal class SonarLintAnalysisConfigProvider : ISonarLintAnalysisConfigProvider
     {
         private readonly IRuleDefinitionsRepository ruleDefinitionsRepository;
         private readonly ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider;
@@ -55,7 +55,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
         private readonly IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter;
 
         [ImportingConstructor]
-        public SonarLintDiagnosticWorkerDataProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
+        public SonarLintAnalysisConfigProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
             ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider)
             : this(ruleDefinitionsRepository,
                 sonarAnalyzerCodeActionProvider,
@@ -64,7 +64,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
         {
         }
 
-        internal SonarLintDiagnosticWorkerDataProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
+        internal SonarLintAnalysisConfigProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
             ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider,
             IRulesToAdditionalTextConverter rulesToAdditionalTextConverter,
             IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter)
@@ -75,11 +75,11 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
             this.rulesToReportDiagnosticsConverter = rulesToReportDiagnosticsConverter;
         }
 
-        public DiagnosticWorkerModifications Get(Compilation originalCompilation, AnalyzerOptions originalOptions)
+        public AnalysisConfig Get(Compilation originalCompilation, AnalyzerOptions originalOptions)
         {
             var rules = ruleDefinitionsRepository.RuleDefinitions;
 
-            return new DiagnosticWorkerModifications
+            return new AnalysisConfig
             {
                 Analyzers = GetSonarAnalyzers(),
                 Compilation = GetWithSonarLintRuleSeverities(originalCompilation, rules),

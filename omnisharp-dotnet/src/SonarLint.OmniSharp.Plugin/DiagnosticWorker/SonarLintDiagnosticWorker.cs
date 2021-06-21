@@ -20,6 +20,7 @@
 
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -30,6 +31,7 @@ using OmniSharp.Options;
 using OmniSharp.Roslyn;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using OmniSharp.Roslyn.CSharp.Workers.Diagnostics;
+using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
 {
@@ -41,30 +43,29 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     [PartCreationPolicy(CreationPolicy.Shared)]
     internal class SonarLintDiagnosticWorker : CopiedCSharpDiagnosticWorkerWithAnalyzers, ISonarLintDiagnosticWorker
     {
-        private readonly ISonarLintDiagnosticWorkerDataProvider sonarLintDiagnosticWorkerDataProvider;
+        private readonly ISonarLintAnalysisConfigProvider sonarLintAnalysisConfigProvider;
 
         [ImportingConstructor]
-        public SonarLintDiagnosticWorker(ISonarLintDiagnosticWorkerDataProvider sonarLintDiagnosticWorkerDataProvider,
+        public SonarLintDiagnosticWorker(ISonarLintAnalysisConfigProvider sonarLintAnalysisConfigProvider,
             OmniSharpWorkspace workspace,
-            ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider,
             ILoggerFactory loggerFactory,
             DiagnosticEventForwarder forwarder,
             IOptionsMonitor<OmniSharpOptions> options)
-            : base(workspace, new[] {sonarAnalyzerCodeActionProvider}, loggerFactory, forwarder, options.CurrentValue)
+            : base(workspace, Enumerable.Empty<ICodeActionProvider>(), loggerFactory, forwarder, options.CurrentValue)
         {
-            this.sonarLintDiagnosticWorkerDataProvider = sonarLintDiagnosticWorkerDataProvider;
+            this.sonarLintAnalysisConfigProvider = sonarLintAnalysisConfigProvider;
         }
         
         protected override Task<ImmutableArray<Diagnostic>> AnalyzeDocument(Project project,
             ImmutableArray<DiagnosticAnalyzer> allAnalyzers, Compilation compilation,
             AnalyzerOptions workspaceAnalyzerOptions, Document document)
         {
-            var diagnosticWorkerData = sonarLintDiagnosticWorkerDataProvider.Get(compilation, workspaceAnalyzerOptions);
+            var analysisConfig = sonarLintAnalysisConfigProvider.Get(compilation, workspaceAnalyzerOptions);
             
             return base.AnalyzeDocument(project, 
-                diagnosticWorkerData.Analyzers, 
-                diagnosticWorkerData.Compilation, 
-                diagnosticWorkerData.AnalyzerOptions, 
+                analysisConfig.Analyzers, 
+                analysisConfig.Compilation, 
+                analysisConfig.AnalyzerOptions, 
                 document);
         }
     }

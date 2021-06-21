@@ -52,9 +52,8 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         {
             MefTestHelpers.CheckTypeCanBeImported<SonarLintDiagnosticWorker, ISonarLintDiagnosticWorker>(null, new []
             {
-                MefTestHelpers.CreateExport<ISonarLintDiagnosticWorkerDataProvider>(Mock.Of<ISonarLintDiagnosticWorkerDataProvider>()),
+                MefTestHelpers.CreateExport<ISonarLintAnalysisConfigProvider>(Mock.Of<ISonarLintAnalysisConfigProvider>()),
                 MefTestHelpers.CreateExport<OmniSharpWorkspace>(CreateOmniSharpWorkspace()),
-                MefTestHelpers.CreateExport<ISonarAnalyzerCodeActionProvider>(Mock.Of<ISonarAnalyzerCodeActionProvider>()),
                 MefTestHelpers.CreateExport<ILoggerFactory>(Mock.Of<ILoggerFactory>()),
                 MefTestHelpers.CreateExport<DiagnosticEventForwarder>(new DiagnosticEventForwarder(Mock.Of<IEventEmitter>())),
                 MefTestHelpers.CreateExport<IOptionsMonitor<OmniSharpOptions>>(CreateOptionsMonitor())
@@ -70,9 +69,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                 .Returns(new []{new TestAnalyzer()})
                 .Returns(Enumerable.Empty<DiagnosticAnalyzer>());
 
-            var diagnosticWorkerDataProvider = CreateDiagnosticWorkerDataProvider(getAnalyzers: getAnalyzers.Object);
+            var analysisConfigProvider = CreateAnalysisConfigProvider(getAnalyzers: getAnalyzers.Object);
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "class SonarLint_TestAnalyzer_Raise { }");
-            var testSubject = CreateTestSubject(workspace, diagnosticWorkerDataProvider.Object);
+            var testSubject = CreateTestSubject(workspace, analysisConfigProvider.Object);
             var document = workspace.GetDocument("dummyFile.cs");
             
             // first call has an analyzer --> should report a diagnostic
@@ -98,9 +97,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                 return originalCompilation.WithOptions(originalCompilation.Options.WithGeneralDiagnosticOption(ReportDiagnostic.Suppress));
             }
 
-            var diagnosticWorkerDataProvider = CreateDiagnosticWorkerDataProvider(modifyCompilation: ModifyCompilation);
+            var analysisConfigProvider = CreateAnalysisConfigProvider(modifyCompilation: ModifyCompilation);
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "class SonarLint_TestAnalyzer_Raise { }");
-            var testSubject = CreateTestSubject(workspace, diagnosticWorkerDataProvider.Object);
+            var testSubject = CreateTestSubject(workspace, analysisConfigProvider.Object);
             var document = workspace.GetDocument("dummyFile.cs");
             
             // first call has the original analyzer's severity (warning) --> should report a diagnostic
@@ -115,6 +114,8 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         [TestMethod]
         public async Task AnalyzeDocument_AnalyzerOptionsAreOverriden()
         {
+            var additionalFile = (AdditionalText)new RulesToAdditionalTextConverter.AdditionalTextImpl(TestAnalyzer.Descriptor.Id, string.Empty);
+
             var isFirstCall = true;
             AnalyzerOptions ModifyOptions(AnalyzerOptions originalOptions)
             {
@@ -123,26 +124,30 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                     isFirstCall = false;
                     return originalOptions;
                 }
-                
-                var additionalFile = (AdditionalText)new RulesToAdditionalTextConverter.AdditionalTextImpl(TestAnalyzer.Descriptor.Id, string.Empty);
                 return originalOptions.WithAdditionalFiles(new []{additionalFile}.ToImmutableArray());
             }
+
+            var analyzer = new TestAnalyzer();
+            var analysisConfigProvider = CreateAnalysisConfigProvider(
+                modifyOptions: ModifyOptions,
+                getAnalyzers: () => new[] {analyzer});
             
-            var diagnosticWorkerDataProvider = CreateDiagnosticWorkerDataProvider(modifyOptions: ModifyOptions);
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "class SonarLint_TestAnalyzer_Raise { }");
-            var testSubject = CreateTestSubject(workspace, diagnosticWorkerDataProvider.Object);
+            var testSubject = CreateTestSubject(workspace, analysisConfigProvider.Object);
             var document = workspace.GetDocument("dummyFile.cs");
             
-            // first call has no additional files --> should report a diagnostic
+            // first call should have no additional files
             var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
+            analyzer.SuppliedAdditionalFiles.Should().BeEmpty();
             
-            // second call has additional file --> signal to the analyzer that it should not report a diagnostic
+            // second call should have an additional file
             result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
-            result.Should().BeEmpty();
+            result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
+            analyzer.SuppliedAdditionalFiles.Should().BeEquivalentTo(additionalFile);
         }
 
-        private static Mock<ISonarLintDiagnosticWorkerDataProvider> CreateDiagnosticWorkerDataProvider(
+        private static Mock<ISonarLintAnalysisConfigProvider> CreateAnalysisConfigProvider(
             Func<IEnumerable<DiagnosticAnalyzer>> getAnalyzers = null,
             Func<Compilation, Compilation> modifyCompilation = null,
             Func<AnalyzerOptions, AnalyzerOptions> modifyOptions = null)
@@ -154,22 +159,22 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             Compilation compilation = null;
             AnalyzerOptions options = null;
 
-            var diagnosticWorkerDataProvider = new Mock<ISonarLintDiagnosticWorkerDataProvider>();
-            diagnosticWorkerDataProvider
+            var analysisConfigProvider = new Mock<ISonarLintAnalysisConfigProvider>();
+            analysisConfigProvider
                 .Setup(x => x.Get(It.IsAny<Compilation>(), It.IsAny<AnalyzerOptions>()))
                 .Callback((Compilation originalCompilation, AnalyzerOptions originalOptions) =>
                 {
                     compilation = originalCompilation;
                     options = originalOptions;
                 })
-                .Returns(() => new DiagnosticWorkerModifications
+                .Returns(() => new AnalysisConfig
                 {
                     Analyzers = getAnalyzers().ToImmutableArray(),
                     Compilation = modifyCompilation(compilation),
                     AnalyzerOptions = modifyOptions(options)
                 });
 
-            return diagnosticWorkerDataProvider;
+            return analysisConfigProvider;
         }
 
         private OmniSharpWorkspace CreateOmnisharpWorkspaceWithDocument(string documentFileName, string documentContent)
@@ -218,19 +223,10 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             
             return optionsMonitor.Object;
         }
-
-        private ISonarAnalyzerCodeActionProvider CreateCodeActionProvider()
-        {
-            var codeActionProvider = new Mock<ISonarAnalyzerCodeActionProvider>();
-            codeActionProvider.SetupGet(x=> x.CodeDiagnosticAnalyzerProviders).Returns(ImmutableArray<DiagnosticAnalyzer>.Empty);
-
-            return codeActionProvider.Object;
-        }
         
-        private SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintDiagnosticWorkerDataProvider workerDataProvider) =>
-            new SonarLintDiagnosticWorker(workerDataProvider,
+        private SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintAnalysisConfigProvider analysisConfigProvider) =>
+            new SonarLintDiagnosticWorker(analysisConfigProvider,
                 workspace,
-                CreateCodeActionProvider(),
                 Mock.Of<ILoggerFactory>(),
                 new DiagnosticEventForwarder(Mock.Of<IEventEmitter>()),
                 CreateOptionsMonitor());
@@ -256,6 +252,8 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         [DiagnosticAnalyzer(LanguageNames.CSharp)]
         private class TestAnalyzer : DiagnosticAnalyzer
         {
+            public ImmutableArray<AdditionalText> SuppliedAdditionalFiles { get; set; }
+            
             public override void Initialize(AnalysisContext context)
             {
                 context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
@@ -265,13 +263,8 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 
             private void AnalyzeSymbol(SymbolAnalysisContext context)
             {
-                // Hacky way to test that the analyzer options are being overriden
-                var shouldIgnoreAnalysis = context.Options.AdditionalFiles.Any(x => x.Path.Equals(Descriptor.Id));
-                if (shouldIgnoreAnalysis)
-                {
-                    return;
-                }
-                
+                SuppliedAdditionalFiles = context.Options.AdditionalFiles;
+
                 var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
                 
                 if (namedTypeSymbol.Name == "SonarLint_TestAnalyzer_Raise")
