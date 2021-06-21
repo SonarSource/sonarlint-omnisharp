@@ -3,19 +3,19 @@ pool:
 
 # Temporarily disable the "main" analysis for changes in the dotnet subfolder.
 # Will be removed as part of #2 later.
-pr:
-  branches:
-    exclude:
-    - branch-dotnet
-    - rg/*
-    - dp/*
+#pr:
+#  branches:
+#    exclude:
+#    - branch-dotnet
+#    - rg/*
+#    - dp/*
 
-trigger:
-  branches:
-    exclude:
-    - branch-dotnet
-    - rg/*
-    - dp/*
+#trigger:
+#  branches:
+#    exclude:
+#    - branch-dotnet
+#    - rg/*
+#    - dp/*
 
 
 variables:
