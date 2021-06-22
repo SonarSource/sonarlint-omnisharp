@@ -133,6 +133,11 @@ stages:
                 key: 'build | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
                 path: $(MAVEN_CACHE_FOLDER)
               displayName: Cache Maven local repo
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                source: current
+                artifact: DotNetJarContentFiles
+                path: $(Pipeline.Workspace)/DotNetJarContentFiles
             - task: DownloadSecureFile@1
               displayName: 'Download Maven settings'
               name: mavenSettings
