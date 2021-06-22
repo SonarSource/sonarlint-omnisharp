@@ -134,6 +134,7 @@ stages:
                 path: $(MAVEN_CACHE_FOLDER)
               displayName: Cache Maven local repo
             - task: DownloadPipelineArtifact@2
+              displayName: 'Download .NET artifacts'
               inputs:
                 source: current
                 artifact: DotNetJarContentFiles
