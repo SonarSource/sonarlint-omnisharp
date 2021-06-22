@@ -6,7 +6,6 @@ pool:
 pr:
   branches:
     exclude:
-    - branch-dotnet
     - rg/*
     - dp/*
 
@@ -30,12 +29,94 @@ resources:
 
 
 stages:
+  - stage: build_dotnet
+    displayName: 'Build, test and analyze .NET extension'
+    variables:
+      - name: buildConfiguration
+        value: 'Release'  
+      - name: slnPath
+        value: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
+
+    jobs:
+      - job: dotnet_build_test_test_analyze
+        steps:
+
+        - task: DownloadSecureFile@1
+          displayName: 'Download snk file'
+          name: snk
+          inputs:
+            secureFile: SonarSourceSecret.snk
+
+        - powershell: |
+            # Reads the Sonar project version to use from the Java POM file
+
+            # Calculate the POM file path
+            $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\omnisharp-plugin\pom.xml"
+            Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
+
+            # Read the version from the file
+            [xml]$versionProps = Get-Content "$versionFilePath"
+            $sonarProjectVersion = $versionProps.project.parent.version
+            Write-Host "Sonar project version is '${sonarProjectVersion}'"
+
+            # Set the variable to it can be used by other tasks
+            Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
+          displayName: 'Fetch the analysis version from the Java pom.xml'
+
+        # Using the restore command directly seems to be the only way to explicitly limit the package feed used
+        - task: DotNetCoreCLI@2
+          displayName: 'Restore NuGet packages'
+          inputs:
+            command: 'restore'
+            projects: $(slnPath)
+            restoreArguments: '--locked-mode'
+            feedsToUse: 'select'
+            vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
+            includeNuGetOrg: false
+
+
+        - task: SonarQubePrepare@4
+          inputs:
+            SonarQube: 'Next'
+            scannerMode: 'MSBuild'
+            projectKey: 'sonarlint-omnisharp-dotnet'
+            projectName: 'sonarlint-omnisharp-dotnet'
+            projectVersion: '$(SONAR_PROJECT_VERSION)'
+        # NOTE: we're using coverlet -> openxml format for code coverage so we can run on non-Windows agents
+            extraProperties: |
+              sonar.analysis.buildNumber=$(Build.BuildId)
+              sonar.analysis.pipeline=$(Build.BuildId)
+              sonar.analysis.sha1=$(System.PullRequest.SourceCommitId)
+              sonar.analysis.prNumber=$(System.PullRequest.PullRequestNumber)
+              sonar.analysis.repository=$(Build.Repository.ID)
+              sonar.cs.opencover.reportsPaths="$(Build.SourcesDirectory)/**/TestResults/coverage.**.xml"
+
+        # Build and run can be invoked in a single "test" command.
+        # This could also execute the restore, but we'd want to work out how to limit the package feed used
+        - task: DotNetCoreCLI@2
+          displayName: 'Build and run .NET unit tests'
+          inputs:
+            command: 'test'
+            projects: $(slnPath)
+            configuration: $(buildConfiguration)
+            arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" $(additionalMSBuildProperties) -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover --no-restore'
+            testRunTitle: '.NET unit tests'
+
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publish the jar content files as a pipeline artifact'
+          inputs:
+            path: omnisharp-dotnet/JarContentFiles 
+            artifact: DotNetJarContentFiles
+              
+        - task: SonarQubeAnalyze@4
+
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
       burgrName: 'build'
       burgrType: 'build'
       stageName: 'build'
       stageDisplayName: Build and stage to repox
+      stageDependencies: build_dotnet
       jobs:
         - job: build
           displayName: Build and stage to repox
