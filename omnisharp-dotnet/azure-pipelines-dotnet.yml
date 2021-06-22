@@ -43,6 +43,7 @@ steps:
     Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
   displayName: 'Fetch the analysis version from the Java pom.xml'
 
+# Using the restore command directly seems to be the only way to explicitly limit the package feed used
 - task: DotNetCoreCLI@2
   displayName: 'Restore NuGet packages'
   inputs:
@@ -69,24 +70,16 @@ steps:
       sonar.analysis.prNumber=$(System.PullRequest.PullRequestNumber)
       sonar.analysis.repository=$(Build.Repository.ID)
       sonar.cs.opencover.reportsPaths="$(Build.SourcesDirectory)/**/TestResults/coverage.**.xml"
-  
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet build'
-  inputs:
-    command: 'build'
-    projects: $(slnPath)
-    configuration: $(buildConfiguration)
-    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" $(additionalMSBuildProperties) '
 
-# NOTE: specifying the "nobuild: true" input did not seem to work - the project was being rebuilt,
-# overwriting the signed version with an unsigned version
+ # Build and run can be invoked in a single "test" command.
+ # This could also execute the restore, but we'd want to work out how to limit the package feed used
 - task: DotNetCoreCLI@2
-  displayName: 'Run .NET unit tests'
+  displayName: 'Build and run .NET unit tests'
   inputs:
     command: 'test'
     projects: $(slnPath)
     configuration: $(buildConfiguration)
-    arguments: '-p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover --no-build --no-restore'
+    arguments: '-p:SignAssembly=true -p:AssemblyOriginatorKeyFile="$(snk.secureFilePath)" $(additionalMSBuildProperties) -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover --no-restore'
     testRunTitle: '.NET unit tests'
 
 - task: PublishPipelineArtifact@1
