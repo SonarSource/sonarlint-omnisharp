@@ -30,7 +30,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
     [TestClass]
     public class PingServiceTests
     {
-        [TestMethod] // see below
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
             CheckTypeCanBeImported<PingService, IRequestHandler>();
