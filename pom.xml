@@ -38,6 +38,7 @@
     <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
     <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
     <junit.version>5.7.2</junit.version>
+    <sonarlint-core.version>6.2.0.33924</sonarlint-core.version>
   </properties>
 
   <modules>

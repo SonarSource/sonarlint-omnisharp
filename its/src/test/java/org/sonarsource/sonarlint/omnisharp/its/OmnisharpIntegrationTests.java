@@ -69,6 +69,7 @@ class OmnisharpIntegrationTests {
       .setSonarLintUserHome(slHome)
       .setLogOutput((msg, level) -> System.out.println(msg))
       .setExtraProperties(Collections.singletonMap("sonar.cs.internal.omnisharpLocation", new File("target/omnisharp").getAbsolutePath()))
+      .setClientPid(ProcessHandle.current().pid())
       .build();
     sonarlintEngine = new StandaloneSonarLintEngineImpl(config);
   }
