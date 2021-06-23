@@ -37,6 +37,12 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
     [TestClass]
     public class SonarLintCodeCheckServiceTests
     {
+        [TestMethod, Ignore]
+        public void MefCtor_CheckIsExported()
+        {
+            // todo: add test
+        }
+
         [TestMethod]
         [DataRow(null)]
         [DataRow("")]
