@@ -20,29 +20,20 @@
 
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OmniSharp.Mef;
 using SonarLint.OmniSharp.Plugin.Services;
 using System.Threading.Tasks;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
 {
     [TestClass]
     public class PingServiceTests
     {
-        [TestMethod, Ignore] // see below
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // For some reason our normal MEF test helper doesn't work with this type.
-            // To illustrate the problem, the TypeCatalog should discover one "Part" on the
-            // type (which is what happens with e.g. ISonarAnalyzerCodeActionProvider in this assembly).
-            // It doesn't discover any.
-            // The only obvious difference with PingSonarLintExtensionService is that it is using a 
-            // custom Export attribute type, rather than just "[Export(...)]"
-            // However, the new service *is* discovered when running in OmniSharp.
-            // var typeCatalog = new TypeCatalog(typeof(PingService));
-            // var compositionElement = (ICompositionElement)typeCatalog;
-            // compositionElement.DisplayName.Should().NotContain("Empty");
-
-            // MefTestHelpers.CheckTypeCanBeImported<PingService, IRequestHandler>(null, null);
+            CheckTypeCanBeImported<PingService, IRequestHandler>();
         }
 
         [TestMethod]

@@ -22,8 +22,10 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Newtonsoft.Json;
+using OmniSharp.Mef;
 using SonarLint.OmniSharp.Plugin.Rules;
 using SonarLint.OmniSharp.Plugin.Services;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -32,14 +34,11 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
     [TestClass]
     public class ConfigServiceTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // MefTestHelpers.CheckTypeCanBeImported<ConfigService, IRequestHandler<ConfigService, object>(
-            //     null, new[]
-            //     {
-            //         MefTestHelpers.CreateExport<IAssemblyLoader>(Mock.Of<IRuleDefinitionsRepository>())
-            //     });
+            CheckTypeCanBeImported <ConfigService, IRequestHandler>(
+                     CreateExport<IRuleDefinitionsRepository>());
         }
 
         [TestMethod]
