@@ -24,7 +24,7 @@ using Microsoft.CodeAnalysis;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
 {
-    public static class SonarLintDiagnosticLocationExtensions
+    internal static class SonarLintDiagnosticLocationExtensions
     {
         public static ICodeLocation[] ToAdditionalLocations(this Diagnostic diagnostic)
         {
@@ -48,11 +48,11 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
         /// </summary>
         private static string GetLocationMessage(Diagnostic diagnostic, int i) => diagnostic.Properties.GetValueOrDefault(i.ToString());
 
-        private static CodeCodeLocation ToAdditionalLocation(this Location location, string text)
+        private static CodeLocation ToAdditionalLocation(this Location location, string text)
         {
             var span = location.GetMappedLineSpan();
 
-            return new CodeCodeLocation
+            return new CodeLocation
             {
                 FileName = span.Path,
                 Line = span.StartLinePosition.Line,

@@ -20,7 +20,7 @@
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
 {
-    public class SonarLintDiagnosticLocation : global::OmniSharp.Models.Diagnostics.DiagnosticLocation, ICodeLocation
+    internal class SonarLintDiagnosticLocation : global::OmniSharp.Models.Diagnostics.DiagnosticLocation, ICodeLocation
     {
         public ICodeLocation[] AdditionalLocations { get; set; }
     }

@@ -18,12 +18,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using OmniSharp.Models;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
 {
-    public interface ICodeLocation
+    internal interface ICodeLocation
     {
         string FileName { get; set; }
         int Line { get; set; }
@@ -33,7 +34,10 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
         string Text { get; set; }
     }
 
-    public sealed class CodeCodeLocation : ICodeLocation
+    /// <summary>
+    /// Based on <see cref="QuickFix"/>
+    /// </summary>
+    internal sealed class CodeLocation : ICodeLocation
     {
         public string FileName { get; set; }
         [JsonConverter(typeof(ZeroBasedIndexConverter))]
@@ -46,13 +50,14 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
         public int EndColumn { get; set; }
         public string Text { get; set; }
 
-        private bool Equals(CodeCodeLocation other)
+        private bool Equals(CodeLocation other)
         {
-            return FileName == other.FileName &&
-                   Line == other.Line &&
-                   Column == other.Column &&
-                   EndLine == other.EndLine &&
-                   EndColumn == other.EndColumn;
+            return FileName == other.FileName
+                   && Line == other.Line
+                   && Column == other.Column
+                   && EndLine == other.EndLine
+                   && EndColumn == other.EndColumn
+                   && Text == other.Text;
         }
 
         public override bool Equals(object obj)
@@ -60,7 +65,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((CodeCodeLocation) obj);
+            return Equals((CodeLocation) obj);
         }
 
         public override int GetHashCode()
@@ -71,7 +76,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
                 hashCode = (hashCode * 397) ^ Line;
                 hashCode = (hashCode * 397) ^ Column;
                 hashCode = (hashCode * 397) ^ EndLine;
-                hashCode = (hashCode * 397) ^ EndColumn;
+                hashCode = (hashCode * 397) ^ EqualityComparer<string>.Default.GetHashCode(Text);
                 return hashCode;
             }
         }
