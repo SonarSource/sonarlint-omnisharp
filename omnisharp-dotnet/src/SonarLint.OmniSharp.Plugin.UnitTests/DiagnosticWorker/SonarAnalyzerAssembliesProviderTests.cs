@@ -25,21 +25,18 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Services;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
-using SonarLint.VisualStudio.Integration.UnitTests;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 {
     [TestClass]
     public class SonarAnalyzerAssembliesProviderTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // MefTestHelpers.CheckTypeCanBeImported<SonarAnalyzerAssembliesProvider, ISonarAnalyzerAssembliesProvider>(
-            //     null, new[]
-            //     {
-            //         MefTestHelpers.CreateExport<IAssemblyLoader>(Mock.Of<IAssemblyLoader>())
-            //     });
+            CheckTypeCanBeImported<SonarAnalyzerAssembliesProvider, ISonarAnalyzerAssembliesProvider>(
+                CreateExport<IAssemblyLoader>());
         }
 
         [TestMethod]

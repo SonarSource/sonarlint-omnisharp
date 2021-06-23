@@ -21,19 +21,19 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SonarLint.OmniSharp.Plugin.Rules;
-using SonarLint.VisualStudio.Integration.UnitTests;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
 {
     [TestClass]
     public class RuleDefinitionsRepositoryTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // MefTestHelpers.CheckTypeCanBeImported<RuleDefinitionsRepository, IRuleDefinitionsRepository>(null, null);
+            CheckTypeCanBeImported<RuleDefinitionsRepository, IRuleDefinitionsRepository>();
         }
-        
+
         [TestMethod]
         public void Get_ValueIsNotSet_EmptyList()
         {
@@ -46,28 +46,28 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
         {
             var testSubject = CreateTestSubject();
             testSubject.RuleDefinitions = null;
-            
+
             testSubject.RuleDefinitions.Should().BeEmpty();
         }
-        
+
         [TestMethod]
         public void Set_ValueIsSet()
         {
             var testSubject = CreateTestSubject();
-            
+
             testSubject.RuleDefinitions.Should().BeEmpty();
 
             var rules = new[] {new RuleDefinition {RuleId = "1"}};
             testSubject.RuleDefinitions = rules;
-            
+
             testSubject.RuleDefinitions.Should().BeSameAs(rules);
-            
+
             rules = new[] {new RuleDefinition {RuleId = "2"}, new RuleDefinition{RuleId = "3"}};
             testSubject.RuleDefinitions = rules;
-            
+
             testSubject.RuleDefinitions.Should().BeSameAs(rules);
         }
-        
+
         private RuleDefinitionsRepository CreateTestSubject() => new RuleDefinitionsRepository();
     }
 }
