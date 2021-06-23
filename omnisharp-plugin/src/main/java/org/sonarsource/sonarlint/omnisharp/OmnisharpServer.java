@@ -285,7 +285,10 @@ public class OmnisharpServer implements Startable {
       omnisharpProtocol.stopRequestQueuePumper();
     }
     closeOutputStream();
-    waitForProcessToEnd();
+    // Don't wait for process to end on Linux, because it takes too long
+    if (system2.isOsWindows()) {
+      waitForProcessToEnd();
+    }
   }
 
   private void waitForProcessToEnd() {
