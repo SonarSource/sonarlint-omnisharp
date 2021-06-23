@@ -40,7 +40,6 @@ using OmniSharp.Roslyn;
 using OmniSharp.Services;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
 using SonarLint.OmniSharp.Plugin.Rules;
-using SonarLint.VisualStudio.Integration.UnitTests;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 {
@@ -156,6 +155,45 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             
             var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.Should().BeEmpty();
+        }
+
+        [TestMethod]
+        public async Task AnalyzeDocument_IssueContainsAdditionalLocations_ReturnsAdditionalLocations()
+        {
+            var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", @"
+class SonarLint_TestAnalyzer_Raise
+{
+   int test1; // the test analyzer will consider the field as a secondary location
+   int      testtttttt2; // the test analyzer will consider the field as a secondary location
+}
+");
+            var testSubject = CreateTestSubject(workspace);
+            var document = workspace.GetDocument("dummyFile.cs");
+            
+            var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
+            result.Should().NotBeEmpty();
+
+            var diagnostic = result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id);
+            diagnostic.Should().NotBeNull();
+            diagnostic.AdditionalLocations.Count.Should().Be(2);
+
+            AssertAdditionalLocation(3, 3, 7, 12, diagnostic.AdditionalLocations[0]);
+            AssertAdditionalLocation(4, 4, 12, 23, diagnostic.AdditionalLocations[1]);
+
+            void AssertAdditionalLocation(int line,
+                int endLine,
+                int column,
+                int endColumn,
+                Location additionalLocation)
+            {
+                var locationSpan = additionalLocation.GetMappedLineSpan();
+                
+                locationSpan.Path.Should().Be("dummyFile.cs");
+                locationSpan.StartLinePosition.Line.Should().Be(line);
+                locationSpan.StartLinePosition.Character.Should().Be(column);
+                locationSpan.EndLinePosition.Line.Should().Be(endLine);
+                locationSpan.EndLinePosition.Character.Should().Be(endColumn);
+            }
         }
 
         private static Mock<ISonarLintAnalysisConfigProvider> CreateAnalysisConfigProvider(
@@ -285,15 +323,20 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             {
                 SuppliedAdditionalFiles = context.Options.AdditionalFiles;
 
-                var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
-                
-                if (namedTypeSymbol.Name == "SonarLint_TestAnalyzer_Raise")
+                if (context.Symbol is INamedTypeSymbol {Name: "SonarLint_TestAnalyzer_Raise"} namedTypeSymbol)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        Descriptor,
-                        namedTypeSymbol.Locations[0],
-                        namedTypeSymbol.Name
-                    ));
+                    var members = namedTypeSymbol.GetMembers();
+                    var additionalLocations = members.SelectMany(x => x.Locations).Except(namedTypeSymbol.Locations).ToArray();
+
+                    var diagnostic = Diagnostic.Create(
+                        descriptor: Descriptor,
+                        location: namedTypeSymbol.Locations[0],
+                        additionalLocations: additionalLocations,
+                        properties: ImmutableDictionary<string, string>.Empty,
+                        messageArgs: null
+                    );
+
+                    context.ReportDiagnostic(diagnostic);
                 }
             }
 

@@ -5,6 +5,7 @@
  */
 
 using Microsoft.CodeAnalysis;
+using OmniSharp.Models.Diagnostics;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -40,38 +41,7 @@ namespace OmniSharp.Helpers
                     .Where(x => _tagFilter.Contains(x))
                     .ToArray(),
                 Id = diagnostic.Id,
-                AdditionalLocations = ToAdditionalLocations(diagnostic)
-            };
-        }
-        
-        private static ICodeLocation[] ToAdditionalLocations(Diagnostic diagnostic)
-        {
-            var additionalLocations = new List<ICodeLocation>();
-
-            for (var i = 0; i < diagnostic.AdditionalLocations.Count; i++)
-            {
-                var location = diagnostic.AdditionalLocations[i];
-                var text = diagnostic.Properties.GetValueOrDefault(i.ToString());
-                var additionalLocation = ToAdditionalLocation(location, text);
-
-                additionalLocations.Add(additionalLocation);
-            }
-
-            return additionalLocations.ToArray();
-        }
-
-        private static CodeCodeLocation ToAdditionalLocation(Location location, string text)
-        {
-            var span = location.GetMappedLineSpan();
-
-            return new CodeCodeLocation
-            {
-                FileName = span.Path,
-                Line = span.StartLinePosition.Line,
-                Column = span.StartLinePosition.Character,
-                EndLine = span.EndLinePosition.Line,
-                EndColumn = span.EndLinePosition.Character,
-                Text = text
+                AdditionalLocations = diagnostic.ToAdditionalLocations()
             };
         }
 
