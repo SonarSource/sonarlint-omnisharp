@@ -19,7 +19,7 @@
  */
 
 using System;
-using System.ComponentModel.Composition;
+using System.Composition;
 
 namespace SonarLint.OmniSharp.Plugin.Rules
 {
@@ -28,8 +28,7 @@ namespace SonarLint.OmniSharp.Plugin.Rules
         RuleDefinition[] RuleDefinitions { get; set; } 
     }
     
-    [Export(typeof(IRuleDefinitionsRepository))]
-    [PartCreationPolicy(CreationPolicy.Shared)]
+    [Export(typeof(IRuleDefinitionsRepository)), Shared]
     internal class RuleDefinitionsRepository : IRuleDefinitionsRepository
     {
         private RuleDefinition[] rules = Array.Empty<RuleDefinition>();

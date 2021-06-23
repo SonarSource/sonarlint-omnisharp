@@ -18,7 +18,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using System.ComponentModel.Composition;
+using System.Composition;
 using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
@@ -36,8 +36,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     /// However, we're reusing the OmniSharp <see cref="AbstractCodeActionProvider"/> class because it makes it easy to
     /// load assemblies from and extract diagnostic analyzers from them.
     /// </remarks>
-    [Export(typeof(ISonarAnalyzerCodeActionProvider))]
-    [PartCreationPolicy(CreationPolicy.Shared)]
+    [Export(typeof(ISonarAnalyzerCodeActionProvider)), Shared]
     internal class SonarAnalyzerCodeActionProvider : AbstractCodeActionProvider, ISonarAnalyzerCodeActionProvider
     {
         [ImportingConstructor]
