@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -46,8 +46,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
         AnalysisConfig Get(Compilation originalCompilation, AnalyzerOptions originalOptions);
     }
     
-    [Export(typeof(ISonarLintAnalysisConfigProvider))]
-    [PartCreationPolicy(CreationPolicy.Shared)]
+    [Export(typeof(ISonarLintAnalysisConfigProvider)), Shared]
     internal class SonarLintAnalysisConfigProvider : ISonarLintAnalysisConfigProvider
     {
         private readonly IRuleDefinitionsRepository ruleDefinitionsRepository;
