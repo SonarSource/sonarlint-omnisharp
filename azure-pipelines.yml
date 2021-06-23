@@ -29,8 +29,13 @@ resources:
 
 
 stages:
-  - stage: build_dotnet
-    displayName: 'Build, test and analyze .NET extension'
+  - template: stage-with-burgr-notifications.yml@commonTemplates
+    parameters:
+      burgrName: 'build'
+      burgrType: 'build'
+      stageName: 'build_dotnet'
+      stageDisplayName: 'Build, test and analyze .NET extension'
+
     variables:
       - name: buildConfiguration
         value: 'Release'  
