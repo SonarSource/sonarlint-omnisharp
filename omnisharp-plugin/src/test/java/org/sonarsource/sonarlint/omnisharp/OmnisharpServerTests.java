@@ -40,6 +40,7 @@ import org.sonar.api.impl.utils.DefaultTempFolder;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
+import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -70,7 +71,10 @@ class OmnisharpServerTests {
     solutionDir = tmpDir.resolve("solution");
     protocol = mock(OmnisharpProtocol.class);
     mapSettings = new MapSettings();
-    underTest = new OmnisharpServer(System2.INSTANCE, new DefaultTempFolder(slTmpDir.toFile()), mapSettings.asConfig(), protocol, Paths.get("/usr/libexec/path_helper"), "run.bat");
+    SonarLintRuntime runtime = mock(SonarLintRuntime.class);
+    when(runtime.getClientPid()).thenReturn(123L);
+    underTest = new OmnisharpServer(System2.INSTANCE, new DefaultTempFolder(slTmpDir.toFile()), mapSettings.asConfig(), protocol, Paths.get("/usr/libexec/path_helper"), "run.bat",
+      runtime);
   }
 
   @Test

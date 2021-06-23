@@ -69,6 +69,7 @@ import org.sonar.api.utils.ZipUtils;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
+import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 import org.zeroturnaround.exec.InvalidExitValueException;
 import org.zeroturnaround.exec.ProcessExecutor;
 import org.zeroturnaround.exec.StartedProcess;
@@ -105,18 +106,22 @@ public class OmnisharpServer implements Startable {
 
   private final String omnisharpExeWin;
 
-  public OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config, OmnisharpProtocol omnisharpProtocol) {
-    this(system2, tempFolder, config, omnisharpProtocol, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe");
+  private final SonarLintRuntime sonarLintRuntime;
+
+  public OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config, OmnisharpProtocol omnisharpProtocol, SonarLintRuntime sonarLintRuntime) {
+    this(system2, tempFolder, config, omnisharpProtocol, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", sonarLintRuntime);
   }
 
   // For testing
-  OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config, OmnisharpProtocol omnisharpProtocol, Path pathHelperLocationOnMac, String omnisharpExeWin) {
+  OmnisharpServer(System2 system2, TempFolder tempFolder, Configuration config, OmnisharpProtocol omnisharpProtocol, Path pathHelperLocationOnMac, String omnisharpExeWin,
+    SonarLintRuntime sonarLintRuntime) {
     this.system2 = system2;
     this.tempFolder = tempFolder;
     this.config = config;
     this.omnisharpProtocol = omnisharpProtocol;
     this.pathHelperLocationOnMac = pathHelperLocationOnMac;
     this.omnisharpExeWin = omnisharpExeWin;
+    this.sonarLintRuntime = sonarLintRuntime;
   }
 
   public void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
@@ -241,6 +246,10 @@ public class OmnisharpServer implements Startable {
       args.add("run");
     }
     args.add("-v");
+    if (sonarLintRuntime.getClientPid() != 0) {
+      args.add("-hpid");
+      args.add(Long.toString(sonarLintRuntime.getClientPid()));
+    }
     args.add("-s");
     args.add(projectBaseDir.toString());
     args.add("RoslynExtensionsOptions:EnableAnalyzersSupport=true");
