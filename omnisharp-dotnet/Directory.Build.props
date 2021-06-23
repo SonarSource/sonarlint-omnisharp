@@ -27,7 +27,7 @@
     <!-- TODO: this version needs to be kept in sync with
       1) the version in the POM for the ITs
       2) the version in the POM of the SonarLint.IntelliJ repo -->
-    <OmniSharpVersion>v1.37.9</OmniSharpVersion>
+    <OmniSharpVersion>v1.37.11</OmniSharpVersion>
 
     <OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)</OmniSharpLocalDownloadDir>
     <OmniSharpUnzippedDir>$(OmniSharpLocalDownloadDir)\unzipped</OmniSharpUnzippedDir>
