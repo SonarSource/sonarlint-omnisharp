@@ -1,6 +1,6 @@
 ﻿/*
- * SonarLint for Visual Studio
- * Copyright (C) 2016-2021 SonarSource SA
+ * SonarOmnisharp
+ * Copyright (C) 2021-2021 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
