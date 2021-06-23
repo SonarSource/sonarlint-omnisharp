@@ -30,6 +30,7 @@ using Moq;
 using OmniSharp.Models;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
+using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
 using SonarLint.OmniSharp.Plugin.Services;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
@@ -47,22 +48,23 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             var location3 = new FileLinePositionSpan("file2.cs", new LinePosition(1, 2), new LinePosition(3, 4));
 
             var diagnosticWorker = SetupDiagnosticWorker(
-                CreateDocumentDiagnostics("file1.cs", location1, location2),
-                CreateDocumentDiagnostics("file2.cs", location3));
+                CreateDocumentDiagnostics("file1.cs", CreateDiagnostic(location1), CreateDiagnostic(location2)),
+                CreateDocumentDiagnostics("file2.cs", CreateDiagnostic(location3)));
 
             var testSubject = CreateTestSubject(diagnosticWorker.Object);
 
             var request = CreateRequest(fileName);
             var result = await testSubject.Handle(request);
-            result.Should().NotBeNull();
 
-            var quickFixes = result.QuickFixes.ToList();
-            quickFixes.Count.Should().Be(3);
-
-            AssertLocation(quickFixes[0], location1);
-            AssertLocation(quickFixes[1], location2);
-            AssertLocation(quickFixes[2], location3);
+            (FileLinePositionSpan, FileLinePositionSpan[])[] expectedResult =
+            {
+                new(location1, Array.Empty<FileLinePositionSpan>()),
+                new(location2, Array.Empty<FileLinePositionSpan>()),
+                new(location3, Array.Empty<FileLinePositionSpan>())
+            };
             
+            AssertExpectedLocations(result, expectedResult);
+
             diagnosticWorker.Verify(x=> x.GetAllDiagnosticsAsync(), Times.Once);
             diagnosticWorker.VerifyNoOtherCalls();
         }
@@ -73,19 +75,23 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             var location1 = new FileLinePositionSpan("file1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
             var location2 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
 
-            var diagnosticWorker = SetupDiagnosticWorker("file1.cs", location1, location2);
+            var diagnosticWorker = SetupDiagnosticWorker(
+                "file1.cs",
+                CreateDiagnostic(location1),
+                CreateDiagnostic(location2));
             
             var testSubject = CreateTestSubject(diagnosticWorker.Object);
 
             var request = CreateRequest("file1.cs");
             var result = await testSubject.Handle(request);
-            result.Should().NotBeNull();
-
-            var quickFixes = result.QuickFixes.ToList();
-            quickFixes.Count.Should().Be(2);
-
-            AssertLocation(quickFixes[0], location1);
-            AssertLocation(quickFixes[1], location2);
+            
+            (FileLinePositionSpan, FileLinePositionSpan[])[] expectedResult =
+            {
+                new(location1, Array.Empty<FileLinePositionSpan>()),
+                new(location2, Array.Empty<FileLinePositionSpan>())
+            };
+            
+            AssertExpectedLocations(result, expectedResult);
 
             diagnosticWorker.Verify(x => x.GetDiagnostics(
                     It.Is((ImmutableArray<string> filePaths) => filePaths.Length == 1 && filePaths[0] == "file1.cs")),
@@ -103,20 +109,21 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             var duplicateLocation = location2;
 
             var diagnosticWorker = SetupDiagnosticWorker(
-                CreateDocumentDiagnostics("file1.cs", location1),
-                CreateDocumentDiagnostics("file2.cs", location2, duplicateLocation));
+                CreateDocumentDiagnostics("file1.cs", CreateDiagnostic(location1)),
+                CreateDocumentDiagnostics("file2.cs", CreateDiagnostic(location2), CreateDiagnostic(duplicateLocation)));
 
             var testSubject = CreateTestSubject(diagnosticWorker.Object);
 
             var request = CreateRequest(fileName);
             var result = await testSubject.Handle(request);
-            result.Should().NotBeNull();
-
-            var quickFixes = result.QuickFixes.ToList();
-            quickFixes.Count.Should().Be(2);
-
-            AssertLocation(quickFixes[0], location1);
-            AssertLocation(quickFixes[1], location2);
+            
+            (FileLinePositionSpan, FileLinePositionSpan[])[] expectedResult =
+            {
+                new(location1, Array.Empty<FileLinePositionSpan>()),
+                new(location2, Array.Empty<FileLinePositionSpan>())
+            };
+            
+            AssertExpectedLocations(result, expectedResult);
         }
         
         [TestMethod]
@@ -125,23 +132,108 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             var location1 = new FileLinePositionSpan("file1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
             var location2 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
             var duplicateLocation = location1;
-            
-            var diagnosticWorker = SetupDiagnosticWorker("file1.cs", location1, location2, duplicateLocation);
+
+            var diagnosticWorker = SetupDiagnosticWorker(
+                "file1.cs",
+                CreateDiagnostic(location1),
+                CreateDiagnostic(location2),
+                CreateDiagnostic(duplicateLocation));
             
             var testSubject = CreateTestSubject(diagnosticWorker.Object);
 
             var request = CreateRequest("file1.cs");
             var result = await testSubject.Handle(request);
+
+            (FileLinePositionSpan, FileLinePositionSpan[])[] expectedResult =
+            {
+                new(location1, Array.Empty<FileLinePositionSpan>()),
+                new(location2, Array.Empty<FileLinePositionSpan>())
+            };
+            
+            AssertExpectedLocations(result, expectedResult);
+        }
+
+        [TestMethod]
+        public async Task Handle_SpecificFileName_FileHasAdditionalLocations_ReturnsAdditionalLocations()
+        {
+            var mainLocation = new FileLinePositionSpan("file1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
+            var additionalLocation1 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
+            var additionalLocation2 = new FileLinePositionSpan("otherFile1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
+            
+            var diagnostic = CreateDiagnostic(mainLocation, additionalLocation1, additionalLocation2);
+            var diagnosticWorker = SetupDiagnosticWorker("file1.cs", diagnostic);
+
+            var testSubject = CreateTestSubject(diagnosticWorker.Object);
+
+            var request = CreateRequest("file1.cs");
+            var result = await testSubject.Handle(request);
+
+            (FileLinePositionSpan, FileLinePositionSpan[]) expectedResult = (mainLocation, new[] {additionalLocation1, additionalLocation2});
+            AssertExpectedLocations(result, expectedResult);
+        }
+
+        [TestMethod]
+        [DataRow(null)]
+        [DataRow("")]
+        public async Task Handle_NullFileName_SomeFileHasAdditionalLocations_ReturnsAdditionalLocations(string fileName)
+        {
+            var mainLocation1 = new FileLinePositionSpan("file1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
+            var mainLocation2 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
+            var mainLocation3 = new FileLinePositionSpan("file2.cs", new LinePosition(1, 2), new LinePosition(3, 4));
+            var additionalLocation1 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
+            var additionalLocation2 = new FileLinePositionSpan("otherFile1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
+
+            var diagnosticWorker = SetupDiagnosticWorker(
+                CreateDocumentDiagnostics("file1.cs", CreateDiagnostic(mainLocation1, additionalLocation1)),
+                CreateDocumentDiagnostics("file2.cs", CreateDiagnostic(mainLocation2)),
+                CreateDocumentDiagnostics("file3.cs", CreateDiagnostic(mainLocation3, additionalLocation2)));
+
+            var testSubject = CreateTestSubject(diagnosticWorker.Object);
+
+            var request = CreateRequest(fileName);
+            var result = await testSubject.Handle(request);
+
+            (FileLinePositionSpan, FileLinePositionSpan[])[] expectedResult =
+            {
+                new(mainLocation1, new[] {additionalLocation1}),
+                new(mainLocation2, Array.Empty<FileLinePositionSpan>()),
+                new(mainLocation3, new[] {additionalLocation2})
+            };
+            
+            AssertExpectedLocations(result, expectedResult);
+        }
+
+        private void AssertExpectedLocations(QuickFixResponse result, params (FileLinePositionSpan, FileLinePositionSpan[])[] expectedLocations)
+        {
             result.Should().NotBeNull();
 
             var quickFixes = result.QuickFixes.ToList();
-            quickFixes.Count.Should().Be(2);
+            quickFixes.Should().AllBeAssignableTo<SonarLintDiagnosticLocation>();
+            quickFixes.Count.Should().Be(expectedLocations.Length);
 
-            AssertLocation(quickFixes[0], location1);
-            AssertLocation(quickFixes[1], location2);
+            for (var i = 0; i < expectedLocations.Length; i++)
+            {
+                var mainLocation = (SonarLintDiagnosticLocation) quickFixes[i];
+                var expectedMainLocation = expectedLocations[i].Item1;
+                AssertLocation(mainLocation, expectedMainLocation);
+
+                var expectedAdditionalLocations = expectedLocations[i].Item2;
+                AssertAdditionalLocations(mainLocation.AdditionalLocations, expectedAdditionalLocations);
+            }
         }
 
-        private void AssertLocation(QuickFix quickFix, FileLinePositionSpan location)
+        private void AssertAdditionalLocations(ICodeLocation[] actualLocations, FileLinePositionSpan[] expectedLocations)
+        {
+            actualLocations.Should().NotBeNull();
+            actualLocations.Length.Should().Be(expectedLocations.Length);
+
+            for (int i = 0; i < actualLocations.Length; i++)
+            {
+                AssertLocation(actualLocations[i], expectedLocations[i]);
+            }
+        }
+
+        private void AssertLocation(ICodeLocation quickFix, FileLinePositionSpan location)
         {
             quickFix.FileName.Should().Be(location.Path);
             quickFix.Line.Should().Be(location.StartLinePosition.Line);
@@ -156,10 +248,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
         private SonarLintCodeCheckService CreateTestSubject(ISonarLintDiagnosticWorker diagnosticWorker) =>
             new SonarLintCodeCheckService(diagnosticWorker);
         
-        private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName, params FileLinePositionSpan[] spans)
+        private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName, params Diagnostic[] diagnostics)
         {
             var project = ProjectId.CreateNewId();
-            var diagnostics = spans.Select(CreateDiagnostic);
             
             var documentDiagnostics = new DocumentDiagnostics(DocumentId.CreateNewId(project),
                 fileName,
@@ -170,11 +261,8 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             return documentDiagnostics;
         }
         
-        private static Diagnostic CreateDiagnostic(FileLinePositionSpan locationSpan)
+        private static Diagnostic CreateDiagnostic(FileLinePositionSpan locationSpan, params FileLinePositionSpan[] additionalLocationSpans)
         {
-            var location = new Mock<Location>();
-            location.Setup(x => x.GetMappedLineSpan()).Returns(locationSpan);
-
             var descriptor = new DiagnosticDescriptor(
                 id: Guid.NewGuid().ToString(),
                 title: Guid.NewGuid().ToString(),
@@ -182,14 +270,26 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
                 category: Guid.NewGuid().ToString(),
                 defaultSeverity: DiagnosticSeverity.Hidden,
                 isEnabledByDefault: true);
+
+            var additionalLocations = additionalLocationSpans.Select(CreateLocation).ToArray();
             
             var diagnostic = new Mock<Diagnostic>();
             diagnostic.SetupGet(x => x.Id).Returns(locationSpan.GetHashCode().ToString);
-            diagnostic.SetupGet(x => x.Location).Returns(location.Object);
+            diagnostic.SetupGet(x => x.Location).Returns(CreateLocation(locationSpan));
             diagnostic.SetupGet(x => x.Severity).Returns(DiagnosticSeverity.Info);
             diagnostic.SetupGet(x => x.Descriptor).Returns(descriptor);
+            diagnostic.SetupGet(x => x.AdditionalLocations).Returns(additionalLocations);
+            diagnostic.SetupGet(x => x.Properties).Returns(ImmutableDictionary<string, string>.Empty);
 
             return diagnostic.Object;
+        }
+
+        private static Location CreateLocation(FileLinePositionSpan locationSpan)
+        {
+            var location = new Mock<Location>();
+            location.Setup(x => x.GetMappedLineSpan()).Returns(locationSpan);
+            
+            return location.Object;
         }
 
         private static Mock<ISonarLintDiagnosticWorker> SetupDiagnosticWorker(params DocumentDiagnostics[] documentDiagnostics)
@@ -203,14 +303,14 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             return diagnosticWorker;
         }
         
-        private static Mock<ISonarLintDiagnosticWorker> SetupDiagnosticWorker(string fileName, params FileLinePositionSpan[] fileLocations)
+        private static Mock<ISonarLintDiagnosticWorker> SetupDiagnosticWorker(string fileName, params Diagnostic[] diagnostics)
         {
             var diagnosticWorker = new Mock<ISonarLintDiagnosticWorker>();
 
             diagnosticWorker
                 .Setup(x => x.GetDiagnostics(
                     It.Is((ImmutableArray<string> fileNames) => fileNames.Length == 1 && fileNames[0] == fileName)))
-                .ReturnsAsync(new[] {CreateDocumentDiagnostics(fileName, fileLocations)}.ToImmutableArray());
+                .ReturnsAsync(new[] {CreateDocumentDiagnostics(fileName, diagnostics)}.ToImmutableArray());
 
             return diagnosticWorker;
         }

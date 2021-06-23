@@ -5,16 +5,16 @@
  */
 
 using Microsoft.CodeAnalysis;
-using OmniSharp.Models.Diagnostics;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
 
 namespace OmniSharp.Helpers
 {
     /// <summary>
-    /// Copied unchanged from OmniSharp.Helpers.DiagnosticExtensions
+    /// Copied from OmniSharp.Helpers.DiagnosticExtensions and modified to support secondary locations
     /// https://github.com/OmniSharp/omnisharp-roslyn/blob/master/src/OmniSharp.Roslyn.CSharp/Helpers/DiagnosticExtensions.cs
     /// </summary>
     internal static class DiagnosticExtensions
@@ -22,10 +22,11 @@ namespace OmniSharp.Helpers
         private static readonly ImmutableHashSet<string> _tagFilter =
             ImmutableHashSet.Create("Unnecessary", "Deprecated");
 
-        internal static DiagnosticLocation ToDiagnosticLocation(this Diagnostic diagnostic)
+        internal static SonarLintDiagnosticLocation ToDiagnosticLocation(this Diagnostic diagnostic)
         {
             var span = diagnostic.Location.GetMappedLineSpan();
-            return new DiagnosticLocation
+            
+            return new SonarLintDiagnosticLocation
             {
                 FileName = span.Path,
                 Line = span.StartLinePosition.Line,
@@ -38,11 +39,43 @@ namespace OmniSharp.Helpers
                     .Descriptor.CustomTags
                     .Where(x => _tagFilter.Contains(x))
                     .ToArray(),
-                Id = diagnostic.Id
+                Id = diagnostic.Id,
+                AdditionalLocations = ToAdditionalLocations(diagnostic)
+            };
+        }
+        
+        private static ICodeLocation[] ToAdditionalLocations(Diagnostic diagnostic)
+        {
+            var additionalLocations = new List<ICodeLocation>();
+
+            for (var i = 0; i < diagnostic.AdditionalLocations.Count; i++)
+            {
+                var location = diagnostic.AdditionalLocations[i];
+                var text = diagnostic.Properties.GetValueOrDefault(i.ToString());
+                var additionalLocation = ToAdditionalLocation(location, text);
+
+                additionalLocations.Add(additionalLocation);
+            }
+
+            return additionalLocations.ToArray();
+        }
+
+        private static CodeCodeLocation ToAdditionalLocation(Location location, string text)
+        {
+            var span = location.GetMappedLineSpan();
+
+            return new CodeCodeLocation
+            {
+                FileName = span.Path,
+                Line = span.StartLinePosition.Line,
+                Column = span.StartLinePosition.Character,
+                EndLine = span.EndLinePosition.Line,
+                EndColumn = span.EndLinePosition.Character,
+                Text = text
             };
         }
 
-        internal static IEnumerable<DiagnosticLocation> DistinctDiagnosticLocationsByProject(this IEnumerable<DocumentDiagnostics> documentDiagnostic)
+        internal static IEnumerable<SonarLintDiagnosticLocation> DistinctDiagnosticLocationsByProject(this IEnumerable<DocumentDiagnostics> documentDiagnostic)
         {
             return documentDiagnostic
                 .SelectMany(x => x.Diagnostics, (parent, child) => (projectName: parent.ProjectName, diagnostic: child))
