@@ -158,7 +158,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         }
 
         [TestMethod]
-        public async Task AnalyzeDocument_IssueContainsAdditionalLocations_ReturnsAdditionalLocations()
+        public async Task AnalyzeDocument_IssueContainsAdditionalLocations_ReturnsRoslynAdditionalLocations()
         {
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", @"
 class SonarLint_TestAnalyzer_Raise
