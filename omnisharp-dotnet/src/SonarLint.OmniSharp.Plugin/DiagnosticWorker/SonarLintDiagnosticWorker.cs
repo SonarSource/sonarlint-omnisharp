@@ -19,7 +19,7 @@
  */
 
 using System.Collections.Immutable;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -39,8 +39,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
     {
     }
 
-    [Export(typeof(ISonarLintDiagnosticWorker))]
-    [PartCreationPolicy(CreationPolicy.Shared)]
+    [Export(typeof(ISonarLintDiagnosticWorker)), Shared]
     internal class SonarLintDiagnosticWorker : CopiedCSharpDiagnosticWorkerWithAnalyzers, ISonarLintDiagnosticWorker
     {
         private readonly ISonarLintAnalysisConfigProvider sonarLintAnalysisConfigProvider;

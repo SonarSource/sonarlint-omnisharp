@@ -20,7 +20,7 @@
 
 using System;
 using System.Collections.Immutable;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.IO;
 using System.Reflection;
 using OmniSharp.Services;
@@ -35,8 +35,7 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
         ImmutableArray<Assembly> Assemblies { get; }
     }
 
-    [Export(typeof(ISonarAnalyzerAssembliesProvider))]
-    [PartCreationPolicy(CreationPolicy.Shared)]
+    [Export(typeof(ISonarAnalyzerAssembliesProvider)), Shared]
     internal class SonarAnalyzerAssembliesProvider : ISonarAnalyzerAssembliesProvider
     {
         /// <summary>
