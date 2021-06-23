@@ -36,6 +36,9 @@ namespace SonarLint.OmniSharp.Plugin.Services
     {
     }
 
+    /// <summary>
+    /// This service is intended to behave as <see cref="CodeCheckService"/>, except with our own <see cref="ISonarLintDiagnosticWorker"/>.
+    /// </summary>
     [OmniSharpHandler(ServiceEndpoint, LanguageNames.CSharp)]
     internal class SonarLintCodeCheckService : IRequestHandler<SonarLintCodeCheckRequest, QuickFixResponse>
     {
