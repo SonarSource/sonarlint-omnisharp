@@ -33,3 +33,4 @@ Desktop.ini
 /omnisharp-plugin/.vs
 /omnisharp-dotnet/.omnisharp
 /omnisharp-dotnet/JarContentFiles
+/omnisharp-dotnet/src/SonarLint.OmniSharp.Plugin/Properties/launchSettings.json

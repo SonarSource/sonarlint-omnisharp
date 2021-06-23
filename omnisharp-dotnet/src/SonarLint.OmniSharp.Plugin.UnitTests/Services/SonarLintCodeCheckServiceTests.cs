@@ -27,20 +27,23 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using OmniSharp.Mef;
 using OmniSharp.Models;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
 using SonarLint.OmniSharp.Plugin.Services;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
 {
     [TestClass]
     public class SonarLintCodeCheckServiceTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // todo: add test
+            CheckTypeCanBeImported<SonarLintCodeCheckService, IRequestHandler>(
+                CreateExport<ISonarLintDiagnosticWorker>());
         }
 
         [TestMethod]
@@ -68,7 +71,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             AssertLocation(quickFixes[0], location1);
             AssertLocation(quickFixes[1], location2);
             AssertLocation(quickFixes[2], location3);
-            
+
             diagnosticWorker.Verify(x=> x.GetAllDiagnosticsAsync(), Times.Once);
             diagnosticWorker.VerifyNoOtherCalls();
         }
@@ -80,7 +83,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             var location2 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
 
             var diagnosticWorker = SetupDiagnosticWorker("file1.cs", location1, location2);
-            
+
             var testSubject = CreateTestSubject(diagnosticWorker.Object);
 
             var request = CreateRequest("file1.cs");
@@ -124,16 +127,16 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             AssertLocation(quickFixes[0], location1);
             AssertLocation(quickFixes[1], location2);
         }
-        
+
         [TestMethod]
         public async Task Handle_SpecificFileName_ReturnsDistinctDiagnostics()
         {
             var location1 = new FileLinePositionSpan("file1.cs", new LinePosition(1, 2), new LinePosition(3, 4));
             var location2 = new FileLinePositionSpan("file1.cs", new LinePosition(5, 6), new LinePosition(7, 8));
             var duplicateLocation = location1;
-            
+
             var diagnosticWorker = SetupDiagnosticWorker("file1.cs", location1, location2, duplicateLocation);
-            
+
             var testSubject = CreateTestSubject(diagnosticWorker.Object);
 
             var request = CreateRequest("file1.cs");
@@ -161,21 +164,21 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
 
         private SonarLintCodeCheckService CreateTestSubject(ISonarLintDiagnosticWorker diagnosticWorker) =>
             new SonarLintCodeCheckService(diagnosticWorker);
-        
+
         private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName, params FileLinePositionSpan[] spans)
         {
             var project = ProjectId.CreateNewId();
             var diagnostics = spans.Select(CreateDiagnostic);
-            
+
             var documentDiagnostics = new DocumentDiagnostics(DocumentId.CreateNewId(project),
                 fileName,
                 project,
                 project.Id.ToString(),
                 diagnostics.ToImmutableArray());
-            
+
             return documentDiagnostics;
         }
-        
+
         private static Diagnostic CreateDiagnostic(FileLinePositionSpan locationSpan)
         {
             var location = new Mock<Location>();
@@ -188,7 +191,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
                 category: Guid.NewGuid().ToString(),
                 defaultSeverity: DiagnosticSeverity.Hidden,
                 isEnabledByDefault: true);
-            
+
             var diagnostic = new Mock<Diagnostic>();
             diagnostic.SetupGet(x => x.Id).Returns(locationSpan.GetHashCode().ToString);
             diagnostic.SetupGet(x => x.Location).Returns(location.Object);
@@ -205,10 +208,10 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             diagnosticWorker
                 .Setup(x => x.GetAllDiagnosticsAsync())
                 .ReturnsAsync(documentDiagnostics.ToImmutableArray());
-            
+
             return diagnosticWorker;
         }
-        
+
         private static Mock<ISonarLintDiagnosticWorker> SetupDiagnosticWorker(string fileName, params FileLinePositionSpan[] fileLocations)
         {
             var diagnosticWorker = new Mock<ISonarLintDiagnosticWorker>();
