@@ -97,12 +97,14 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         private Location CreateRandomLocation(string fileName)
         {
             var random = new Random();
-            var startLine = random.Next();
+            var startLine = random.Next(1, 100);
             var endLine = random.Next(startLine, startLine + 10);
+            var column = random.Next(1, 100);
+            var endColumn = random.Next(column, column + 10);
             
             return Location.Create(fileName, 
                 new TextSpan(1, 1000000), 
-                new LinePositionSpan(new LinePosition(startLine, random.Next()), new LinePosition(endLine, random.Next())));
+                new LinePositionSpan(new LinePosition(startLine, column), new LinePosition(endLine, endColumn)));
         }
 
         /// <summary>
