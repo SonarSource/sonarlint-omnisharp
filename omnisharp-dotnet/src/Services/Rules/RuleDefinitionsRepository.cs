@@ -25,9 +25,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal interface IRuleDefinitionsRepository
     {
-        RuleDefinition[] RuleDefinitions { get; set; } 
+        RuleDefinition[] RuleDefinitions { get; set; }
     }
-    
+
     [Export(typeof(IRuleDefinitionsRepository)), Shared]
     internal class RuleDefinitionsRepository : IRuleDefinitionsRepository
     {

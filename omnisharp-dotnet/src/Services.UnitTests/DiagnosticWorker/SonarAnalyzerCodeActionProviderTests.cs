@@ -18,9 +18,6 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using System.Collections.Immutable;
-using System.Reflection;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -29,6 +26,9 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
+using System.Collections.Immutable;
+using System.Reflection;
+using System.Threading.Tasks;
 using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
@@ -96,7 +96,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             testSubject.CodeFixProviders[1].Should().BeOfType<DummyCodeFixProvider2>();
         }
 
-        private SonarAnalyzerCodeActionProvider CreateTestSubject(params Assembly[] assemblies)
+        private static SonarAnalyzerCodeActionProvider CreateTestSubject(params Assembly[] assemblies)
         {
             var hostServicesProvider = SetupAssembliesProvider(assemblies);
 

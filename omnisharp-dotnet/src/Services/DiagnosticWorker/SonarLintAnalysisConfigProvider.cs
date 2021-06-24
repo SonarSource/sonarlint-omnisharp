@@ -37,22 +37,22 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         public Compilation Compilation { get; set; }
         public AnalyzerOptions AnalyzerOptions { get; set; }
     }
-    
+
     internal interface ISonarLintAnalysisConfigProvider
     {
         /// <summary>
-        /// Provide modified data for <see cref="ISonarLintDiagnosticWorker"/> 
+        /// Provide modified data for <see cref="ISonarLintDiagnosticWorker"/>
         /// </summary>
         AnalysisConfig Get(Compilation originalCompilation, AnalyzerOptions originalOptions);
     }
-    
+
     [Export(typeof(ISonarLintAnalysisConfigProvider)), Shared]
     internal class SonarLintAnalysisConfigProvider : ISonarLintAnalysisConfigProvider
     {
         private readonly IRuleDefinitionsRepository ruleDefinitionsRepository;
         private readonly IRulesToAdditionalTextConverter rulesToAdditionalTextConverter;
         private readonly IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter;
-        
+
         private readonly ImmutableArray<DiagnosticAnalyzer> analyzers;
         private readonly ImmutableHashSet<string> analyzerRules;
 
@@ -103,10 +103,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         {
             var ruleSeverities = rulesToReportDiagnosticsConverter.Convert(rules);
             var updatedCompilationOptions = compilation.Options.WithSpecificDiagnosticOptions(ruleSeverities);
-            
+
             return compilation.WithOptions(updatedCompilationOptions);
         }
-        
+
         /// <summary>
         /// Add sonar-dotnet analyzer additional files.
         /// Override any existing sonar-dotnet analyzer additional files that were already in the project.
@@ -115,15 +115,15 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         {
             var sonarLintAdditionalFile = rulesToAdditionalTextConverter.Convert(rules);
             var sonarLintAdditionalFileName = Path.GetFileName(sonarLintAdditionalFile.Path);
-            
+
             var additionalFiles = workspaceAnalyzerOptions.AdditionalFiles;
             var builder = ImmutableArray.CreateBuilder<AdditionalText>();
             builder.AddRange(additionalFiles.Where(x => !IsSonarLintAdditionalFile(x)));
             builder.Add(sonarLintAdditionalFile);
-            
+
             var modifiedAdditionalFiles = builder.ToImmutable();
             var finalAnalyzerOptions = new AnalyzerOptions(modifiedAdditionalFiles, workspaceAnalyzerOptions.AnalyzerConfigOptionsProvider);
-            
+
             return finalAnalyzerOptions;
 
             bool IsSonarLintAdditionalFile(AdditionalText existingAdditionalFile)

@@ -29,7 +29,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
     internal interface ISonarAnalyzerCodeActionProvider : ICodeActionProvider
     {
     }
-    
+
+    /// <summary>
+    /// Returns Sonar analyzer diagnostics
+    /// </summary>
     /// <remarks>
     /// We want this provider to be used only by our custom diagnostic worker and not the "normal" OmniSharp workers,
     /// so we're exporting it using a different interface.

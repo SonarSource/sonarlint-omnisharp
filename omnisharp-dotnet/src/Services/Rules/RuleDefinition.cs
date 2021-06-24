@@ -27,11 +27,11 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
     {
         [JsonProperty("ruleId")]
         public string RuleId { get; set; }
-        
+
         [JsonProperty("isEnabled")]
         public bool IsEnabled { get; set; }
 
-        [JsonProperty("params")] 
+        [JsonProperty("params")]
         public Dictionary<string, string> Parameters { get; set; }
     }
 }

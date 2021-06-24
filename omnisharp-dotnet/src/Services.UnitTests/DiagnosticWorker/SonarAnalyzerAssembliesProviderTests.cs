@@ -94,9 +94,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
                 .And.Message.Contains(SonarAnalyzerAssembliesProvider.AnalyzersDirectory).Should().BeTrue();
         }
 
-        private SonarAnalyzerAssembliesProvider CreateTestSubject(IAssemblyLoader assemblyLoader,
+        private static SonarAnalyzerAssembliesProvider CreateTestSubject(IAssemblyLoader assemblyLoader,
             Func<string, string[]> getFiles) => new SonarAnalyzerAssembliesProvider(assemblyLoader, getFiles);
-
 
         private static Mock<Func<string, string[]>> CreateFilesProvider(params string[] filesToReturn)
         {

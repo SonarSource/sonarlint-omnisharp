@@ -31,7 +31,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure
     internal static class MefTestHelpers
     {
         public static ExportInfo CreateExport<T>() where T : class => CreateExport<T>(Mock.Of<T>());
-        public static ExportInfo CreateExport<T>(object instance) => new ExportInfo(typeof(T), instance);
+        public static ExportInfo CreateExport<T>(object instance) => new(typeof(T), instance);
 
         /// <summary>
         /// Checks that the expected implementing type was imported.
