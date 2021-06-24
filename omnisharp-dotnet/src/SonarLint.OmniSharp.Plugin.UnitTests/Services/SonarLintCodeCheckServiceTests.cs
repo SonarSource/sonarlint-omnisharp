@@ -27,21 +27,24 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using OmniSharp.Mef;
 using OmniSharp.Models;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
 using SonarLint.OmniSharp.Plugin.Services;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
 {
     [TestClass]
     public class SonarLintCodeCheckServiceTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // todo: add test
+            CheckTypeCanBeImported<SonarLintCodeCheckService, IRequestHandler>(
+                CreateExport<ISonarLintDiagnosticWorker>());
         }
         
         [TestMethod]

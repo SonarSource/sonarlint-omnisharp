@@ -40,23 +40,22 @@ using OmniSharp.Roslyn;
 using OmniSharp.Services;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
 using SonarLint.OmniSharp.Plugin.Rules;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 {
     [TestClass]
     public class SonarLintDiagnosticWorkerTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // MefTestHelpers.CheckTypeCanBeImported<SonarLintDiagnosticWorker, ISonarLintDiagnosticWorker>(null, new []
-            // {
-            //     MefTestHelpers.CreateExport<ISonarLintAnalysisConfigProvider>(Mock.Of<ISonarLintAnalysisConfigProvider>()),
-            //     MefTestHelpers.CreateExport<OmniSharpWorkspace>(CreateOmniSharpWorkspace()),
-            //     MefTestHelpers.CreateExport<ILoggerFactory>(Mock.Of<ILoggerFactory>()),
-            //     MefTestHelpers.CreateExport<DiagnosticEventForwarder>(new DiagnosticEventForwarder(Mock.Of<IEventEmitter>())),
-            //     MefTestHelpers.CreateExport<IOptionsMonitor<OmniSharpOptions>>(CreateOptionsMonitor())
-            // });
+            CheckTypeCanBeImported<SonarLintDiagnosticWorker, ISonarLintDiagnosticWorker>(
+                CreateExport<ISonarLintAnalysisConfigProvider>(),
+                CreateExport<OmniSharpWorkspace>(CreateOmniSharpWorkspace()),
+                CreateExport<ILoggerFactory>(),
+                CreateExport<DiagnosticEventForwarder>(new DiagnosticEventForwarder(Mock.Of<IEventEmitter>())),
+                CreateExport<IOptionsMonitor<OmniSharpOptions>>(CreateOptionsMonitor()));
         }
         
         [TestMethod]

@@ -29,20 +29,18 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
-using SonarLint.VisualStudio.Integration.UnitTests;
+using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 {
     [TestClass]
     public class SonarAnalyzerCodeActionProviderTests
     {
-        [TestMethod, Ignore]
+        [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            // MefTestHelpers.CheckTypeCanBeImported<SonarAnalyzerCodeActionProvider, ISonarAnalyzerCodeActionProvider>(null, new []
-            // {
-            //     MefTestHelpers.CreateExport<ISonarAnalyzerAssembliesProvider>(SetupAssembliesProvider().Object)
-            // });
+            CheckTypeCanBeImported<SonarAnalyzerCodeActionProvider, ISonarAnalyzerCodeActionProvider>(
+                CreateExport<ISonarAnalyzerAssembliesProvider>(SetupAssembliesProvider().Object));
         }
 
         [TestMethod]
@@ -62,7 +60,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                 Assembly.GetAssembly(GetType()),
                 Assembly.GetAssembly(typeof(ImmutableDictionary))
             };
-            
+
             var testSubject = CreateTestSubject(testAssemblies);
 
             testSubject.Assemblies.Should().BeEquivalentTo(testAssemblies);
@@ -77,7 +75,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             testSubject.CodeDiagnosticAnalyzerProviders.Should().Contain(x => x is DummyAnalyzer1);
             testSubject.CodeDiagnosticAnalyzerProviders.Should().Contain(x => x is DummyAnalyzer2);
         }
-        
+
         [TestMethod]
         public void CodeRefactoringProviders_LoadsFromGivenAssemblies()
         {
@@ -87,7 +85,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             testSubject.CodeRefactoringProviders[0].Should().BeOfType<DummyCodeRefactoringProvider1>();
             testSubject.CodeRefactoringProviders[1].Should().BeOfType<DummyCodeRefactoringProvider2>();
         }
-        
+
         [TestMethod]
         public void CodeFixProviders_LoadsFromGivenAssemblies()
         {
@@ -109,7 +107,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         {
             var sonarLintHostServicesProvider = new Mock<ISonarAnalyzerAssembliesProvider>();
             sonarLintHostServicesProvider.Setup(x => x.Assemblies).Returns(assemblies.ToImmutableArray());
-            
+
             return sonarLintHostServicesProvider;
         }
 
@@ -127,7 +125,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
         private class DummyAnalyzer2 : DummyAnalyzer1
         {
         }
-        
+
         private class DummyCodeRefactoringProvider1 : CodeRefactoringProvider
         {
             public override Task ComputeRefactoringsAsync(CodeRefactoringContext context)
@@ -135,7 +133,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                 return Task.CompletedTask;
             }
         }
-        
+
         private class DummyCodeRefactoringProvider2 : DummyCodeRefactoringProvider1
         {
         }
@@ -149,11 +147,11 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
 
             public override ImmutableArray<string> FixableDiagnosticIds { get; }
         }
-        
+
         private class DummyCodeFixProvider2 : DummyCodeFixProvider1
         {
         }
-        
+
         #endregion
     }
 }
