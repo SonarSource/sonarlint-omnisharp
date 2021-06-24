@@ -18,12 +18,12 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using OmniSharp.Services;
 using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.IO;
 using System.Reflection;
-using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
@@ -43,7 +43,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         /// </summary>
         internal static string AnalyzersDirectory { get; } =
             Path.Combine(Path.GetDirectoryName(typeof(SonarAnalyzerAssembliesProvider).Assembly.Location), "analyzers");
-        
+
         private readonly IAssemblyLoader loader;
         private readonly Func<string, string[]> getFilesInDirectory;
         private ImmutableArray<Assembly> loadedAssemblies;
@@ -80,7 +80,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
             foreach (var filePath in getFilesInDirectory(AnalyzersDirectory))
             {
                 var analyzerAssembly = loader.LoadFrom(filePath);
-                
+
                 if (analyzerAssembly == null)
                 {
                     var message = string.Format(Resources.DiagWorker_Error_UnloadableAssembly, filePath);

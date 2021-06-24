@@ -42,7 +42,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 
             var serializer = new Mock<ISonarLintConfigurationSerializer>();
             serializer.Setup(x => x.Serialize(sonarLintConfiguration)).Returns("serialized sonarlint.xml");
-            
+
             var testSubject = CreateTestSubject(rulesConverter.Object, serializer.Object);
 
             var result = testSubject.Convert(ruleDefinitions);
@@ -55,10 +55,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             sourceText.Should().NotBeNull();
             sourceText.ToString().Should().Be("serialized sonarlint.xml");
         }
-        
-        private RulesToAdditionalTextConverter CreateTestSubject(
-            IRulesToSonarLintConfigurationConverter rulesConverter, 
+
+        private static RulesToAdditionalTextConverter CreateTestSubject(
+            IRulesToSonarLintConfigurationConverter rulesConverter,
             ISonarLintConfigurationSerializer rulesSerializer) =>
-            new RulesToAdditionalTextConverter(rulesConverter, rulesSerializer);
+                new(rulesConverter, rulesSerializer);
     }
 }

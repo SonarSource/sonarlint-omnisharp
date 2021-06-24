@@ -195,7 +195,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             return analysisConfigProvider;
         }
 
-        private OmniSharpWorkspace CreateOmnisharpWorkspaceWithDocument(string documentFileName, string documentContent)
+        private static OmniSharpWorkspace CreateOmnisharpWorkspaceWithDocument(string documentFileName, string documentContent)
         {
             var projectInfo = CreateProjectInfo();
             var textLoader = new InMemoryTextLoader();
@@ -209,13 +209,13 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             return workspace;
         }
 
-        private OmniSharpWorkspace CreateOmniSharpWorkspace() =>
+        private static OmniSharpWorkspace CreateOmniSharpWorkspace() =>
             new OmniSharpWorkspace(
                 new HostServicesAggregator(Enumerable.Empty<IHostServicesProvider>(), Mock.Of<ILoggerFactory>()),
                 Mock.Of<ILoggerFactory>(),
                 Mock.Of<IFileSystemWatcher>());
 
-        private ProjectInfo CreateProjectInfo() =>
+        private static ProjectInfo CreateProjectInfo() =>
             ProjectInfo.Create(
                     id: ProjectId.CreateNewId(),
                     version: VersionStamp.Create(),
@@ -227,7 +227,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
                     analyzerReferences: Enumerable.Empty<AnalyzerReference>())
                 .WithDefaultNamespace("SonarLintTest");
 
-        private DocumentInfo CreateDocumentInfo(ProjectInfo projectInfo, InMemoryTextLoader textLoader, string fileName) =>
+        private static DocumentInfo CreateDocumentInfo(ProjectInfo projectInfo, InMemoryTextLoader textLoader, string fileName) =>
             DocumentInfo.Create(
                 DocumentId.CreateNewId(projectInfo.Id),
                 name: fileName,
@@ -242,7 +242,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             return optionsMonitor.Object;
         }
 
-        private SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintAnalysisConfigProvider analysisConfigProvider = null) =>
+        private static SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintAnalysisConfigProvider analysisConfigProvider = null) =>
             new SonarLintDiagnosticWorker(analysisConfigProvider ?? CreateAnalysisConfigProvider().Object,
                 workspace,
                 Mock.Of<ILoggerFactory>(),
@@ -297,7 +297,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 
             public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Descriptor);
 
-            public static readonly DiagnosticDescriptor Descriptor = new DiagnosticDescriptor(
+            public static readonly DiagnosticDescriptor Descriptor = new(
                 "SonarLintTest",
                 "Title",
                 "Message",

@@ -139,7 +139,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             additionalFiles[1].GetText().ToString().Should().Be("some new content");
         }
 
-        private Compilation CreateCompilation(Dictionary<string, ReportDiagnostic> existingRuleSeverities = null)
+        private static Compilation CreateCompilation(Dictionary<string, ReportDiagnostic> existingRuleSeverities = null)
         {
             var compilation = CSharpCompilation.Create(null);
 
@@ -148,12 +148,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
                 : compilation.WithOptions(compilation.Options.WithSpecificDiagnosticOptions(existingRuleSeverities));
         }
 
-        private AnalyzerOptions CreateOptions(params AdditionalText[] existingAdditionalFiles)
+        private static AnalyzerOptions CreateOptions(params AdditionalText[] existingAdditionalFiles)
         {
             return new AnalyzerOptions(existingAdditionalFiles.ToImmutableArray());
         }
 
-        private SonarLintAnalysisConfigProvider CreateTestSubject(
+        private static SonarLintAnalysisConfigProvider CreateTestSubject(
             RuleDefinition[] rules = null,
             DiagnosticAnalyzer[] analyzers = null,
             Dictionary<string, ReportDiagnostic> ruleSeverities = null,
@@ -207,7 +207,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             return rulesToReportDiagnosticsConverter.Object;
         }
 
-        private IRulesToAdditionalTextConverter CreateRulesToAdditionalTextConverter(RuleDefinition[] rules, AdditionalText additionalText)
+        private static IRulesToAdditionalTextConverter CreateRulesToAdditionalTextConverter(RuleDefinition[] rules, AdditionalText additionalText)
         {
             var rulesToAdditionalTextConverter = new Mock<IRulesToAdditionalTextConverter>();
 
@@ -223,10 +223,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         private class DummyAnalyzer : DiagnosticAnalyzer
         {
             public static DiagnosticDescriptor Descriptor1 =
-                new DiagnosticDescriptor("id1", "title1","message1","category1",DiagnosticSeverity.Error, true);
+                new("id1", "title1","message1","category1",DiagnosticSeverity.Error, true);
 
             public static DiagnosticDescriptor Descriptor2 =
-                new DiagnosticDescriptor("id2", "title2","message2","category2",DiagnosticSeverity.Warning, false);
+                new("id2", "title2","message2","category2",DiagnosticSeverity.Warning, false);
 
             public override void Initialize(AnalysisContext context)
             {

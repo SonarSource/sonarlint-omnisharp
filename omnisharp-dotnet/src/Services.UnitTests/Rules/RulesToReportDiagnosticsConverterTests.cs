@@ -38,18 +38,18 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 
             result.Should().BeEmpty();
         }
-        
+
         [TestMethod]
         public void Convert_EnabledAndDisabledRules_DiagnosticSeverityIsWarningAndSuppressed()
         {
             const ReportDiagnostic enabledRuleSeverity = ReportDiagnostic.Warn;
             const ReportDiagnostic disabledRuleSeverity = ReportDiagnostic.Suppress;
-            
+
             var testSubject = CreateTestSubject();
 
             var ruleDefinitions = new[]
             {
-                CreateRuleDefinition("rule1", true), 
+                CreateRuleDefinition("rule1", true),
                 CreateRuleDefinition("rule2", false),
                 CreateRuleDefinition("rule3", true),
                 CreateRuleDefinition("rule4", false)
@@ -65,9 +65,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             result["rule3"].Should().Be(enabledRuleSeverity);
             result["rule4"].Should().Be(disabledRuleSeverity);
         }
-        
-        private RuleDefinition CreateRuleDefinition(string ruleId, bool isEnabled) => new RuleDefinition {RuleId = ruleId, IsEnabled = isEnabled};
 
-        private RulesToReportDiagnosticsConverter CreateTestSubject() => new RulesToReportDiagnosticsConverter();
+        private RuleDefinition CreateRuleDefinition(string ruleId, bool isEnabled) => new() { RuleId = ruleId, IsEnabled = isEnabled};
+
+        private static RulesToReportDiagnosticsConverter CreateTestSubject() => new();
     }
 }

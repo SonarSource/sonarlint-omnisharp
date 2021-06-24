@@ -68,6 +68,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             testSubject.RuleDefinitions.Should().BeSameAs(rules);
         }
 
-        private RuleDefinitionsRepository CreateTestSubject() => new RuleDefinitionsRepository();
+        private static RuleDefinitionsRepository CreateTestSubject() => new();
     }
 }

@@ -35,7 +35,7 @@ using OmniSharp.Services;
 
 namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
-    interface ISonarLintDiagnosticWorker : ICsDiagnosticWorker
+    internal interface ISonarLintDiagnosticWorker : ICsDiagnosticWorker
     {
     }
 
@@ -54,17 +54,17 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         {
             this.sonarLintAnalysisConfigProvider = sonarLintAnalysisConfigProvider;
         }
-        
+
         protected override async Task<ImmutableArray<Diagnostic>> AnalyzeDocument(Project project,
             ImmutableArray<DiagnosticAnalyzer> allAnalyzers, Compilation compilation,
             AnalyzerOptions workspaceAnalyzerOptions, Document document)
         {
             var analysisConfig = sonarLintAnalysisConfigProvider.Get(compilation, workspaceAnalyzerOptions);
-            
-            var result = await base.AnalyzeDocument(project, 
-                analysisConfig.Analyzers, 
-                analysisConfig.Compilation, 
-                analysisConfig.AnalyzerOptions, 
+
+            var result = await base.AnalyzeDocument(project,
+                analysisConfig.Analyzers,
+                analysisConfig.Compilation,
+                analysisConfig.AnalyzerOptions,
                 document);
 
             var supportedRules = analysisConfig.AnalyzerRules;
