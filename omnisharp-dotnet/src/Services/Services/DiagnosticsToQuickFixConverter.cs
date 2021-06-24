@@ -30,7 +30,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
     {
         ImmutableArray<SonarLintDiagnosticLocation> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter);
     }
-    
+
     internal class DiagnosticsToCodeLocationsConverter : IDiagnosticsToCodeLocationsConverter
     {
         public ImmutableArray<SonarLintDiagnosticLocation> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter)

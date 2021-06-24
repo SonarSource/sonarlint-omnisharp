@@ -28,7 +28,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
     {
         SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules);
     }
-    
+
     internal class RulesToSonarLintConfigurationConverter : IRulesToSonarLintConfigurationConverter
     {
         public  SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules)
@@ -36,7 +36,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
             var sonarLintRules = rules.Select(rule => new SonarLintRule
             {
                 Key = rule.RuleId,
-                Parameters = rule.Parameters?.Select(param => 
+                Parameters = rule.Parameters?.Select(param =>
                         new SonarLintKeyValuePair
                         {
                             Key = param.Key,
