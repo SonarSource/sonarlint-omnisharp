@@ -26,7 +26,7 @@ stages:
       - name: buildConfiguration
         value: 'Release'  
       - name: slnPath
-        value: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
+        value: 'omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln'
 
     jobs:
       - job: dotnet_build_test_test_analyze
