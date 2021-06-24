@@ -15,6 +15,7 @@ namespace OmniSharp.Models
     /// Copied unchanged from OmniSharp.Models.ZeroBasedIndexConverter
     /// https://github.com/OmniSharp/omnisharp-roslyn/blob/master/src/OmniSharp.Abstractions/Models/ZeroBasedIndexConverter.cs
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal class ZeroBasedIndexConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)

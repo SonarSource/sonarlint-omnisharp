@@ -31,6 +31,8 @@ namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
     /// https://github.com/OmniSharp/omnisharp-roslyn/blob/master/src/OmniSharp.Roslyn.CSharp/Workers/Diagnostics/CSharpDiagnosticWorkerWithAnalyzers.cs
     /// Nothing changed except making <see cref="AnalyzeDocument"/> protected-virtual
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+
     public class CopiedCSharpDiagnosticWorkerWithAnalyzers : ICsDiagnosticWorker, IDisposable
     {
         private readonly AnalyzerWorkQueue _workQueue;
