@@ -57,7 +57,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
                 CreateExport<DiagnosticEventForwarder>(new DiagnosticEventForwarder(Mock.Of<IEventEmitter>())),
                 CreateExport<IOptionsMonitor<OmniSharpOptions>>(CreateOptionsMonitor()));
         }
-        
+
         [TestMethod]
         public async Task AnalyzeDocument_AnalyzersAreOverriden()
         {
@@ -71,11 +71,11 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "class SonarLint_TestAnalyzer_Raise { }");
             var testSubject = CreateTestSubject(workspace, analysisConfigProvider.Object);
             var document = workspace.GetDocument("dummyFile.cs");
-            
+
             // first call has an analyzer --> should report a diagnostic
             var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
-            
+
             // second call has no analyzer --> should not report
             result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.Should().BeEmpty();
@@ -99,11 +99,11 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "class SonarLint_TestAnalyzer_Raise { }");
             var testSubject = CreateTestSubject(workspace, analysisConfigProvider.Object);
             var document = workspace.GetDocument("dummyFile.cs");
-            
+
             // first call has the original analyzer's severity (warning) --> should report a diagnostic
             var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
-            
+
             // second call has global severity set to Suppress --> should not report
             result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.Should().BeEmpty();
@@ -129,16 +129,16 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             var analysisConfigProvider = CreateAnalysisConfigProvider(
                 modifyOptions: ModifyOptions,
                 getAnalyzers: () => new[] {analyzer});
-            
+
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "class SonarLint_TestAnalyzer_Raise { }");
             var testSubject = CreateTestSubject(workspace, analysisConfigProvider.Object);
             var document = workspace.GetDocument("dummyFile.cs");
-            
+
             // first call should have no additional files
             var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
             analyzer.SuppliedAdditionalFiles.Should().BeEmpty();
-            
+
             // second call should have an additional file
             result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
@@ -151,48 +151,9 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
             var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", "invalid code");
             var testSubject = CreateTestSubject(workspace);
             var document = workspace.GetDocument("dummyFile.cs");
-            
+
             var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.Should().BeEmpty();
-        }
-
-        [TestMethod]
-        public async Task AnalyzeDocument_IssueContainsAdditionalLocations_ReturnsRoslynAdditionalLocations()
-        {
-            var workspace = CreateOmnisharpWorkspaceWithDocument("dummyFile.cs", @"
-class SonarLint_TestAnalyzer_Raise
-{
-   int test1; // the test analyzer will consider the field as a secondary location
-   int      testtttttt2; // the test analyzer will consider the field as a secondary location
-}
-");
-            var testSubject = CreateTestSubject(workspace);
-            var document = workspace.GetDocument("dummyFile.cs");
-            
-            var result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
-            result.Should().NotBeEmpty();
-
-            var diagnostic = result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id);
-            diagnostic.Should().NotBeNull();
-            diagnostic.AdditionalLocations.Count.Should().Be(2);
-
-            AssertAdditionalLocation(3, 3, 7, 12, diagnostic.AdditionalLocations[0]);
-            AssertAdditionalLocation(4, 4, 12, 23, diagnostic.AdditionalLocations[1]);
-
-            void AssertAdditionalLocation(int line,
-                int endLine,
-                int column,
-                int endColumn,
-                Location additionalLocation)
-            {
-                var locationSpan = additionalLocation.GetMappedLineSpan();
-                
-                locationSpan.Path.Should().Be("dummyFile.cs");
-                locationSpan.StartLinePosition.Line.Should().Be(line);
-                locationSpan.StartLinePosition.Character.Should().Be(column);
-                locationSpan.EndLinePosition.Line.Should().Be(endLine);
-                locationSpan.EndLinePosition.Character.Should().Be(endColumn);
-            }
         }
 
         private static Mock<ISonarLintAnalysisConfigProvider> CreateAnalysisConfigProvider(
@@ -221,7 +182,7 @@ class SonarLint_TestAnalyzer_Raise
                     var analyzerRules = analyzers.SelectMany(x => x.SupportedDiagnostics)
                         .Select(x => x.Id)
                         .ToImmutableHashSet();
-                    
+
                     return new AnalysisConfig
                     {
                         Analyzers = analyzers,
@@ -244,7 +205,7 @@ class SonarLint_TestAnalyzer_Raise
             var workspace = CreateOmniSharpWorkspace();
             workspace.AddProject(projectInfo);
             workspace.AddDocument(documentInfo);
-            
+
             return workspace;
         }
 
@@ -277,10 +238,10 @@ class SonarLint_TestAnalyzer_Raise
         {
             var optionsMonitor = new Mock<IOptionsMonitor<OmniSharpOptions>>();
             optionsMonitor.Setup(x => x.CurrentValue).Returns(new OmniSharpOptions());
-            
+
             return optionsMonitor.Object;
         }
-        
+
         private SonarLintDiagnosticWorker CreateTestSubject(OmniSharpWorkspace workspace, ISonarLintAnalysisConfigProvider analysisConfigProvider = null) =>
             new SonarLintDiagnosticWorker(analysisConfigProvider ?? CreateAnalysisConfigProvider().Object,
                 workspace,
@@ -289,11 +250,11 @@ class SonarLint_TestAnalyzer_Raise
                 CreateOptionsMonitor());
 
         #region Helper Classes
-        
+
         private class InMemoryTextLoader : TextLoader
         {
             private readonly Dictionary<DocumentId, string> documentsText = new Dictionary<DocumentId, string>();
-            
+
             public void AddText(DocumentId documentInfoId, string someText)
             {
                 documentsText.Add(documentInfoId, someText);
@@ -305,12 +266,12 @@ class SonarLint_TestAnalyzer_Raise
                 return TextAndVersion.Create(SourceText.From(text),VersionStamp.Default);
             }
         }
-        
+
         [DiagnosticAnalyzer(LanguageNames.CSharp)]
         private class TestAnalyzer : DiagnosticAnalyzer
         {
             public ImmutableArray<AdditionalText> SuppliedAdditionalFiles { get; set; }
-            
+
             public override void Initialize(AnalysisContext context)
             {
                 context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
@@ -322,20 +283,15 @@ class SonarLint_TestAnalyzer_Raise
             {
                 SuppliedAdditionalFiles = context.Options.AdditionalFiles;
 
-                if (context.Symbol is INamedTypeSymbol {Name: "SonarLint_TestAnalyzer_Raise"} namedTypeSymbol)
+                var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
+
+                if (namedTypeSymbol.Name == "SonarLint_TestAnalyzer_Raise")
                 {
-                    var members = namedTypeSymbol.GetMembers();
-                    var additionalLocations = members.SelectMany(x => x.Locations).Except(namedTypeSymbol.Locations).ToArray();
-
-                    var diagnostic = Diagnostic.Create(
-                        descriptor: Descriptor,
-                        location: namedTypeSymbol.Locations[0],
-                        additionalLocations: additionalLocations,
-                        properties: ImmutableDictionary<string, string>.Empty,
-                        messageArgs: null
-                    );
-
-                    context.ReportDiagnostic(diagnostic);
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        Descriptor,
+                        namedTypeSymbol.Locations[0],
+                        namedTypeSymbol.Name
+                    ));
                 }
             }
 
@@ -352,7 +308,7 @@ class SonarLint_TestAnalyzer_Raise
                 helpLinkUri: "HelpLink",
                 customTags: new[] {"CustomTag"});
         }
-        
+
         #endregion
     }
 }
