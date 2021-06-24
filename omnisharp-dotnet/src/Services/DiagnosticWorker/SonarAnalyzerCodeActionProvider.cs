@@ -30,15 +30,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
     {
     }
 
-    /// <summary>
-    /// Returns Sonar analyzer diagnostics
-    /// </summary>
-    /// <remarks>
-    /// We want this provider to be used only by our custom diagnostic worker and not the "normal" OmniSharp workers,
-    /// so we're exporting it using a different interface.
-    /// However, we're reusing the OmniSharp <see cref="AbstractCodeActionProvider"/> class because it makes it easy to
-    /// load assemblies from and extract diagnostic analyzers from them.
-    /// </remarks>
+    // We want this provider to be used only by our custom diagnostic worker and not the "normal" OmniSharp workers,
+    // so we're exporting it using a different interface.
+    // However, we're reusing the OmniSharp <see cref="AbstractCodeActionProvider"/> class because it makes it easy to
+    // load assemblies from and extract diagnostic analyzers from them.
     [Export(typeof(ISonarAnalyzerCodeActionProvider)), Shared]
     internal class SonarAnalyzerCodeActionProvider : AbstractCodeActionProvider, ISonarAnalyzerCodeActionProvider
     {
