@@ -27,21 +27,14 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
+using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
 using SonarLint.OmniSharp.Plugin.Services;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
 {
     [TestClass]
     public class DiagnosticsToCodeLocationsConverterTests
     {
-        [TestMethod]
-        public void MefCtor_CheckIsExported()
-        {
-            CheckTypeCanBeImported<DiagnosticsToCodeLocationsConverter, IDiagnosticsToCodeLocationsConverter>();
-        }
-
         [TestMethod]
         public void Convert_NoDiagnostics_ReturnsEmptyArray()
         {
@@ -196,9 +189,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
                 isEnabledByDefault: true);
 
             var additionalLocations = additionalLocationsWithMessages.Select(x => x.Item1).ToArray();
-            var additionalLocationsMessages = additionalLocationsWithMessages
-                .Select((item, index) => new {Index = index.ToString(), Message = item.Item2})
-                .ToImmutableDictionary(x => x.Index, x => x.Message);
+            var additionalLocationsMessages = GetLocationMessages(additionalLocationsWithMessages);
             
             var diagnostic = new Mock<Diagnostic>();
             diagnostic.SetupGet(x => x.Id).Returns(locationSpan.GetHashCode().ToString);
@@ -209,6 +200,19 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
             diagnostic.SetupGet(x => x.Properties).Returns(additionalLocationsMessages);
 
             return diagnostic.Object;
+        }
+        
+        /// <summary>
+        /// See the logic in <see cref="SonarLintDiagnosticLocationExtensions.GetLocationMessage"/>
+        /// </summary>
+        private static ImmutableDictionary<string, string> GetLocationMessages((Location, string)[] additionalLocationWithMessages)
+        {
+            var locationMessages = additionalLocationWithMessages
+                .Select((item, index) => new {Message = item.Item2, Index = index.ToString()})
+                .ToDictionary(i => i.Index, i => i.Message)
+                .ToImmutableDictionary();
+            
+            return locationMessages;
         }
 
         private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName, params FileLinePositionSpan[] locationSpans) => 

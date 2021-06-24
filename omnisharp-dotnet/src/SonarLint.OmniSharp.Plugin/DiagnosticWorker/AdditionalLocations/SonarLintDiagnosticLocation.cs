@@ -18,9 +18,17 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
+using OmniSharp.Models.Diagnostics;
+
+namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations
 {
-    internal class SonarLintDiagnosticLocation : global::OmniSharp.Models.Diagnostics.DiagnosticLocation, ICodeLocation
+    /// <summary>
+    /// Extends <see cref="DiagnosticLocation"/> and provides additional diagnostic locations.
+    /// </summary>
+    /// <remarks>
+    /// Additional locations are excluded from <see cref="DiagnosticLocation.Equals"/>
+    /// </remarks>
+    internal class SonarLintDiagnosticLocation : DiagnosticLocation, ICodeLocation
     {
         public ICodeLocation[] AdditionalLocations { get; set; }
     }

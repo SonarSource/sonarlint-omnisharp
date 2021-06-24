@@ -46,7 +46,12 @@ namespace SonarLint.OmniSharp.Plugin.Services
         private readonly IDiagnosticsToCodeLocationsConverter diagnosticsToCodeLocationsConverter;
 
         [ImportingConstructor]
-        public SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker,
+        public SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker)
+            : this(diagnosticWorker, new DiagnosticsToCodeLocationsConverter())
+        {
+        }
+
+        internal SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker,
             IDiagnosticsToCodeLocationsConverter diagnosticsToCodeLocationsConverter)
         {
             this.diagnosticWorker = diagnosticWorker;

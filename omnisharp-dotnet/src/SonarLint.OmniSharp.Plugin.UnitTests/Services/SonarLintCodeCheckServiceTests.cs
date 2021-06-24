@@ -28,7 +28,7 @@ using Moq;
 using OmniSharp.Mef;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
+using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
 using SonarLint.OmniSharp.Plugin.Services;
 using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
 
@@ -41,8 +41,7 @@ namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
         public void MefCtor_CheckIsExported()
         {
             CheckTypeCanBeImported<SonarLintCodeCheckService, IRequestHandler>(
-                CreateExport<ISonarLintDiagnosticWorker>(),
-                CreateExport<IDiagnosticsToCodeLocationsConverter>());
+                CreateExport<ISonarLintDiagnosticWorker>());
         }
 
         [TestMethod]

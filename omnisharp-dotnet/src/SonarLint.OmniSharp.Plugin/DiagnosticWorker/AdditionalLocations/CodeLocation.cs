@@ -18,11 +18,10 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using OmniSharp.Models;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
+namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations
 {
     internal interface ICodeLocation
     {
@@ -40,45 +39,19 @@ namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation
     internal sealed class CodeLocation : ICodeLocation
     {
         public string FileName { get; set; }
+        
         [JsonConverter(typeof(ZeroBasedIndexConverter))]
         public int Line { get; set; }
+        
         [JsonConverter(typeof(ZeroBasedIndexConverter))]
         public int Column { get; set; }
+        
         [JsonConverter(typeof(ZeroBasedIndexConverter))]
         public int EndLine { get; set; }
+        
         [JsonConverter(typeof(ZeroBasedIndexConverter))]
         public int EndColumn { get; set; }
+        
         public string Text { get; set; }
-
-        private bool Equals(CodeLocation other)
-        {
-            return FileName == other.FileName
-                   && Line == other.Line
-                   && Column == other.Column
-                   && EndLine == other.EndLine
-                   && EndColumn == other.EndColumn
-                   && Text == other.Text;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((CodeLocation) obj);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                var hashCode = (FileName != null ? FileName.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ Line;
-                hashCode = (hashCode * 397) ^ Column;
-                hashCode = (hashCode * 397) ^ EndLine;
-                hashCode = (hashCode * 397) ^ EqualityComparer<string>.Default.GetHashCode(Text);
-                return hashCode;
-            }
-        }
     }
 }

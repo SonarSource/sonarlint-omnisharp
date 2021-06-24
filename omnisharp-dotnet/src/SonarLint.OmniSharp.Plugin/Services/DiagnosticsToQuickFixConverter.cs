@@ -19,11 +19,10 @@
  */
 
 using System.Collections.Immutable;
-using System.Composition;
 using System.Linq;
 using OmniSharp.Helpers;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
+using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
 
 namespace SonarLint.OmniSharp.Plugin.Services
 {
@@ -32,7 +31,6 @@ namespace SonarLint.OmniSharp.Plugin.Services
         ImmutableArray<SonarLintDiagnosticLocation> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter);
     }
     
-    [Export(typeof(IDiagnosticsToCodeLocationsConverter)), Shared]
     internal class DiagnosticsToCodeLocationsConverter : IDiagnosticsToCodeLocationsConverter
     {
         public ImmutableArray<SonarLintDiagnosticLocation> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter)

@@ -10,7 +10,7 @@ using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.DiagnosticLocation;
+using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
 
 namespace OmniSharp.Helpers
 {
