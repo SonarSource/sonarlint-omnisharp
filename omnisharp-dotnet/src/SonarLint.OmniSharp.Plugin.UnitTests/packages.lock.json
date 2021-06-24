@@ -1368,7 +1368,7 @@
           "System.Xml.ReaderWriter": "4.3.0"
         }
       },
-      "sonarlint.omnisharp.plugin": {
+      "SonarLint.OmniSharp.DotNet.Services": {
         "type": "Project",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "3.11.0-1.final",
