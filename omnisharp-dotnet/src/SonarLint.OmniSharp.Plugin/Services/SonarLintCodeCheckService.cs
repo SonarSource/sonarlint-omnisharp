@@ -20,10 +20,8 @@
 
 using System.Collections.Immutable;
 using System.Composition;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using OmniSharp.Helpers;
 using OmniSharp.Mef;
 using OmniSharp.Models;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
@@ -45,11 +43,19 @@ namespace SonarLint.OmniSharp.Plugin.Services
         internal const string ServiceEndpoint = "/sonarlint/codecheck";
 
         private readonly ISonarLintDiagnosticWorker diagnosticWorker;
+        private readonly IDiagnosticsToCodeLocationsConverter diagnosticsToCodeLocationsConverter;
 
         [ImportingConstructor]
         public SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker)
+            : this(diagnosticWorker, new DiagnosticsToCodeLocationsConverter())
+        {
+        }
+
+        internal SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker,
+            IDiagnosticsToCodeLocationsConverter diagnosticsToCodeLocationsConverter)
         {
             this.diagnosticWorker = diagnosticWorker;
+            this.diagnosticsToCodeLocationsConverter = diagnosticsToCodeLocationsConverter;
         }
 
         public async Task<QuickFixResponse> Handle(SonarLintCodeCheckRequest request)
@@ -66,13 +72,9 @@ namespace SonarLint.OmniSharp.Plugin.Services
             return GetResponseFromDiagnostics(diagnostics, request.FileName);
         }
 
-        private static QuickFixResponse GetResponseFromDiagnostics(ImmutableArray<DocumentDiagnostics> diagnostics, string fileName)
+        private QuickFixResponse GetResponseFromDiagnostics(ImmutableArray<DocumentDiagnostics> diagnostics, string fileName)
         {
-            var diagnosticLocations = diagnostics
-                .Where(x => string.IsNullOrEmpty(fileName) || x.DocumentPath == fileName)
-                .DistinctDiagnosticLocationsByProject()
-                .Where(x => x.FileName != null)
-                .ToList();
+            var diagnosticLocations = diagnosticsToCodeLocationsConverter.Convert(diagnostics, fileName);
 
             return new QuickFixResponse(diagnosticLocations);
         }
