@@ -5,6 +5,7 @@
 
     <!-- We don't want to ship the OmniSharp assemblies -->
     <CopyOmniSharpToOutput>false</CopyOmniSharpToOutput>
+    <AssemblyName>SonarLint.OmniSharp.DotNet.Services</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
