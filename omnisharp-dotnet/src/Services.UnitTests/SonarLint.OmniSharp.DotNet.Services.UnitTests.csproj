@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SonarLint.OmniSharp.Plugin\SonarLint.OmniSharp.Plugin.csproj" />
+    <ProjectReference Include="..\Services\SonarLint.OmniSharp.DotNet.Services.csproj" />
   </ItemGroup>
 
 </Project>

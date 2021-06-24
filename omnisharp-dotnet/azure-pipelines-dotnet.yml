@@ -17,7 +17,7 @@ variables:
   - name: buildConfiguration
     value: 'Release'
   - name: slnPath
-    value: 'omnisharp-dotnet/SonarLint.OmniSharp.Plugin.sln'
+    value: 'omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln'
 
 steps:
 
