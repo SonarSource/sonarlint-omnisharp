@@ -25,7 +25,7 @@ namespace OmniSharp.Helpers
         internal static SonarLintDiagnosticLocation ToDiagnosticLocation(this Diagnostic diagnostic)
         {
             var span = diagnostic.Location.GetMappedLineSpan();
-            
+
             return new SonarLintDiagnosticLocation
             {
                 FileName = span.Path,

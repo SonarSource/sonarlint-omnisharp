@@ -42,7 +42,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
   <Rules />
 </AnalysisInput>");
         }
-        
+
         [TestMethod]
         public void Serialize_HasRules_ConfigurationSerialized()
         {
@@ -70,7 +70,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
                     }
                 }
             };
-            
+
             var result = testSubject.Serialize(configuration);
 
             result.Should().BeEquivalentTo(@"﻿<?xml version=""1.0"" encoding=""utf-8""?>
@@ -106,7 +106,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
   </Rules>
 </AnalysisInput>");
         }
-        
-        private SonarLintConfigurationSerializer CreateTestSubject() => new SonarLintConfigurationSerializer();
+
+        private static SonarLintConfigurationSerializer CreateTestSubject() => new();
     }
 }

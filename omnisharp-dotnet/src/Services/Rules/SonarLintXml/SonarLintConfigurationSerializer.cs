@@ -30,7 +30,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
     {
         string Serialize(SonarLintConfiguration sonarLintConfiguration);
     }
-    
+
     internal class SonarLintConfigurationSerializer : ISonarLintConfigurationSerializer
     {
         public string Serialize(SonarLintConfiguration sonarLintConfiguration)
@@ -44,7 +44,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
                 OmitXmlDeclaration = false,
                 Encoding = Encoding.UTF8
             };
-            
+
             using (var stream = new MemoryStream {Position = 0})
             using (var xmlWriter = XmlWriter.Create(stream, settings))
             {

@@ -54,7 +54,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
                 CreateDocumentDiagnostics("file1.cs"),
                 CreateDocumentDiagnostics("file2.cs")
             }.ToImmutableArray();
-            
+
             var convertedLocations = new[]
             {
                 new SonarLintDiagnosticLocation {Id = "test1"},
@@ -112,8 +112,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
         private SonarLintCodeCheckRequest CreateRequest(string fileName) => new() {FileName = fileName};
 
-        private SonarLintCodeCheckService CreateTestSubject(
-            ISonarLintDiagnosticWorker diagnosticWorker, 
+        private static SonarLintCodeCheckService CreateTestSubject(
+            ISonarLintDiagnosticWorker diagnosticWorker,
             IDiagnosticsToCodeLocationsConverter converter) => new(diagnosticWorker, converter);
 
         private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName)
@@ -123,7 +123,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             var documentDiagnostics = new DocumentDiagnostics(DocumentId.CreateNewId(project),
                 fileName,
                 project,
-                project.Id.ToString(), 
+                project.Id.ToString(),
                 ImmutableArray<Diagnostic>.Empty);
 
             return documentDiagnostics;
@@ -151,18 +151,18 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
             return diagnosticWorker;
         }
-        
+
         private static Mock<IDiagnosticsToCodeLocationsConverter> SetupDiagnosticsConverter(
             string fileNameFilter,
             ImmutableArray<DocumentDiagnostics> diagnostics,
             ImmutableArray<SonarLintDiagnosticLocation> convertedLocations)
         {
             var diagnosticsConverter = new Mock<IDiagnosticsToCodeLocationsConverter>();
-            
+
             diagnosticsConverter
                 .Setup(x => x.Convert(diagnostics, fileNameFilter))
                 .Returns(convertedLocations);
-            
+
             return diagnosticsConverter;
         }
     }
