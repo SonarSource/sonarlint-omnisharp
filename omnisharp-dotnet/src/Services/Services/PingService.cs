@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 
 // Adds a "ping_sonarlint" endpoint for testing/debugging
 
-namespace SonarLint.OmniSharp.Plugin.Services
+namespace SonarLint.OmniSharp.DotNet.Services.Services
 {
     [OmniSharpEndpoint(PingService.ServiceEndpoint, typeof(PingRequest), typeof(PingResponse))]
     public class PingRequest : Request

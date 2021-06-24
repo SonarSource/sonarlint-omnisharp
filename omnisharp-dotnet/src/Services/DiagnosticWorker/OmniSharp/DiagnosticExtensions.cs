@@ -5,12 +5,11 @@
  */
 
 using Microsoft.CodeAnalysis;
-using OmniSharp.Models.Diagnostics;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
 
 namespace OmniSharp.Helpers
 {

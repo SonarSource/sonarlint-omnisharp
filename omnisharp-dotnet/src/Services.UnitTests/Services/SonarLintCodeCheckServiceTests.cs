@@ -27,12 +27,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Mef;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
-using SonarLint.OmniSharp.Plugin.Services;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations;
+using SonarLint.OmniSharp.DotNet.Services.Services;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 {
     [TestClass]
     public class SonarLintCodeCheckServiceTests

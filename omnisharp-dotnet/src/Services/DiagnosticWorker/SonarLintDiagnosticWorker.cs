@@ -33,7 +33,7 @@ using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using OmniSharp.Roslyn.CSharp.Workers.Diagnostics;
 using OmniSharp.Services;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
     interface ISonarLintDiagnosticWorker : ICsDiagnosticWorker
     {

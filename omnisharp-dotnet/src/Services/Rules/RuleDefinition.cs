@@ -21,7 +21,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace SonarLint.OmniSharp.Plugin.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal class RuleDefinition
     {

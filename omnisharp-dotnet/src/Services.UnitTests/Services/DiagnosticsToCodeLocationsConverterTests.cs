@@ -27,10 +27,10 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
-using SonarLint.OmniSharp.Plugin.Services;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations;
+using SonarLint.OmniSharp.DotNet.Services.Services;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 {
     [TestClass]
     public class DiagnosticsToCodeLocationsConverterTests

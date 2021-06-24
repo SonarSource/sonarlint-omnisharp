@@ -26,7 +26,7 @@ using System.Composition.Hosting;
 using System.Composition.Hosting.Core;
 using System.Linq;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure
 {
     internal static class MefTestHelpers
     {

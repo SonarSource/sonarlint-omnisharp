@@ -21,11 +21,11 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Mef;
-using SonarLint.OmniSharp.Plugin.Services;
+using SonarLint.OmniSharp.DotNet.Services.Services;
 using System.Threading.Tasks;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 {
     [TestClass]
     public class PingServiceTests

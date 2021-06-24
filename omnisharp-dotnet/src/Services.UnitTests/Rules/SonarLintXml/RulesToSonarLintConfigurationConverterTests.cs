@@ -22,11 +22,11 @@ using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SonarLint.OmniSharp.Plugin.Rules;
-using SonarLint.OmniSharp.Plugin.Rules.SonarLintXml;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
+using SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml;
 using SonarLint.VisualStudio.Core.CSharpVB;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules.SonarLintXml
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
 {
     [TestClass]
     public class RulesToSonarLintConfigurationConverterTests

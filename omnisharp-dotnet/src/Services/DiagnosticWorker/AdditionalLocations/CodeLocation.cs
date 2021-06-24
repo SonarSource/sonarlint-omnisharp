@@ -21,7 +21,7 @@
 using Newtonsoft.Json;
 using OmniSharp.Models;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations
 {
     internal interface ICodeLocation
     {

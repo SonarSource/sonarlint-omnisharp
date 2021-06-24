@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SonarLint.VisualStudio.Core.CSharpVB;
 
-namespace SonarLint.OmniSharp.Plugin.Rules.SonarLintXml
+namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
 {
     internal interface IRulesToSonarLintConfigurationConverter
     {

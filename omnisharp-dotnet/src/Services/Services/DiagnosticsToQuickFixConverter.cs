@@ -22,9 +22,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using OmniSharp.Helpers;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations;
 
-namespace SonarLint.OmniSharp.Plugin.Services
+namespace SonarLint.OmniSharp.DotNet.Services.Services
 {
     internal interface IDiagnosticsToCodeLocationsConverter
     {

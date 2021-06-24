@@ -21,7 +21,7 @@
 using System.Composition;
 using OmniSharp.Services;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
     /// <summary>
     /// Provide sonar-dotnet <see cref="Microsoft.CodeAnalysis.Diagnostics.DiagnosticAnalyzer"/>.

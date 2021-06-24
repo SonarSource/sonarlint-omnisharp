@@ -24,10 +24,10 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Services;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 {
     [TestClass]
     public class SonarAnalyzerAssembliesProviderTests

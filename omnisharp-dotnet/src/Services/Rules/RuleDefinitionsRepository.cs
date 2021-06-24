@@ -21,7 +21,7 @@
 using System;
 using System.Composition;
 
-namespace SonarLint.OmniSharp.Plugin.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal interface IRuleDefinitionsRepository
     {

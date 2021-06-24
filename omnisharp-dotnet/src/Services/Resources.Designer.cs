@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace SonarLint.OmniSharp.Plugin {
+namespace SonarLint.OmniSharp.DotNet.Services {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace SonarLint.OmniSharp.Plugin {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("SonarLint.OmniSharp.Plugin.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("SonarLint.OmniSharp.DotNet.Services.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

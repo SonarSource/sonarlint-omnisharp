@@ -26,9 +26,9 @@ using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-using SonarLint.OmniSharp.Plugin.Rules;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
     internal class AnalysisConfig
     {

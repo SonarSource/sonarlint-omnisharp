@@ -20,10 +20,10 @@
 
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SonarLint.OmniSharp.Plugin.Rules;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 {
     [TestClass]
     public class RuleDefinitionsRepositoryTests

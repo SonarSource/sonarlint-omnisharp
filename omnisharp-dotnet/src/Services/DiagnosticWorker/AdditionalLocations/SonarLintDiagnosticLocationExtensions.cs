@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations
 {
     internal static class SonarLintDiagnosticLocationExtensions
     {

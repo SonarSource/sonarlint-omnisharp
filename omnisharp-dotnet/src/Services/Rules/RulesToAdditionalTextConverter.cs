@@ -23,9 +23,9 @@ using System.IO;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using SonarLint.OmniSharp.Plugin.Rules.SonarLintXml;
+using SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml;
 
-namespace SonarLint.OmniSharp.Plugin.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal interface IRulesToAdditionalTextConverter
     {

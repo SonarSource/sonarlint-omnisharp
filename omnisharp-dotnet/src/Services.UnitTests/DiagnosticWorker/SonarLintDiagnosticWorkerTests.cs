@@ -38,11 +38,11 @@ using OmniSharp.FileWatching;
 using OmniSharp.Options;
 using OmniSharp.Roslyn;
 using OmniSharp.Services;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
-using SonarLint.OmniSharp.Plugin.Rules;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.DiagnosticWorker
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 {
     [TestClass]
     public class SonarLintDiagnosticWorkerTests

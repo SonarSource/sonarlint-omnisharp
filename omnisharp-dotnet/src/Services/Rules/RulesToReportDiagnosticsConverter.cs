@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace SonarLint.OmniSharp.Plugin.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal interface IRulesToReportDiagnosticsConverter
     {

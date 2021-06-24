@@ -25,9 +25,9 @@ using Microsoft.CodeAnalysis;
 using OmniSharp.Mef;
 using OmniSharp.Models;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
-using SonarLint.OmniSharp.Plugin.DiagnosticWorker;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
 
-namespace SonarLint.OmniSharp.Plugin.Services
+namespace SonarLint.OmniSharp.DotNet.Services.Services
 {
     [OmniSharpEndpoint(SonarLintCodeCheckService.ServiceEndpoint, typeof(SonarLintCodeCheckRequest), typeof(QuickFixResponse))]
     internal class SonarLintCodeCheckRequest : Request

@@ -25,7 +25,7 @@ using System.IO;
 using System.Reflection;
 using OmniSharp.Services;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
     /// <summary>
     /// Provide sonar-dotnet analyzer assemblies

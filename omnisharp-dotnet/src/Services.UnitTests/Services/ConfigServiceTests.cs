@@ -23,13 +23,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Newtonsoft.Json;
 using OmniSharp.Mef;
-using SonarLint.OmniSharp.Plugin.Rules;
-using SonarLint.OmniSharp.Plugin.Services;
-using static SonarLint.OmniSharp.Plugin.UnitTests.TestingInfrastructure.MefTestHelpers;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
+using SonarLint.OmniSharp.DotNet.Services.Services;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Services
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 {
     [TestClass]
     public class ConfigServiceTests

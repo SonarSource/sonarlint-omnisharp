@@ -20,7 +20,7 @@
 
 using OmniSharp.Models.Diagnostics;
 
-namespace SonarLint.OmniSharp.Plugin.DiagnosticWorker.AdditionalLocations
+namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations
 {
     /// <summary>
     /// Extends <see cref="DiagnosticLocation"/> and provides additional diagnostic locations.

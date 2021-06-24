@@ -22,11 +22,11 @@ using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 using OmniSharp;
 using OmniSharp.Mef;
-using SonarLint.OmniSharp.Plugin.Rules;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
 using System.Composition;
 using System.Threading.Tasks;
 
-namespace SonarLint.OmniSharp.Plugin.Services
+namespace SonarLint.OmniSharp.DotNet.Services.Services
 {
     [OmniSharpEndpoint(ConfigService.ServiceEndpoint, typeof(ConfigRequest), typeof(object))]
     internal class ConfigRequest : IRequest

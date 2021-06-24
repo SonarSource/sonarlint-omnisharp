@@ -22,11 +22,11 @@ using System.IO;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using SonarLint.OmniSharp.Plugin.Rules;
-using SonarLint.OmniSharp.Plugin.Rules.SonarLintXml;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
+using SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml;
 using SonarLint.VisualStudio.Core.CSharpVB;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 {
     [TestClass]
     public class RulesToAdditionalTextConverterTests

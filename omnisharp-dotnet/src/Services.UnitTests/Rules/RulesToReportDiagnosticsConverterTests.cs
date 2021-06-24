@@ -22,9 +22,9 @@ using System;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SonarLint.OmniSharp.Plugin.Rules;
+using SonarLint.OmniSharp.DotNet.Services.Rules;
 
-namespace SonarLint.OmniSharp.Plugin.UnitTests.Rules
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 {
     [TestClass]
     public class RulesToReportDiagnosticsConverterTests
