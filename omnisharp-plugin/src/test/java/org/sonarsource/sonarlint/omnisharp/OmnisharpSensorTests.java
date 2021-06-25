@@ -31,7 +31,6 @@ import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.rule.internal.ActiveRulesBuilder;
 import org.sonar.api.batch.rule.internal.NewActiveRule;
-import org.sonar.api.batch.rule.internal.RulesBuilder;
 import org.sonar.api.batch.sensor.internal.DefaultSensorDescriptor;
 import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.batch.sensor.issue.Issue;
@@ -58,7 +57,7 @@ class OmnisharpSensorTests {
   @BeforeEach
   void prepare(@TempDir Path tmp) throws Exception {
     baseDir = tmp.toRealPath();
-    underTest = new OmnisharpSensor(mockServer, mockProtocol, new RulesBuilder().build());
+    underTest = new OmnisharpSensor(mockServer, mockProtocol);
   }
 
   @Test
@@ -209,6 +208,11 @@ class OmnisharpSensorTests {
       i -> i.primaryLocation().textRange().end().line(),
       i -> i.primaryLocation().textRange().end().lineOffset())
       .containsOnly(tuple(ruleKey, file, "Don't do this", 1, 0, 1, 4));
+  }
+
+  @Test
+  void testLoadRules() {
+    assertThat(underTest.getAllRulesKeys()).hasSize(395);
   }
 
 }
