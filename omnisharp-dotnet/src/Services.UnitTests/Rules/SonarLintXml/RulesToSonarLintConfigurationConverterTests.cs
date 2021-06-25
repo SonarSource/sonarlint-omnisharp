@@ -59,18 +59,21 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
             var rule1 = new RuleDefinition
             {
                 RuleId = "rule1",
+                IsEnabled = true,
                 Parameters = new Dictionary<string, string> {{"param1", "value1"}}
             };
 
             var rule2 = new RuleDefinition
             {
                 RuleId = "rule2",
+                IsEnabled = true,
                 Parameters = null
             };
 
             var rule3 = new RuleDefinition
             {
                 RuleId = "rule3",
+                IsEnabled = true,
                 Parameters = new Dictionary<string, string> {{"param2", "value2"}, {"param3", "value3"}}
             };
 
@@ -90,6 +93,34 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
             sonarLintConfiguration.Rules[2].Parameters.Should().BeEquivalentTo(
                 new SonarLintKeyValuePair{Key = "param2", Value = "value2"},
                 new SonarLintKeyValuePair{Key = "param3", Value = "value3"});
+        }
+
+        [TestMethod]
+        public void Convert_HasDisabledRules_DisabledRulesAreIgnored()
+        {
+            var testSubject = CreateTestSubject();
+
+            var rule1 = new RuleDefinition
+            {
+                RuleId = "rule1",
+                IsEnabled = true,
+                Parameters = new Dictionary<string, string> {{"param1", "value1"}}
+            };
+            
+            var rule2 = new RuleDefinition
+            {
+                RuleId = "rule2",
+                IsEnabled = false
+            };
+            
+            var sonarLintConfiguration = testSubject.Convert(new[] {rule1, rule2});
+
+            sonarLintConfiguration.Rules.Should().NotBeEmpty();
+            sonarLintConfiguration.Rules.Count.Should().Be(1);
+
+            sonarLintConfiguration.Rules[0].Key.Should().Be("rule1");
+            sonarLintConfiguration.Rules[0].Parameters.Should().BeEquivalentTo(
+                new SonarLintKeyValuePair{Key = "param1", Value = "value1"});
         }
 
         private static RulesToSonarLintConfigurationConverter CreateTestSubject() => new();

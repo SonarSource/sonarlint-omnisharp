@@ -33,17 +33,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
     {
         public  SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules)
         {
-            var sonarLintRules = rules.Select(rule => new SonarLintRule
-            {
-                Key = rule.RuleId,
-                Parameters = rule.Parameters?.Select(param =>
-                        new SonarLintKeyValuePair
-                        {
-                            Key = param.Key,
-                            Value = param.Value
-                        })
-                    .ToList()
-            }).ToList();
+            var sonarLintRules = rules
+                .Where(x => x.IsEnabled)
+                .Select(rule => new SonarLintRule
+                {
+                    Key = rule.RuleId,
+                    Parameters = rule.Parameters?.Select(param =>
+                            new SonarLintKeyValuePair
+                            {
+                                Key = param.Key,
+                                Value = param.Value
+                            })
+                        .ToList()
+                }).ToList();
 
             var sonarLintConfiguration = new SonarLintConfiguration
             {
