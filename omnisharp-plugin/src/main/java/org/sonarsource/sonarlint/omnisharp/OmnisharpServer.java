@@ -80,9 +80,11 @@ import org.zeroturnaround.exec.stream.LogOutputStream;
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpServer implements Startable {
 
+  private static final String SERVICES_DLL_FILENAME = "SonarLint.OmniSharp.DotNet.Services.dll";
+
   private static final Logger LOG = Loggers.get(OmnisharpServer.class);
 
-  private static final String ROSLYN_ANALYZER_LOCATION = "sonarAnalyzer";
+  private static final String OMNISHARP_SERVICES_LOCATION = "slServices";
 
   private StartedProcess process;
   private volatile boolean omnisharpStarted;
@@ -91,7 +93,7 @@ public class OmnisharpServer implements Startable {
 
   private final System2 system2;
 
-  private Path roslynAnalyzerDir;
+  private Path omnisharpServicesDir;
 
   private final TempFolder tempFolder;
 
@@ -252,8 +254,8 @@ public class OmnisharpServer implements Startable {
     }
     args.add("-s");
     args.add(projectBaseDir.toString());
-    args.add("RoslynExtensionsOptions:EnableAnalyzersSupport=true");
-    args.add("RoslynExtensionsOptions:LocationPaths:0=" + roslynAnalyzerDir.toString());
+    args.add("-pl");
+    args.add(omnisharpServicesDir.resolve(SERVICES_DLL_FILENAME).toString());
     return new ProcessExecutor()
       .directory(omnisharpPath.toFile())
       .command(args);
@@ -262,19 +264,30 @@ public class OmnisharpServer implements Startable {
   @Override
   public void start() {
     String analyzerVersion = loadAnalyzerVersion();
-    this.roslynAnalyzerDir = tempFolder.newDir(ROSLYN_ANALYZER_LOCATION).toPath();
+    this.omnisharpServicesDir = tempFolder.newDir(OMNISHARP_SERVICES_LOCATION).toPath();
     unzipAnalyzer(analyzerVersion);
+    extractOmnisharpServicesDll();
+  }
+
+  private void extractOmnisharpServicesDll() {
+    try (InputStream bundle = getClass().getResourceAsStream("/" + SERVICES_DLL_FILENAME)) {
+      if (bundle == null) {
+        throw new IllegalStateException(SERVICES_DLL_FILENAME + " not found in plugin jar");
+      }
+      Files.copy(bundle, omnisharpServicesDir.resolve(SERVICES_DLL_FILENAME));
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to extract services", e);
+    }
   }
 
   private void unzipAnalyzer(String analyzerVersion) {
-    InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-" + analyzerVersion + ".zip");
-    if (bundle == null) {
-      throw new IllegalStateException("SonarAnalyzer not found in plugin jar");
-    }
-    try {
-      ZipUtils.unzip(bundle, roslynAnalyzerDir.toFile());
+    try (InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-" + analyzerVersion + ".zip")) {
+      if (bundle == null) {
+        throw new IllegalStateException("SonarAnalyzer not found in plugin jar");
+      }
+      ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile());
     } catch (IOException e) {
-      throw new IllegalStateException("Unable to extract analyzers");
+      throw new IllegalStateException("Unable to extract analyzers", e);
     }
   }
 
