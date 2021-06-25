@@ -40,9 +40,12 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -50,8 +53,6 @@ import java.util.stream.StreamSupport;
 import org.sonar.api.batch.fs.FilePredicate;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.rule.ActiveRule;
-import org.sonar.api.batch.rule.Rule;
-import org.sonar.api.batch.rule.Rules;
 import org.sonar.api.batch.sensor.Sensor;
 import org.sonar.api.batch.sensor.SensorContext;
 import org.sonar.api.batch.sensor.SensorDescriptor;
@@ -67,12 +68,11 @@ public class OmnisharpSensor implements Sensor {
 
   private final OmnisharpServer server;
   private final OmnisharpProtocol omnisharpProtocol;
-  private final Rules rules;
+  private List<String> allRulesKeys;
 
-  public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol, Rules rules) {
+  public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol) {
     this.server = server;
     this.omnisharpProtocol = omnisharpProtocol;
-    this.rules = rules;
   }
 
   @Override
@@ -100,12 +100,13 @@ public class OmnisharpSensor implements Sensor {
     } catch (Exception e) {
       throw new IllegalStateException("Unable to start OmniSharp", e);
     }
+
     JsonObject config = new JsonObject();
     JsonArray rulesJson = new JsonArray();
-    for (Rule rule : rules.findByRepository(CSharpPlugin.REPOSITORY_KEY)) {
+    for (String rule : getAllRulesKeys()) {
       JsonObject ruleJson = new JsonObject();
-      ruleJson.addProperty("ruleId", rule.key().rule());
-      ActiveRule activeRule = context.activeRules().find(rule.key());
+      ruleJson.addProperty("ruleId", rule);
+      ActiveRule activeRule = context.activeRules().find(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, rule));
       ruleJson.addProperty("isEnabled", activeRule != null);
       if (activeRule != null && !activeRule.params().isEmpty()) {
         JsonObject paramsJson = new JsonObject();
@@ -142,6 +143,30 @@ public class OmnisharpSensor implements Sensor {
     }
   }
 
+  /*
+   * We need the complete list of rule keys, including hotspots, to disabled them and not
+   * rely on default activation of the Roslyn rules.
+   * Instead of parsing XML again, I'm just doing some basic line matching...
+   */
+  List<String> getAllRulesKeys() {
+    if (allRulesKeys == null) {
+      allRulesKeys = new ArrayList<>();
+      CSharpSonarRulesDefinition.withRulesXml(reader -> {
+        try (BufferedReader br = new BufferedReader(reader)) {
+          for (String line; (line = br.readLine()) != null;) {
+            line = line.trim();
+            if (line.startsWith("<key>S") && line.endsWith("</key>")) {
+              allRulesKeys.add(line.substring("<key>".length(), line.length() - "</key>".length()));
+            }
+          }
+        } catch (IOException e) {
+          throw new IllegalStateException("Unable to load rules", e);
+        }
+      });
+    }
+    return allRulesKeys;
+  }
+
   private void scanFile(SensorContext context, InputFile f) {
     String buffer;
     try {
@@ -153,7 +178,7 @@ public class OmnisharpSensor implements Sensor {
     omnisharpProtocol.codeCheck(f.file(), diag -> handle(context, f, diag));
   }
 
-  private void handle(SensorContext context, InputFile f, OmnisharpDiagnostic diag) {
+  private static void handle(SensorContext context, InputFile f, OmnisharpDiagnostic diag) {
     RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, diag.id);
     if (context.activeRules().find(ruleKey) != null) {
       NewIssue newIssue = context.newIssue();

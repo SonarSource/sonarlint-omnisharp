@@ -46,6 +46,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.sonar.api.rules.RuleType;
 import org.sonar.api.scanner.ScannerSide;
@@ -75,12 +76,20 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
       .setName(REPOSITORY_NAME);
 
     RulesDefinitionXmlLoader loader = new RulesDefinitionXmlLoader();
-    loader.load(repository, new InputStreamReader(getClass().getResourceAsStream(RULES_XML), StandardCharsets.UTF_8));
+    withRulesXml(reader -> loader.load(repository, reader));
 
     setupHotspotRules(repository.rules());
     activeDefaultRules(repository.rules());
 
     repository.done();
+  }
+
+  public static void withRulesXml(Consumer<InputStreamReader> consumer) {
+    try (InputStreamReader reader = new InputStreamReader(CSharpSonarRulesDefinition.class.getResourceAsStream(RULES_XML), StandardCharsets.UTF_8)) {
+      consumer.accept(reader);
+    } catch (IOException e) {
+      throw new IllegalStateException("Error reading rules.xml", e);
+    }
   }
 
   protected String getRuleJson(String ruleKey) {
