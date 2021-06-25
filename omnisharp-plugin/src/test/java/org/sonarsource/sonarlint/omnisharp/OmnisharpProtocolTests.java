@@ -276,11 +276,11 @@ class OmnisharpProtocolTests {
     t.start();
 
     await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
-      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/codecheck\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\"}}"));
+      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/sonarlint/codecheck\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\"}}"));
 
     emulateReceivedMessage("{"
       + "  \"Request_seq\": 1,"
-      + "  \"Command\": \"/codecheck\","
+      + "  \"Command\": \"/sonarlint/codecheck\","
       + "  \"Running\": true,"
       + "  \"Success\": true,"
       + "  \"Message\": null,"

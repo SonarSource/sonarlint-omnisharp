@@ -78,9 +78,11 @@ class OmnisharpServerTests {
   }
 
   @Test
-  void extractAnalyzersOnStartup() {
+  void extractAnalyzersAndServicesOnStartup() {
     underTest.start();
-    assertThat(slTmpDir.resolve("sonarAnalyzer"))
+    assertThat(slTmpDir.resolve("slServices"))
+      .isDirectoryContaining("glob:**/SonarLint.OmniSharp.DotNet.Services.dll");
+    assertThat(slTmpDir.resolve("slServices/analyzers"))
       .isDirectoryContaining("glob:**/SonarAnalyzer.dll")
       .isDirectoryContaining("glob:**/SonarAnalyzer.CSharp.dll")
       .isDirectoryContaining("glob:**/SonarAnalyzer.CFG.dll")

@@ -168,6 +168,16 @@
       <resource>
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
+        <includes>
+          <include>analyzer-version.txt</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <excludes>
+          <exclude>analyzer-version.txt</exclude>
+        </excludes>
       </resource>
       <resource>
         <directory>${sonarAnalyzer.workDirectory}</directory>

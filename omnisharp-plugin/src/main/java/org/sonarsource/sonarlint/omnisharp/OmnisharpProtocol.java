@@ -152,7 +152,7 @@ public class OmnisharpProtocol {
   public void codeCheck(File f, Consumer<OmnisharpDiagnostic> issueHandler) {
     JsonObject args = new JsonObject();
     args.addProperty("FileName", f.getAbsolutePath());
-    JsonObject resp = doRequestAndWaitForResponse("/codecheck", args);
+    JsonObject resp = doRequestAndWaitForResponse("/sonarlint/codecheck", args);
     handle(resp, issueHandler);
   }
 
