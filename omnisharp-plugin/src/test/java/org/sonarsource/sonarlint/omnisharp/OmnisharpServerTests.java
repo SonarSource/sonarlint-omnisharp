@@ -36,7 +36,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.config.internal.MapSettings;
-import org.sonar.api.impl.utils.DefaultTempFolder;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
@@ -57,7 +56,6 @@ class OmnisharpServerTests {
   LogTesterJUnit5 logTester = new LogTesterJUnit5();
 
   private OmnisharpServer underTest;
-  private Path slTmpDir;
   private Path omnisharpDir;
   private Path solutionDir;
   private OmnisharpProtocol protocol;
@@ -65,7 +63,6 @@ class OmnisharpServerTests {
 
   @BeforeEach
   void prepare(@TempDir Path tmpDir) throws IOException {
-    slTmpDir = tmpDir.resolve("tmp");
     omnisharpDir = tmpDir.resolve("omnisharp");
     Files.createDirectory(omnisharpDir);
     solutionDir = tmpDir.resolve("solution");
@@ -73,20 +70,10 @@ class OmnisharpServerTests {
     mapSettings = new MapSettings();
     SonarLintRuntime runtime = mock(SonarLintRuntime.class);
     when(runtime.getClientPid()).thenReturn(123L);
-    underTest = new OmnisharpServer(System2.INSTANCE, new DefaultTempFolder(slTmpDir.toFile()), mapSettings.asConfig(), protocol, Paths.get("/usr/libexec/path_helper"), "run.bat",
+    OmnisharpServicesExtractor servicesExtractor = mock(OmnisharpServicesExtractor.class);
+    when(servicesExtractor.getOmnisharpServicesDllPath()).thenReturn(tmpDir.resolve("fake/services.dll"));
+    underTest = new OmnisharpServer(System2.INSTANCE, servicesExtractor, mapSettings.asConfig(), protocol, Paths.get("/usr/libexec/path_helper"), "run.bat",
       runtime);
-  }
-
-  @Test
-  void extractAnalyzersAndServicesOnStartup() {
-    underTest.start();
-    assertThat(slTmpDir.resolve("slServices"))
-      .isDirectoryContaining("glob:**/SonarLint.OmniSharp.DotNet.Services.dll");
-    assertThat(slTmpDir.resolve("slServices/analyzers"))
-      .isDirectoryContaining("glob:**/SonarAnalyzer.dll")
-      .isDirectoryContaining("glob:**/SonarAnalyzer.CSharp.dll")
-      .isDirectoryContaining("glob:**/SonarAnalyzer.CFG.dll")
-      .isDirectoryContaining("glob:**/Google.Protobuf.dll");
   }
 
   @Test
@@ -99,7 +86,7 @@ class OmnisharpServerTests {
   void omnisharpLocationRequired() throws Exception {
     underTest.start();
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(slTmpDir, null));
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(null, null));
     assertThat(thrown).hasMessage("Property 'sonar.cs.internal.omnisharpLocation' is required");
 
   }
