@@ -60,7 +60,8 @@ public class CSharpPlugin implements Plugin {
       context.addExtensions(
         OmnisharpServer.class,
         OmnisharpSensor.class,
-        OmnisharpProtocol.class);
+        OmnisharpProtocol.class,
+        OmnisharpServicesExtractor.class);
     }
 
     context.addExtensions(
