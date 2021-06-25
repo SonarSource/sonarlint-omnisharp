@@ -31,6 +31,7 @@ import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.rule.internal.ActiveRulesBuilder;
 import org.sonar.api.batch.rule.internal.NewActiveRule;
+import org.sonar.api.batch.rule.internal.RulesBuilder;
 import org.sonar.api.batch.sensor.internal.DefaultSensorDescriptor;
 import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.batch.sensor.issue.Issue;
@@ -44,6 +45,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class OmnisharpSensorTests {
@@ -56,7 +58,7 @@ class OmnisharpSensorTests {
   @BeforeEach
   void prepare(@TempDir Path tmp) throws Exception {
     baseDir = tmp.toRealPath();
-    underTest = new OmnisharpSensor(mockServer, mockProtocol);
+    underTest = new OmnisharpSensor(mockServer, mockProtocol, new RulesBuilder().build());
   }
 
   @Test
@@ -129,7 +131,8 @@ class OmnisharpSensorTests {
     underTest.execute(sensorContext);
 
     verify(mockServer).lazyStart(baseDir, null);
-    verifyNoInteractions(mockProtocol);
+    verify(mockProtocol).config(any());
+    verifyNoMoreInteractions(mockProtocol);
   }
 
   @Test

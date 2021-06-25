@@ -38,12 +38,14 @@ import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.client.api.common.Language;
 import org.sonarsource.sonarlint.core.client.api.common.ModuleInfo;
 import org.sonarsource.sonarlint.core.client.api.common.ModulesProvider;
+import org.sonarsource.sonarlint.core.client.api.common.RuleKey;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.ClientInputFile;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.Issue;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisConfiguration;
@@ -122,7 +124,131 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void testMultipleSolution(@TempDir Path tmpDir) throws Exception {
+  void testRuleActivation(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        public void test(int x)\n"
+        + "        {\n"
+        + "          if (x == 0)\n"
+        + "          {\n"
+        + "            DoSomething();\n"
+        + "          }\n"
+        + "          else if (x == 1)\n"
+        + "          {\n"
+        + "            DoSomething();\n"
+        + "          } \n"
+        + "        }\n"
+        + "        public void DoSomething(){\n"
+        + "          // TODO foo\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 19, 13, 19, 17, inputFile.getPath(), "INFO"));
+
+    issues.clear();
+
+    StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .addExcludedRules(RuleKey.parse("csharpsquid:S1135"))
+      .addIncludedRules(RuleKey.parse("csharpsquid:S126"))
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S126", "Add the missing 'else' clause.", 13, 10, 13, 17, inputFile.getPath(), "CRITICAL"));
+  }
+
+  @Test
+  @Disabled("Waiting for a fix on sonar-dotnet side")
+  void testRuleParameter(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        static void Main(string[] args)\n"
+        + "        {\n"
+        + "            while (true)\n"
+        + "            {\n"
+        + "                while (true)\n"
+        + "                            {\n"
+        + "                            while (true)\n"
+        + "                            {\n"
+        + "                                while (true)\n"
+        + "                                {\n"
+        + "                                    while (true)\n"
+        + "                                    {\n"
+        + "                                        while (true)\n"
+        + "                                        {\n"
+        + "                                           // TODO do something\n"
+        + "                                        }\n"
+        + "                                    }\n"
+        + "                    }\n"
+        + "                }\n"
+        + "                }\n"
+        + "            }"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .contains(
+        tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed.", 7, 20, 7, 24, inputFile.getPath(), "CRITICAL"));
+
+    issues.clear();
+
+    StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .addRuleParameter(RuleKey.parse("csharpsquid:S3776"), "threshold", "20")
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .contains(
+        tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 20 allowed.", 7, 20, 7, 24, inputFile.getPath(), "CRITICAL"));
+  }
+
+  @Test
+  void testMultipleSolutions(@TempDir Path tmpDir) throws Exception {
     when(modulesProvider.getModules()).thenReturn(Arrays.asList(new ModuleInfo("solution1", null), new ModuleInfo("solution2", null)));
     Path console1BaseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
     Path console2BaseDir = prepareTestSolution(tmpDir, "ConsoleApp2");
