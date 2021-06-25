@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
@@ -41,6 +42,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.client.api.common.Language;
+import org.sonarsource.sonarlint.core.client.api.common.ModuleInfo;
+import org.sonarsource.sonarlint.core.client.api.common.ModulesProvider;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.ClientInputFile;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.Issue;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisConfiguration;
@@ -50,10 +53,13 @@ import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintE
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class OmnisharpIntegrationTests {
 
   private static StandaloneSonarLintEngine sonarlintEngine;
+  private static ModulesProvider modulesProvider;
 
   @BeforeAll
   public static void prepare(@TempDir Path tmpDir) throws Exception {
@@ -63,6 +69,7 @@ class OmnisharpIntegrationTests {
       .listFiles(Paths.get("../omnisharp-plugin/target/").toAbsolutePath().normalize().toFile(), new RegexFileFilter("^sonarlint-omnisharp-plugin-([0-9.]+)(-SNAPSHOT)*.jar$"),
         FalseFileFilter.FALSE)
       .iterator().next();
+    modulesProvider = mock(ModulesProvider.class);
     StandaloneGlobalConfiguration config = StandaloneGlobalConfiguration.builder()
       .addPlugin(pluginJar.toURI().toURL())
       .addEnabledLanguage(Language.CS)
@@ -70,6 +77,7 @@ class OmnisharpIntegrationTests {
       .setLogOutput((msg, level) -> System.out.println(msg))
       .setExtraProperties(Collections.singletonMap("sonar.cs.internal.omnisharpLocation", new File("target/omnisharp").getAbsolutePath()))
       .setClientPid(ProcessHandle.current().pid())
+      .setModulesProvider(modulesProvider)
       .build();
     sonarlintEngine = new StandaloneSonarLintEngineImpl(config);
   }
@@ -80,17 +88,8 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void testSampleProject(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = tmpDir.toRealPath().resolve("ConsoleApp1");
-    Files.createDirectories(baseDir);
-    FileUtils.copyDirectory(new File("src/test/projects/ConsoleApp1"), baseDir.toFile());
-    ProcessBuilder pb = new ProcessBuilder("dotnet", "restore")
-      .directory(baseDir.toFile())
-      .inheritIO();
-    Process process = pb.start();
-    if (process.waitFor() != 0) {
-      fail("Unable to run dotnet restore");
-    }
+  void testSingleSolution(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -120,6 +119,89 @@ class OmnisharpIntegrationTests {
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+  }
+
+  @Test
+  void testMultipleSolution(@TempDir Path tmpDir) throws Exception {
+    when(modulesProvider.getModules()).thenReturn(Arrays.asList(new ModuleInfo("solution1", null), new ModuleInfo("solution2", null)));
+    Path console1BaseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path console2BaseDir = prepareTestSolution(tmpDir, "ConsoleApp2");
+
+    ClientInputFile inputFile1 = prepareInputFile(console1BaseDir, "ConsoleApp1/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        static void Main(string[] args)\n"
+        + "        {\n"
+        + "            // TODO foo\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    ClientInputFile inputFile2 = prepareInputFile(console2BaseDir, "ConsoleApp2/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp2\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        static void Main(string[] args)\n"
+        + "        {\n"
+        + "            // TODO foo\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    final List<Issue> issuesConsole1 = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
+      .setModuleKey("solution1")
+      .setBaseDir(console1BaseDir)
+      .addInputFile(inputFile1)
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration1, i -> issuesConsole1.add(i), null, null);
+
+    assertThat(issuesConsole1)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile1.getPath(), "MAJOR"),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), "INFO"));
+
+    final List<Issue> issuesConsole2 = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
+      .setModuleKey("solution2")
+      .setBaseDir(console2BaseDir)
+      .addInputFile(inputFile2)
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration2, i -> issuesConsole2.add(i), null, null);
+
+    assertThat(issuesConsole2)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile2.getPath(), "MAJOR"),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), "INFO"));
+  }
+
+  private Path prepareTestSolution(Path tmpDir, String name) throws IOException, InterruptedException {
+    Path baseDir = tmpDir.toRealPath().resolve(name);
+    Files.createDirectories(baseDir);
+    FileUtils.copyDirectory(new File("src/test/projects/" + name), baseDir.toFile());
+    ProcessBuilder pb = new ProcessBuilder("dotnet", "restore")
+      .directory(baseDir.toFile())
+      .inheritIO();
+    Process process = pb.start();
+    if (process.waitFor() != 0) {
+      fail("Unable to run dotnet restore");
+    }
+    return baseDir;
   }
 
   private ClientInputFile prepareInputFile(Path baseDir, String relativePath, String content, final boolean isTest) throws IOException {
