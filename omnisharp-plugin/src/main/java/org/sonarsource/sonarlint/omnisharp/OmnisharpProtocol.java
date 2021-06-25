@@ -60,7 +60,7 @@ import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
 @ScannerSide
-@SonarLintSide(lifespan = SonarLintSide.MULTIPLE_ANALYSES)
+@SonarLintSide(lifespan = "MODULE")
 public class OmnisharpProtocol {
 
   private static final Logger LOG = Loggers.get(OmnisharpProtocol.class);

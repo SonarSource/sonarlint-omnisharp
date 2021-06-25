@@ -77,7 +77,7 @@ import org.zeroturnaround.exec.listener.ProcessListener;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
 @ScannerSide
-@SonarLintSide(lifespan = SonarLintSide.MULTIPLE_ANALYSES)
+@SonarLintSide(lifespan = "MODULE")
 public class OmnisharpServer implements Startable {
 
   private static final Logger LOG = Loggers.get(OmnisharpServer.class);
