@@ -156,6 +156,10 @@ public class OmnisharpProtocol {
     handle(resp, issueHandler);
   }
 
+  public void config(JsonObject config) {
+    doRequestAndWaitForResponse("/sonarlint/config", config);
+  }
+
   public void updateBuffer(File f, String buffer) {
     JsonObject args = new JsonObject();
     args.addProperty("FileName", f.getAbsolutePath());

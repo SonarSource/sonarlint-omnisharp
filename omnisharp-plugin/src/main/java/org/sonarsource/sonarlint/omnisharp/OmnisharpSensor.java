@@ -38,14 +38,20 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.sonar.api.batch.fs.FilePredicate;
 import org.sonar.api.batch.fs.InputFile;
+import org.sonar.api.batch.rule.ActiveRule;
+import org.sonar.api.batch.rule.Rule;
+import org.sonar.api.batch.rule.Rules;
 import org.sonar.api.batch.sensor.Sensor;
 import org.sonar.api.batch.sensor.SensorContext;
 import org.sonar.api.batch.sensor.SensorDescriptor;
@@ -61,10 +67,12 @@ public class OmnisharpSensor implements Sensor {
 
   private final OmnisharpServer server;
   private final OmnisharpProtocol omnisharpProtocol;
+  private final Rules rules;
 
-  public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol) {
+  public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol, Rules rules) {
     this.server = server;
     this.omnisharpProtocol = omnisharpProtocol;
+    this.rules = rules;
   }
 
   @Override
@@ -92,6 +100,25 @@ public class OmnisharpSensor implements Sensor {
     } catch (Exception e) {
       throw new IllegalStateException("Unable to start OmniSharp", e);
     }
+    JsonObject config = new JsonObject();
+    JsonArray rulesJson = new JsonArray();
+    for (Rule rule : rules.findByRepository(CSharpPlugin.REPOSITORY_KEY)) {
+      JsonObject ruleJson = new JsonObject();
+      ruleJson.addProperty("ruleId", rule.key().rule());
+      ActiveRule activeRule = context.activeRules().find(rule.key());
+      ruleJson.addProperty("isEnabled", activeRule != null);
+      if (activeRule != null && !activeRule.params().isEmpty()) {
+        JsonObject paramsJson = new JsonObject();
+        for (Map.Entry<String, String> param : activeRule.params().entrySet()) {
+          paramsJson.addProperty(param.getKey(), param.getValue());
+        }
+        ruleJson.add("params", paramsJson);
+      }
+      rulesJson.add(ruleJson);
+    }
+    config.add("rules", rulesJson);
+    omnisharpProtocol.config(config);
+
     ProgressReport progressReport = new ProgressReport("Report about progress of OmniSharp analyzer", TimeUnit.SECONDS.toMillis(10));
     progressReport.start(StreamSupport.stream(context.fileSystem().inputFiles(predicate).spliterator(), false).map(InputFile::toString).collect(Collectors.toList()));
     boolean successfullyCompleted = false;
