@@ -63,7 +63,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
   'rules': [
     {
       'ruleId': '123',
-      'isEnabled': true,
       'params': {
         'key': 'value',
         'key2': 'value2'
@@ -71,7 +70,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
     },
     {
       'ruleId': 'no params',
-      'isEnabled': false,
       'params': null
     }
   ]
@@ -82,14 +80,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             request.Rules.Length.Should().Be(2);
 
             request.Rules[0].RuleId.Should().Be("123");
-            request.Rules[0].IsEnabled.Should().Be(true);
             request.Rules[0].Parameters.Count.Should().Be(2);
             request.Rules[0].Parameters.Should().BeEquivalentTo(
                 new Dictionary<string, string>{ { "key", "value" }, { "key2","value2" } }
                 );
 
             request.Rules[1].RuleId.Should().Be("no params");
-            request.Rules[1].IsEnabled.Should().Be(false);
             request.Rules[1].Parameters.Should().BeNull();
         }
     }
