@@ -52,7 +52,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
         }
 
         [TestMethod]
-        public void Convert_HasRules_ConfigurationWithRules()
+        public void Convert_RulesWithParametersAreIncluded()
         {
             var testSubject = CreateTestSubject();
 
@@ -65,31 +65,55 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
             var rule2 = new ActiveRuleDefinition
             {
                 RuleId = "rule2",
-                Parameters = null
-            };
-
-            var rule3 = new ActiveRuleDefinition
-            {
-                RuleId = "rule3",
                 Parameters = new Dictionary<string, string> {{"param2", "value2"}, {"param3", "value3"}}
             };
 
-            var sonarLintConfiguration = testSubject.Convert(new[] {rule1, rule2, rule3});
+            var sonarLintConfiguration = testSubject.Convert(new[] {rule1, rule2});
 
             sonarLintConfiguration.Rules.Should().NotBeEmpty();
-            sonarLintConfiguration.Rules.Count.Should().Be(3);
+            sonarLintConfiguration.Rules.Count.Should().Be(2);
 
             sonarLintConfiguration.Rules[0].Key.Should().Be("rule1");
             sonarLintConfiguration.Rules[0].Parameters.Should().BeEquivalentTo(
                 new SonarLintKeyValuePair{Key = "param1", Value = "value1"});
 
             sonarLintConfiguration.Rules[1].Key.Should().Be("rule2");
-            sonarLintConfiguration.Rules[1].Parameters.Should().BeNull();
-
-            sonarLintConfiguration.Rules[2].Key.Should().Be("rule3");
-            sonarLintConfiguration.Rules[2].Parameters.Should().BeEquivalentTo(
+            sonarLintConfiguration.Rules[1].Parameters.Should().BeEquivalentTo(
                 new SonarLintKeyValuePair{Key = "param2", Value = "value2"},
                 new SonarLintKeyValuePair{Key = "param3", Value = "value3"});
+        }
+
+        [TestMethod]
+        public void Convert_RulesWithoutParamsAreIgnored()
+        {
+            var testSubject = CreateTestSubject();
+
+            var rule1 = new ActiveRuleDefinition
+            {
+                RuleId = "no params - should be ignored",
+                Parameters = null
+            };
+
+            var rule2 = new ActiveRuleDefinition
+            {
+                RuleId = "empty params - should be ignored",
+                Parameters = new Dictionary<string, string>()
+            };
+
+            var rule3 = new ActiveRuleDefinition
+            {
+                RuleId = "rule with params",
+                Parameters = new Dictionary<string, string> { { "param1", "value1" }}
+            };
+
+            var sonarLintConfiguration = testSubject.Convert(new[] { rule1, rule2, rule3 });
+
+            sonarLintConfiguration.Rules.Should().NotBeEmpty();
+            sonarLintConfiguration.Rules.Count.Should().Be(1);
+
+            sonarLintConfiguration.Rules[0].Key.Should().Be("rule with params");
+            sonarLintConfiguration.Rules[0].Parameters.Should().BeEquivalentTo(
+                new SonarLintKeyValuePair { Key = "param1", Value = "value1" });
         }
 
         private static RulesToSonarLintConfigurationConverter CreateTestSubject() => new();

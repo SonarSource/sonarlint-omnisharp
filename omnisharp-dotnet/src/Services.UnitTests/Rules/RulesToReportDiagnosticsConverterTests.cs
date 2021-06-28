@@ -58,22 +58,21 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
         }
 
         [TestMethod]
-        public void Convert_UnrecognizedActiveRule_ActiveRuleIsIgnored()
+        public void Convert_UnrecognizedActiveRule_ArgumentException()
         {
             var existingAnalyzerRules = new[] {"rule1", "rule2"}.ToImmutableHashSet();
             var activeRules = new[]
             {
-                "some unknown rule",
+                "unknown1",
+                "unknown2",
                 "rule1"
             }.ToImmutableHashSet();
 
             var testSubject = CreateTestSubject();
-            var result = testSubject.Convert(activeRules, existingAnalyzerRules);
+            Action act = () => testSubject.Convert(activeRules, existingAnalyzerRules);
 
-            result.Should().NotBeEmpty();
-            result.Count.Should().Be(2);
-            result.Should().NotContainKey("some unknown rule");
-            result.Should().ContainKeys(existingAnalyzerRules);
+            act.Should().Throw<ArgumentException>().And.ParamName.Should().Be("activeRules");
+            act.Should().Throw<ArgumentException>().And.Message.Should().Be("Unrecognized active rules: unknown1,unknown2 (Parameter 'activeRules')");
         }
 
         [TestMethod]
@@ -82,9 +81,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             var existingAnalyzerRules = new[] {"rule1", "rule2", "rule3", "rule4"}.ToImmutableHashSet();
             var activeRules = new[]
             {
-                "some unknown rule1",
                 "rule1",
-                "some unknown rule2",
                 "rule3",
             }.ToImmutableHashSet();
 

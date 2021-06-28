@@ -99,9 +99,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         /// <summary>
         /// Update sonar-dotnet analyzers rule severities.
         /// </summary>
-        private Compilation GetWithSonarLintRuleSeverities(Compilation compilation, IEnumerable<ActiveRuleDefinition> rules)
+        private Compilation GetWithSonarLintRuleSeverities(Compilation compilation, IEnumerable<ActiveRuleDefinition> activeRules)
         {
-            var activeRuleIds = rules.Select(x => x.RuleId).ToImmutableHashSet();
+            var activeRuleIds = activeRules.Select(x => x.RuleId).ToImmutableHashSet();
             var ruleSeverities = rulesToReportDiagnosticsConverter.Convert(activeRuleIds, analyzerRules);
             var updatedCompilationOptions = compilation.Options.WithSpecificDiagnosticOptions(ruleSeverities);
 
@@ -112,9 +112,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         /// Add sonar-dotnet analyzer additional files.
         /// Override any existing sonar-dotnet analyzer additional files that were already in the project.
         /// </summary>
-        private AnalyzerOptions GetWithSonarLintAdditionalFiles(AnalyzerOptions workspaceAnalyzerOptions, IEnumerable<ActiveRuleDefinition> rules)
+        private AnalyzerOptions GetWithSonarLintAdditionalFiles(AnalyzerOptions workspaceAnalyzerOptions, IEnumerable<ActiveRuleDefinition> activeRules)
         {
-            var sonarLintAdditionalFile = rulesToAdditionalTextConverter.Convert(rules);
+            var sonarLintAdditionalFile = rulesToAdditionalTextConverter.Convert(activeRules);
             var sonarLintAdditionalFileName = Path.GetFileName(sonarLintAdditionalFile.Path);
 
             var additionalFiles = workspaceAnalyzerOptions.AdditionalFiles;
