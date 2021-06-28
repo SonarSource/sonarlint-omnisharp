@@ -38,21 +38,21 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         public void MefCtor_CheckIsExported()
         {
             CheckTypeCanBeImported <ConfigService, IRequestHandler>(
-                     CreateExport<IRuleDefinitionsRepository>());
+                     CreateExport<IActiveRuleDefinitionsRepository>());
         }
 
         [TestMethod]
         public async Task Handle_RulesRepoIsUpdated()
         {
-            var repo = new Mock<IRuleDefinitionsRepository>();
-            var suppliedRules = new[] { new RuleDefinition { RuleId = "1" } };
+            var repo = new Mock<IActiveRuleDefinitionsRepository>();
+            var suppliedRules = new[] { new ActiveRuleDefinition { RuleId = "1" } };
             var request = new ConfigRequest { ActiveRules = suppliedRules };
 
             var testSubject = new ConfigService(repo.Object);
 
             await testSubject.Handle(request);
 
-            repo.VerifySet(x => x.RuleDefinitions = suppliedRules );
+            repo.VerifySet(x => x.ActiveRules = suppliedRules );
             repo.VerifyNoOtherCalls();
         }
 

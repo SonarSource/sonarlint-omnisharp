@@ -34,18 +34,18 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
         [TestMethod]
         public void Convert_CreatesAdditionalTextNamedSonarLintXml()
         {
-            var ruleDefinitions = new[] {new RuleDefinition {RuleId = "some rule"}};
+            var activeRules = new[] {new ActiveRuleDefinition {RuleId = "some rule"}};
             var sonarLintConfiguration = new SonarLintConfiguration();
 
             var rulesConverter = new Mock<IRulesToSonarLintConfigurationConverter>();
-            rulesConverter.Setup(x => x.Convert(ruleDefinitions)).Returns(sonarLintConfiguration);
+            rulesConverter.Setup(x => x.Convert(activeRules)).Returns(sonarLintConfiguration);
 
             var serializer = new Mock<ISonarLintConfigurationSerializer>();
             serializer.Setup(x => x.Serialize(sonarLintConfiguration)).Returns("serialized sonarlint.xml");
 
             var testSubject = CreateTestSubject(rulesConverter.Object, serializer.Object);
 
-            var result = testSubject.Convert(ruleDefinitions);
+            var result = testSubject.Convert(activeRules);
 
             result.Path.Should().NotBeNullOrEmpty();
             Path.IsPathRooted(result.Path).Should().BeTrue();

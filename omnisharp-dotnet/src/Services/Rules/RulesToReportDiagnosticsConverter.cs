@@ -44,13 +44,13 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
                 throw new ArgumentException("No analyzer rules", nameof(allRules));
             }
 
-            var unrecognizedActiveRules = activeRules.Except(allRules).OrderBy(x=> x, StringComparer.OrdinalIgnoreCase).ToArray();
-
+            var unrecognizedActiveRules = activeRules.Except(allRules).OrderBy(x=> x, StringComparer.OrdinalIgnoreCase).ToArray(); 
+            
             if (unrecognizedActiveRules.Any())
             {
                 throw new ArgumentException($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}", nameof(activeRules));
             }
-
+            
             var diagnosticOptions = allRules
                 .ToDictionary(ruleId => ruleId,
                     ruleId => activeRules.Contains(ruleId)

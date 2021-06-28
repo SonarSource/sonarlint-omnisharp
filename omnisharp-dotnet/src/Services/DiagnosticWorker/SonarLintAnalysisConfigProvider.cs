@@ -49,7 +49,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
     [Export(typeof(ISonarLintAnalysisConfigProvider)), Shared]
     internal class SonarLintAnalysisConfigProvider : ISonarLintAnalysisConfigProvider
     {
-        private readonly IRuleDefinitionsRepository ruleDefinitionsRepository;
+        private readonly IActiveRuleDefinitionsRepository activeRuleDefinitionsRepository;
         private readonly IRulesToAdditionalTextConverter rulesToAdditionalTextConverter;
         private readonly IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter;
 
@@ -57,21 +57,21 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         private readonly ImmutableHashSet<string> analyzerRules;
 
         [ImportingConstructor]
-        public SonarLintAnalysisConfigProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
+        public SonarLintAnalysisConfigProvider(IActiveRuleDefinitionsRepository activeRuleDefinitionsRepository,
             ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider)
-            : this(ruleDefinitionsRepository,
+            : this(activeRuleDefinitionsRepository,
                 sonarAnalyzerCodeActionProvider,
                 new RulesToAdditionalTextConverter(),
                 new RulesToReportDiagnosticsConverter())
         {
         }
 
-        internal SonarLintAnalysisConfigProvider(IRuleDefinitionsRepository ruleDefinitionsRepository,
+        internal SonarLintAnalysisConfigProvider(IActiveRuleDefinitionsRepository activeRuleDefinitionsRepository,
             ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider,
             IRulesToAdditionalTextConverter rulesToAdditionalTextConverter,
             IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter)
         {
-            this.ruleDefinitionsRepository = ruleDefinitionsRepository;
+            this.activeRuleDefinitionsRepository = activeRuleDefinitionsRepository;
             this.rulesToAdditionalTextConverter = rulesToAdditionalTextConverter;
             this.rulesToReportDiagnosticsConverter = rulesToReportDiagnosticsConverter;
 
@@ -85,12 +85,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 
         public AnalysisConfig Get(Compilation originalCompilation, AnalyzerOptions originalOptions)
         {
-            var rules = ruleDefinitionsRepository.RuleDefinitions;
+            var activeRules = activeRuleDefinitionsRepository.ActiveRules;
 
             return new AnalysisConfig
             {
-                Compilation = GetWithSonarLintRuleSeverities(originalCompilation, rules),
-                AnalyzerOptions = GetWithSonarLintAdditionalFiles(originalOptions, rules),
+                Compilation = GetWithSonarLintRuleSeverities(originalCompilation, activeRules),
+                AnalyzerOptions = GetWithSonarLintAdditionalFiles(originalOptions, activeRules),
                 Analyzers = analyzers,
                 AnalyzerRules = analyzerRules,
             };
@@ -99,9 +99,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         /// <summary>
         /// Update sonar-dotnet analyzers rule severities.
         /// </summary>
-        private Compilation GetWithSonarLintRuleSeverities(Compilation compilation, IEnumerable<RuleDefinition> rules)
+        private Compilation GetWithSonarLintRuleSeverities(Compilation compilation, IEnumerable<ActiveRuleDefinition> activeRules)
         {
-            var activeRuleIds = rules.Select(x => x.RuleId).ToImmutableHashSet();
+            var activeRuleIds = activeRules.Select(x => x.RuleId).ToImmutableHashSet();
             var ruleSeverities = rulesToReportDiagnosticsConverter.Convert(activeRuleIds, analyzerRules);
             var updatedCompilationOptions = compilation.Options.WithSpecificDiagnosticOptions(ruleSeverities);
 
@@ -112,9 +112,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         /// Add sonar-dotnet analyzer additional files.
         /// Override any existing sonar-dotnet analyzer additional files that were already in the project.
         /// </summary>
-        private AnalyzerOptions GetWithSonarLintAdditionalFiles(AnalyzerOptions workspaceAnalyzerOptions, IEnumerable<RuleDefinition> rules)
+        private AnalyzerOptions GetWithSonarLintAdditionalFiles(AnalyzerOptions workspaceAnalyzerOptions, IEnumerable<ActiveRuleDefinition> activeRules)
         {
-            var sonarLintAdditionalFile = rulesToAdditionalTextConverter.Convert(rules);
+            var sonarLintAdditionalFile = rulesToAdditionalTextConverter.Convert(activeRules);
             var sonarLintAdditionalFileName = Path.GetFileName(sonarLintAdditionalFile.Path);
 
             var additionalFiles = workspaceAnalyzerOptions.AdditionalFiles;
