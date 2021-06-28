@@ -26,16 +26,16 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
 {
     internal interface IRulesToSonarLintConfigurationConverter
     {
-        SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules);
+        SonarLintConfiguration Convert(IEnumerable<ActiveRuleDefinition> activeRules);
     }
 
     internal class RulesToSonarLintConfigurationConverter : IRulesToSonarLintConfigurationConverter
     {
-        public  SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules)
+        public  SonarLintConfiguration Convert(IEnumerable<ActiveRuleDefinition> activeRules)
         {
             // Only include rules that have parameters - no point in including the others.
             // We don't care whether the parameterised rules are enabled or not, we'll include them all.
-            var sonarLintRules = rules
+            var sonarLintRules = activeRules
                 .Where(rule => rule.Parameters?.Count > 0)
                 .Select(rule => new SonarLintRule
                 {

@@ -41,7 +41,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         public void MefCtor_CheckIsExported()
         {
             CheckTypeCanBeImported<SonarLintAnalysisConfigProvider, ISonarLintAnalysisConfigProvider>(
-                 CreateExport<IRuleDefinitionsRepository>(),
+                 CreateExport<IActiveRuleDefinitionsRepository>(),
                  CreateExport<ISonarAnalyzerCodeActionProvider>(CreateSonarCodeActionProvider(ImmutableArray<DiagnosticAnalyzer>.Empty)));
         }
 
@@ -155,12 +155,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         }
 
         private static SonarLintAnalysisConfigProvider CreateTestSubject(
-            RuleDefinition[] activeRules = null,
+            ActiveRuleDefinition[] activeRules = null,
             DiagnosticAnalyzer[] analyzers = null,
             Dictionary<string, ReportDiagnostic> ruleSeverities = null,
             AdditionalText additionalFile = null)
         {
-            activeRules ??= new[] {new RuleDefinition {RuleId = "1"}, new RuleDefinition {RuleId = "2"}};
+            activeRules ??= new[] {new ActiveRuleDefinition {RuleId = "1"}, new ActiveRuleDefinition {RuleId = "2"}};
             analyzers ??= new DiagnosticAnalyzer[] {new DummyAnalyzer()};
             ruleSeverities ??= new Dictionary<string, ReportDiagnostic>();
             additionalFile ??= new RulesToAdditionalTextConverter.AdditionalTextImpl("some file", "some content");
@@ -187,16 +187,16 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             return sonarCodeActionProvider.Object;
         }
 
-        private static IRuleDefinitionsRepository CreateRuleDefinitionsRepository(RuleDefinition[] rules)
+        private static IActiveRuleDefinitionsRepository CreateRuleDefinitionsRepository(ActiveRuleDefinition[] rules)
         {
-            var ruleDefinitionsRepository = new Mock<IRuleDefinitionsRepository>();
-            ruleDefinitionsRepository.Setup(x => x.RuleDefinitions).Returns(rules);
+            var ruleDefinitionsRepository = new Mock<IActiveRuleDefinitionsRepository>();
+            ruleDefinitionsRepository.Setup(x => x.ActiveRules).Returns(rules);
 
             return ruleDefinitionsRepository.Object;
         }
 
         private static IRulesToReportDiagnosticsConverter CreateRulesToReportDiagnosticsConverter(
-            RuleDefinition[] activeRules,
+            ActiveRuleDefinition[] activeRules,
             DiagnosticAnalyzer[] diagnosticAnalyzers,
             Dictionary<string, ReportDiagnostic> ruleSeverities)
         {
@@ -214,7 +214,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             return rulesToReportDiagnosticsConverter.Object;
         }
 
-        private static IRulesToAdditionalTextConverter CreateRulesToAdditionalTextConverter(RuleDefinition[] rules, AdditionalText additionalText)
+        private static IRulesToAdditionalTextConverter CreateRulesToAdditionalTextConverter(ActiveRuleDefinition[] rules, AdditionalText additionalText)
         {
             var rulesToAdditionalTextConverter = new Mock<IRulesToAdditionalTextConverter>();
 
