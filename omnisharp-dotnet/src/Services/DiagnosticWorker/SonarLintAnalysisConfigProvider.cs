@@ -101,7 +101,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
         /// </summary>
         private Compilation GetWithSonarLintRuleSeverities(Compilation compilation, IEnumerable<RuleDefinition> rules)
         {
-            var ruleSeverities = rulesToReportDiagnosticsConverter.Convert(rules);
+            var activeRuleIds = rules.Select(x => x.RuleId).ToImmutableHashSet();
+            var ruleSeverities = rulesToReportDiagnosticsConverter.Convert(activeRuleIds, analyzerRules);
             var updatedCompilationOptions = compilation.Options.WithSpecificDiagnosticOptions(ruleSeverities);
 
             return compilation.WithOptions(updatedCompilationOptions);

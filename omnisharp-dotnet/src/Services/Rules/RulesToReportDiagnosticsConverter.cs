@@ -18,7 +18,9 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
@@ -26,19 +28,34 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal interface IRulesToReportDiagnosticsConverter
     {
-        Dictionary<string, ReportDiagnostic> Convert(IEnumerable<RuleDefinition> rules);
+        Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules);
     }
 
     internal class RulesToReportDiagnosticsConverter : IRulesToReportDiagnosticsConverter
     {
-        public Dictionary<string, ReportDiagnostic> Convert(IEnumerable<RuleDefinition> rules)
+        // the severity is handled on the java side; we're using 'warn' just to make sure that the rule is run. 
+        internal const ReportDiagnostic EnabledRuleSeverity = ReportDiagnostic.Warn;
+        internal const ReportDiagnostic DisabledRuleSeverity = ReportDiagnostic.Suppress;
+        
+        public Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules)
         {
-            // the severity is handled on the java side; we're using 'warn' just to make sure that the rule is run. 
-            var diagnosticOptions = rules
-                .ToDictionary(x => x.RuleId,
-                    rule => rule.IsEnabled
-                        ? ReportDiagnostic.Warn
-                        : ReportDiagnostic.Suppress);
+            if (allRules.IsEmpty)
+            {
+                throw new ArgumentException("No analyzer rules", nameof(allRules));
+            }
+
+            var unrecognizedActiveRules = activeRules.Except(allRules).OrderBy(x=> x, StringComparer.OrdinalIgnoreCase).ToArray();
+
+            if (unrecognizedActiveRules.Any())
+            {
+                throw new ArgumentException($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}", nameof(activeRules));
+            }
+
+            var diagnosticOptions = allRules
+                .ToDictionary(ruleId => ruleId,
+                    ruleId => activeRules.Contains(ruleId)
+                        ? EnabledRuleSeverity
+                        : DisabledRuleSeverity);
 
             return diagnosticOptions;
         }
