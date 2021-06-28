@@ -31,8 +31,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
     [OmniSharpEndpoint(ConfigService.ServiceEndpoint, typeof(ConfigRequest), typeof(object))]
     internal class ConfigRequest : IRequest
     {
-        [JsonProperty("rules")]
-        public RuleDefinition[] Rules { get; set; }
+        [JsonProperty("activeRules")]
+        public RuleDefinition[] ActiveRules { get; set; }
     }
 
     [OmniSharpHandler(ServiceEndpoint, LanguageNames.CSharp)]
@@ -50,7 +50,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
 
         public Task<object> Handle(ConfigRequest request)
         {
-            rulesRepository.RuleDefinitions = request.Rules;
+            rulesRepository.RuleDefinitions = request.ActiveRules;
             return Task.FromResult((object)true);
         }
     }

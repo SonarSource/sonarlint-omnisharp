@@ -46,7 +46,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         {
             var repo = new Mock<IRuleDefinitionsRepository>();
             var suppliedRules = new[] { new RuleDefinition { RuleId = "1" } };
-            var request = new ConfigRequest { Rules = suppliedRules };
+            var request = new ConfigRequest { ActiveRules = suppliedRules };
 
             var testSubject = new ConfigService(repo.Object);
 
@@ -60,7 +60,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         public void ConfigRequest_Deserialization()
         {
             const string data = @"{
-  'rules': [
+  'activeRules': [
     {
       'ruleId': '123',
       'params': {
@@ -77,16 +77,16 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
             var request = JsonConvert.DeserializeObject<ConfigRequest>(data);
 
-            request.Rules.Length.Should().Be(2);
+            request.ActiveRules.Length.Should().Be(2);
 
-            request.Rules[0].RuleId.Should().Be("123");
-            request.Rules[0].Parameters.Count.Should().Be(2);
-            request.Rules[0].Parameters.Should().BeEquivalentTo(
+            request.ActiveRules[0].RuleId.Should().Be("123");
+            request.ActiveRules[0].Parameters.Count.Should().Be(2);
+            request.ActiveRules[0].Parameters.Should().BeEquivalentTo(
                 new Dictionary<string, string>{ { "key", "value" }, { "key2","value2" } }
                 );
 
-            request.Rules[1].RuleId.Should().Be("no params");
-            request.Rules[1].Parameters.Should().BeNull();
+            request.ActiveRules[1].RuleId.Should().Be("no params");
+            request.ActiveRules[1].Parameters.Should().BeNull();
         }
     }
 }
