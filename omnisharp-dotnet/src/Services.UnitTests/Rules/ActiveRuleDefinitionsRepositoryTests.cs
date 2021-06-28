@@ -26,28 +26,28 @@ using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 {
     [TestClass]
-    public class RuleDefinitionsRepositoryTests
+    public class ActiveRuleDefinitionsRepositoryTests
     {
         [TestMethod]
         public void MefCtor_CheckIsExported()
         {
-            CheckTypeCanBeImported<RuleDefinitionsRepository, IRuleDefinitionsRepository>();
+            CheckTypeCanBeImported<ActiveRuleDefinitionsRepository, IActiveRuleDefinitionsRepository>();
         }
 
         [TestMethod]
         public void Get_ValueIsNotSet_EmptyList()
         {
             var testSubject = CreateTestSubject();
-            testSubject.RuleDefinitions.Should().BeEmpty();
+            testSubject.ActiveRules.Should().BeEmpty();
         }
 
         [TestMethod]
         public void Set_Null_ValueIsSetToEmptyList()
         {
             var testSubject = CreateTestSubject();
-            testSubject.RuleDefinitions = null;
+            testSubject.ActiveRules = null;
 
-            testSubject.RuleDefinitions.Should().BeEmpty();
+            testSubject.ActiveRules.Should().BeEmpty();
         }
 
         [TestMethod]
@@ -55,19 +55,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
         {
             var testSubject = CreateTestSubject();
 
-            testSubject.RuleDefinitions.Should().BeEmpty();
+            testSubject.ActiveRules.Should().BeEmpty();
 
-            var rules = new[] {new RuleDefinition {RuleId = "1"}};
-            testSubject.RuleDefinitions = rules;
+            var rules = new[] {new ActiveRuleDefinition {RuleId = "1"}};
+            testSubject.ActiveRules = rules;
 
-            testSubject.RuleDefinitions.Should().BeSameAs(rules);
+            testSubject.ActiveRules.Should().BeSameAs(rules);
 
-            rules = new[] {new RuleDefinition {RuleId = "2"}, new RuleDefinition{RuleId = "3"}};
-            testSubject.RuleDefinitions = rules;
+            rules = new[] {new ActiveRuleDefinition {RuleId = "2"}, new ActiveRuleDefinition{RuleId = "3"}};
+            testSubject.ActiveRules = rules;
 
-            testSubject.RuleDefinitions.Should().BeSameAs(rules);
+            testSubject.ActiveRules.Should().BeSameAs(rules);
         }
 
-        private static RuleDefinitionsRepository CreateTestSubject() => new();
+        private static ActiveRuleDefinitionsRepository CreateTestSubject() => new();
     }
 }
