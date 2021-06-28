@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -154,19 +155,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         }
 
         private static SonarLintAnalysisConfigProvider CreateTestSubject(
-            RuleDefinition[] rules = null,
+            RuleDefinition[] activeRules = null,
             DiagnosticAnalyzer[] analyzers = null,
             Dictionary<string, ReportDiagnostic> ruleSeverities = null,
             AdditionalText additionalFile = null)
         {
-            rules ??= Array.Empty<RuleDefinition>();
-            analyzers ??= Array.Empty<DiagnosticAnalyzer>();
+            activeRules ??= new[] {new RuleDefinition {RuleId = "1"}, new RuleDefinition {RuleId = "2"}};
+            analyzers ??= new DiagnosticAnalyzer[] {new DummyAnalyzer()};
             ruleSeverities ??= new Dictionary<string, ReportDiagnostic>();
             additionalFile ??= new RulesToAdditionalTextConverter.AdditionalTextImpl("some file", "some content");
 
-            var ruleDefinitionsRepository = CreateRuleDefinitionsRepository(rules);
-            var rulesToReportDiagnosticsConverter = CreateRulesToReportDiagnosticsConverter(rules, ruleSeverities);
-            var rulesToAdditionalTextConverter = CreateRulesToAdditionalTextConverter(rules, additionalFile);
+            var ruleDefinitionsRepository = CreateRuleDefinitionsRepository(activeRules);
+            var rulesToReportDiagnosticsConverter = CreateRulesToReportDiagnosticsConverter(activeRules, analyzers, ruleSeverities);
+            var rulesToAdditionalTextConverter = CreateRulesToAdditionalTextConverter(activeRules, additionalFile);
             var sonarCodeActionProvider = CreateSonarCodeActionProvider(analyzers.ToImmutableArray());
 
             return new SonarLintAnalysisConfigProvider(ruleDefinitionsRepository,
@@ -195,13 +196,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         }
 
         private static IRulesToReportDiagnosticsConverter CreateRulesToReportDiagnosticsConverter(
-            RuleDefinition[] rules,
+            RuleDefinition[] activeRules,
+            DiagnosticAnalyzer[] diagnosticAnalyzers,
             Dictionary<string, ReportDiagnostic> ruleSeverities)
         {
             var rulesToReportDiagnosticsConverter = new Mock<IRulesToReportDiagnosticsConverter>();
+            var activeRuleIds = activeRules.Select(x => x.RuleId).ToImmutableHashSet();
+            var analyzerRuleIds = diagnosticAnalyzers
+                .SelectMany(x => x.SupportedDiagnostics)
+                .Select(x => x.Id)
+                .ToImmutableHashSet();
 
             rulesToReportDiagnosticsConverter
-                .Setup(x => x.Convert(rules))
+                .Setup(x => x.Convert(activeRuleIds, analyzerRuleIds))
                 .Returns(ruleSeverities);
 
             return rulesToReportDiagnosticsConverter.Object;

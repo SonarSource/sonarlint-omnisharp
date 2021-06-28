@@ -19,8 +19,8 @@
  */
 
 using System;
+using System.Collections.Immutable;
 using FluentAssertions;
-using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SonarLint.OmniSharp.DotNet.Services.Rules;
 
@@ -30,43 +30,72 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
     public class RulesToReportDiagnosticsConverterTests
     {
         [TestMethod]
-        public void Convert_NoRules_EmptyResult()
+        public void Convert_NoAnalyzerRules_ArgumentException()
         {
+            var existingAnalyzerRules = ImmutableHashSet<string>.Empty;
+            var activeRules = new[] {"rule1"}.ToImmutableHashSet();
+
             var testSubject = CreateTestSubject();
+            Action act = () => testSubject.Convert(activeRules, existingAnalyzerRules);
 
-            var result = testSubject.Convert(Array.Empty<RuleDefinition>());
-
-            result.Should().BeEmpty();
+            act.Should().Throw<ArgumentException>().And.ParamName.Should().Be("allRules");
         }
 
         [TestMethod]
-        public void Convert_EnabledAndDisabledRules_DiagnosticSeverityIsWarningAndSuppressed()
+        public void Convert_NoActiveRules_AllAnalyzerRulesAreSuppressed()
         {
-            const ReportDiagnostic enabledRuleSeverity = ReportDiagnostic.Warn;
-            const ReportDiagnostic disabledRuleSeverity = ReportDiagnostic.Suppress;
+            var existingAnalyzerRules = new[] {"rule1", "rule2"}.ToImmutableHashSet();
+            var activeRules = ImmutableHashSet<string>.Empty;
 
             var testSubject = CreateTestSubject();
+            var result = testSubject.Convert(activeRules, existingAnalyzerRules);
 
-            var ruleDefinitions = new[]
+            result.Should().NotBeEmpty();
+            result.Count.Should().Be(2);
+
+            result["rule1"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
+            result["rule2"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
+        }
+
+        [TestMethod]
+        public void Convert_UnrecognizedActiveRule_ArgumentException()
+        {
+            var existingAnalyzerRules = new[] {"rule1", "rule2"}.ToImmutableHashSet();
+            var activeRules = new[]
             {
-                CreateRuleDefinition("rule1", true),
-                CreateRuleDefinition("rule2", false),
-                CreateRuleDefinition("rule3", true),
-                CreateRuleDefinition("rule4", false)
-            };
+                "unknown1",
+                "unknown2",
+                "rule1"
+            }.ToImmutableHashSet();
 
-            var result = testSubject.Convert(ruleDefinitions);
+            var testSubject = CreateTestSubject();
+            Action act = () => testSubject.Convert(activeRules, existingAnalyzerRules);
+
+            act.Should().Throw<ArgumentException>().And.ParamName.Should().Be("activeRules");
+            act.Should().Throw<ArgumentException>().And.Message.Should().Be("Unrecognized active rules: unknown1,unknown2 (Parameter 'activeRules')");
+        }
+
+        [TestMethod]
+        public void Convert_HasValidActiveRules_ActiveRulesAreSetToWarn_OtherRulesAreSuppressed()
+        {
+            var existingAnalyzerRules = new[] {"rule1", "rule2", "rule3", "rule4"}.ToImmutableHashSet();
+            var activeRules = new[]
+            {
+                "rule1",
+                "rule3",
+            }.ToImmutableHashSet();
+
+            var testSubject = CreateTestSubject();
+            var result = testSubject.Convert(activeRules, existingAnalyzerRules);
 
             result.Should().NotBeEmpty();
             result.Count.Should().Be(4);
 
-            result["rule1"].Should().Be(enabledRuleSeverity);
-            result["rule2"].Should().Be(disabledRuleSeverity);
-            result["rule3"].Should().Be(enabledRuleSeverity);
-            result["rule4"].Should().Be(disabledRuleSeverity);
+            result["rule1"].Should().Be(RulesToReportDiagnosticsConverter.EnabledRuleSeverity);
+            result["rule2"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
+            result["rule3"].Should().Be(RulesToReportDiagnosticsConverter.EnabledRuleSeverity);
+            result["rule4"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
         }
-
-        private RuleDefinition CreateRuleDefinition(string ruleId, bool isEnabled) => new() { RuleId = ruleId, IsEnabled = isEnabled};
 
         private static RulesToReportDiagnosticsConverter CreateTestSubject() => new();
     }
