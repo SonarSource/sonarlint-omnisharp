@@ -23,7 +23,7 @@ using Newtonsoft.Json;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
-    internal class RuleDefinition
+    internal class ActiveRuleDefinition
     {
         [JsonProperty("ruleId")]
         public string RuleId { get; set; }

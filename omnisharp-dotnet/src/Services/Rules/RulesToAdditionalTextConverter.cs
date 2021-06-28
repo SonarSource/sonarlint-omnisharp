@@ -29,7 +29,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
     internal interface IRulesToAdditionalTextConverter
     {
-        AdditionalText Convert(IEnumerable<RuleDefinition> rules);
+        AdditionalText Convert(IEnumerable<ActiveRuleDefinition> activeRules);
     }
 
     internal class RulesToAdditionalTextConverter : IRulesToAdditionalTextConverter
@@ -45,7 +45,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
 
         public RulesToAdditionalTextConverter()
             : this(new RulesToSonarLintConfigurationConverter(), new SonarLintConfigurationSerializer())
-        {
+        { 
         }
 
         internal RulesToAdditionalTextConverter(IRulesToSonarLintConfigurationConverter rulesToSonarLintConfigurationConverter,
@@ -55,9 +55,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
             this.sonarLintConfigurationSerializer = sonarLintConfigurationSerializer;
         }
 
-        public AdditionalText Convert(IEnumerable<RuleDefinition> rules)
+        public AdditionalText Convert(IEnumerable<ActiveRuleDefinition> activeRules)
         {
-            var sonarLintConfiguration = rulesToSonarLintConfigurationConverter.Convert(rules);
+            var sonarLintConfiguration = rulesToSonarLintConfigurationConverter.Convert(activeRules);
             var sonarLintXmlFileContent = sonarLintConfigurationSerializer.Serialize(sonarLintConfiguration);
             var sonarLintXmlAdditionalText = new AdditionalTextImpl(DummySonarLintXmlFilePath, sonarLintXmlFileContent);
 

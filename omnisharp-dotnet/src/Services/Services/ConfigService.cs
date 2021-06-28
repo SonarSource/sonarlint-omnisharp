@@ -32,7 +32,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
     internal class ConfigRequest : IRequest
     {
         [JsonProperty("activeRules")]
-        public RuleDefinition[] ActiveRules { get; set; }
+        public ActiveRuleDefinition[] ActiveRules { get; set; }
     }
 
     [OmniSharpHandler(ServiceEndpoint, LanguageNames.CSharp)]
@@ -40,17 +40,17 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
     {
         internal const string ServiceEndpoint = "/sonarlint/config";
 
-        private readonly IRuleDefinitionsRepository rulesRepository;
+        private readonly IActiveRuleDefinitionsRepository activeRulesRepository;
 
         [ImportingConstructor]
-        public ConfigService(IRuleDefinitionsRepository rulesRepository)
+        public ConfigService(IActiveRuleDefinitionsRepository activeRulesRepository)
         {
-            this.rulesRepository = rulesRepository;
+            this.activeRulesRepository = activeRulesRepository;
         }
 
         public Task<object> Handle(ConfigRequest request)
         {
-            rulesRepository.RuleDefinitions = request.ActiveRules;
+            activeRulesRepository.ActiveRules = request.ActiveRules;
             return Task.FromResult((object)true);
         }
     }

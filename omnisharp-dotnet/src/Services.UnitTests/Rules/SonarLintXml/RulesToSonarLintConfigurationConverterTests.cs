@@ -36,7 +36,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
         {
             var testSubject = CreateTestSubject();
 
-            var sonarLintConfiguration = testSubject.Convert(Array.Empty<RuleDefinition>());
+            var sonarLintConfiguration = testSubject.Convert(Array.Empty<ActiveRuleDefinition>());
 
             sonarLintConfiguration.Settings.Should().BeNull();
         }
@@ -46,7 +46,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
         {
             var testSubject = CreateTestSubject();
 
-            var sonarLintConfiguration = testSubject.Convert(Array.Empty<RuleDefinition>());
+            var sonarLintConfiguration = testSubject.Convert(Array.Empty<ActiveRuleDefinition>());
 
             sonarLintConfiguration.Rules.Should().BeEmpty();
         }
@@ -56,19 +56,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
         {
             var testSubject = CreateTestSubject();
 
-            var rule1 = new RuleDefinition
+            var rule1 = new ActiveRuleDefinition
             {
                 RuleId = "rule1",
                 Parameters = new Dictionary<string, string> {{"param1", "value1"}}
             };
 
-            var rule2 = new RuleDefinition
+            var rule2 = new ActiveRuleDefinition
             {
                 RuleId = "rule2",
                 Parameters = null
             };
 
-            var rule3 = new RuleDefinition
+            var rule3 = new ActiveRuleDefinition
             {
                 RuleId = "rule3",
                 Parameters = new Dictionary<string, string> {{"param2", "value2"}, {"param3", "value3"}}

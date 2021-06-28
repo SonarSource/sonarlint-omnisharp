@@ -26,14 +26,14 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
 {
     internal interface IRulesToSonarLintConfigurationConverter
     {
-        SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules);
+        SonarLintConfiguration Convert(IEnumerable<ActiveRuleDefinition> activeRules);
     }
 
     internal class RulesToSonarLintConfigurationConverter : IRulesToSonarLintConfigurationConverter
     {
-        public  SonarLintConfiguration Convert(IEnumerable<RuleDefinition> rules)
+        public  SonarLintConfiguration Convert(IEnumerable<ActiveRuleDefinition> activeRules)
         {
-            var sonarLintRules = rules.Select(rule => new SonarLintRule
+            var sonarLintRules = activeRules.Select(rule => new SonarLintRule
             {
                 Key = rule.RuleId,
                 Parameters = rule.Parameters?.Select(param =>

@@ -23,20 +23,20 @@ using System.Composition;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
-    internal interface IRuleDefinitionsRepository
+    internal interface IActiveRuleDefinitionsRepository
     {
-        RuleDefinition[] RuleDefinitions { get; set; }
+        ActiveRuleDefinition[] ActiveRules { get; set; }
     }
 
-    [Export(typeof(IRuleDefinitionsRepository)), Shared]
-    internal class RuleDefinitionsRepository : IRuleDefinitionsRepository
+    [Export(typeof(IActiveRuleDefinitionsRepository)), Shared]
+    internal class ActiveRuleDefinitionsRepository : IActiveRuleDefinitionsRepository
     {
-        private RuleDefinition[] rules = Array.Empty<RuleDefinition>();
+        private ActiveRuleDefinition[] activeRules = Array.Empty<ActiveRuleDefinition>();
 
-        public RuleDefinition[] RuleDefinitions
+        public ActiveRuleDefinition[] ActiveRules
         {
-            get => rules;
-            set => rules = value ?? Array.Empty<RuleDefinition>();
+            get => activeRules;
+            set => activeRules = value ?? Array.Empty<ActiveRuleDefinition>();
         }
     }
 }
