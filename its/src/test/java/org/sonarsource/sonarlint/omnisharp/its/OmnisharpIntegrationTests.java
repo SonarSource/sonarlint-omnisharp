@@ -41,6 +41,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.client.api.common.ClientModuleFileEvent;
@@ -129,6 +131,7 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  @DisabledOnOs(value = OS.MAC, disabledReason = "No issues reported on transient file")
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
     ModuleInfo moduleInfo = new ModuleInfo(SOLUTION1_MODULE_KEY, null);
     when(modulesProvider.getModules()).thenReturn(Arrays.asList(moduleInfo));
