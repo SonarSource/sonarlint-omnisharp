@@ -133,6 +133,10 @@ public class OmnisharpServer implements Startable {
     doStart(projectBaseDir, dotnetCliPath);
   }
 
+  public boolean isOmnisharpStarted() {
+    return omnisharpStarted;
+  }
+
   private synchronized void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
     this.cachedProjectBaseDir = projectBaseDir;
     this.cachedDotnetCliPath = dotnetCliPath;

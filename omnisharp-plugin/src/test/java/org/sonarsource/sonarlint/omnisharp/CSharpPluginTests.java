@@ -39,7 +39,7 @@ class CSharpPluginTests {
 
     List<?> extensions = context.getExtensions();
 
-    assertThat(extensions).hasSize(9);
+    assertThat(extensions).hasSize(10);
   }
 
 }

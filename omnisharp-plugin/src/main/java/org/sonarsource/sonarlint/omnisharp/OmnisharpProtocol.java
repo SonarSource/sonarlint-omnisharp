@@ -40,6 +40,7 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.File;
@@ -148,6 +149,29 @@ public class OmnisharpProtocol {
     doRequestAndWaitForResponse("/sonarlint/config", config);
   }
 
+  public enum FileChangeType {
+    CHANGE("Change"),
+    CREATE("Create"),
+    DELETE("Delete"),
+    DIRECTORY_DELETE("DirectoryDelete");
+
+    private final String protocolValue;
+
+    FileChangeType(String protocolValue) {
+      this.protocolValue = protocolValue;
+    }
+
+  }
+
+  public void fileChanged(File f, FileChangeType type) {
+    JsonArray args = new JsonArray();
+    JsonObject req = new JsonObject();
+    req.addProperty("FileName", f.getAbsolutePath());
+    req.addProperty("changeType", type.protocolValue);
+    args.add(req);
+    doRequestAndWaitForResponse("/filesChanged", args);
+  }
+
   public void updateBuffer(File f, String buffer) {
     JsonObject args = new JsonObject();
     args.addProperty("FileName", f.getAbsolutePath());
@@ -181,7 +205,7 @@ public class OmnisharpProtocol {
     });
   }
 
-  private JsonObject doRequestAndWaitForResponse(String command, @Nullable JsonObject dataJson) {
+  private JsonObject doRequestAndWaitForResponse(String command, @Nullable JsonElement dataJson) {
     long id = requestId.getAndIncrement();
     OmnisharpRequest req = buildRequest(command, dataJson, id);
 
@@ -221,7 +245,7 @@ public class OmnisharpProtocol {
     writeRequest(req);
   }
 
-  private static OmnisharpRequest buildRequest(String command, JsonObject dataJson, long id) {
+  private static OmnisharpRequest buildRequest(String command, JsonElement dataJson, long id) {
     JsonObject args = new JsonObject();
     args.addProperty("Type", "request");
     args.addProperty("Seq", id);
