@@ -40,12 +40,9 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -68,7 +65,6 @@ public class OmnisharpSensor implements Sensor {
 
   private final OmnisharpServer server;
   private final OmnisharpProtocol omnisharpProtocol;
-  private List<String> allRulesKeys;
 
   public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol) {
     this.server = server;
@@ -101,23 +97,7 @@ public class OmnisharpSensor implements Sensor {
       throw new IllegalStateException("Unable to start OmniSharp", e);
     }
 
-    JsonObject config = new JsonObject();
-    JsonArray rulesJson = new JsonArray();
-    for (String rule : getAllRulesKeys()) {
-      JsonObject ruleJson = new JsonObject();
-      ruleJson.addProperty("ruleId", rule);
-      ActiveRule activeRule = context.activeRules().find(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, rule));
-      ruleJson.addProperty("isEnabled", activeRule != null);
-      if (activeRule != null && !activeRule.params().isEmpty()) {
-        JsonObject paramsJson = new JsonObject();
-        for (Map.Entry<String, String> param : activeRule.params().entrySet()) {
-          paramsJson.addProperty(param.getKey(), param.getValue());
-        }
-        ruleJson.add("params", paramsJson);
-      }
-      rulesJson.add(ruleJson);
-    }
-    config.add("rules", rulesJson);
+    JsonObject config = buildRulesConfig(context);
     omnisharpProtocol.config(config);
 
     ProgressReport progressReport = new ProgressReport("Report about progress of OmniSharp analyzer", TimeUnit.SECONDS.toMillis(10));
@@ -143,28 +123,23 @@ public class OmnisharpSensor implements Sensor {
     }
   }
 
-  /*
-   * We need the complete list of rule keys, including hotspots, to disabled them and not
-   * rely on default activation of the Roslyn rules.
-   * Instead of parsing XML again, I'm just doing some basic line matching...
-   */
-  List<String> getAllRulesKeys() {
-    if (allRulesKeys == null) {
-      allRulesKeys = new ArrayList<>();
-      CSharpSonarRulesDefinition.withRulesXml(reader -> {
-        try (BufferedReader br = new BufferedReader(reader)) {
-          for (String line; (line = br.readLine()) != null;) {
-            line = line.trim();
-            if (line.startsWith("<key>S") && line.endsWith("</key>")) {
-              allRulesKeys.add(line.substring("<key>".length(), line.length() - "</key>".length()));
-            }
-          }
-        } catch (IOException e) {
-          throw new IllegalStateException("Unable to load rules", e);
+  private JsonObject buildRulesConfig(SensorContext context) {
+    JsonObject config = new JsonObject();
+    JsonArray rulesJson = new JsonArray();
+    for (ActiveRule activeRule : context.activeRules().findByRepository(CSharpPlugin.REPOSITORY_KEY)) {
+      JsonObject ruleJson = new JsonObject();
+      ruleJson.addProperty("ruleId", activeRule.ruleKey().rule());
+      if (!activeRule.params().isEmpty()) {
+        JsonObject paramsJson = new JsonObject();
+        for (Map.Entry<String, String> param : activeRule.params().entrySet()) {
+          paramsJson.addProperty(param.getKey(), param.getValue());
         }
-      });
+        ruleJson.add("params", paramsJson);
+      }
+      rulesJson.add(ruleJson);
     }
-    return allRulesKeys;
+    config.add("activeRules", rulesJson);
+    return config;
   }
 
   private void scanFile(SensorContext context, InputFile f) {

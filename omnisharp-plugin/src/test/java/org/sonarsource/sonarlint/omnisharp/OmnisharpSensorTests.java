@@ -40,6 +40,7 @@ import org.sonar.api.rule.RuleKey;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -108,7 +109,38 @@ class OmnisharpSensorTests {
     verify(mockServer).lazyStart(baseDir, null);
 
     verify(mockProtocol).updateBuffer(filePath.toFile(), content);
+    verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), any());
+    verifyNoMoreInteractions(mockProtocol);
+  }
+
+  @Test
+  void passActiveRulesAndParams() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.setActiveRules(new ActiveRulesBuilder()
+      // Rule from another repo, should be ignored
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of("foo", "bar")).build())
+      // Rule without params
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S123")).build())
+      // Rule with params
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S456")).setParam("param1", "val1").setParam("param2", "val2").build())
+      .build());
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol)
+      .config(argThat(json -> json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param1\":\"val1\",\"param2\":\"val2\"}}]}")));
   }
 
   @Test
@@ -208,11 +240,6 @@ class OmnisharpSensorTests {
       i -> i.primaryLocation().textRange().end().line(),
       i -> i.primaryLocation().textRange().end().lineOffset())
       .containsOnly(tuple(ruleKey, file, "Don't do this", 1, 0, 1, 4));
-  }
-
-  @Test
-  void testLoadRules() {
-    assertThat(underTest.getAllRulesKeys()).hasSize(395);
   }
 
 }
