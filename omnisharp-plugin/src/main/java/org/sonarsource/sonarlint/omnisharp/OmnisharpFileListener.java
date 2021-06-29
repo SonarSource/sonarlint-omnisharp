@@ -38,38 +38,41 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarProduct;
-import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
+import org.sonarsource.api.sonarlint.SonarLintSide;
+import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
+import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileListener;
 
-public class CSharpPlugin implements Plugin {
+@SonarLintSide(lifespan = "MODULE")
+public class OmnisharpFileListener implements ModuleFileListener {
 
-  static final String LANGUAGE_KEY = "cs";
-  static final String LANGUAGE_NAME = "C#";
+  private final OmnisharpProtocol omnisharpProtocol;
+  private final OmnisharpServer server;
 
-  static final String REPOSITORY_KEY = "csharpsquid";
-  static final String REPOSITORY_NAME = "SonarAnalyzer";
-  static final String PLUGIN_KEY = "csharp";
-
-  static final String FILE_SUFFIXES_KEY = AbstractPropertyDefinitions.getFileSuffixProperty(LANGUAGE_KEY);
-  static final String FILE_SUFFIXES_DEFVALUE = ".cs";
+  public OmnisharpFileListener(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol) {
+    this.server = server;
+    this.omnisharpProtocol = omnisharpProtocol;
+  }
 
   @Override
-  public void define(Context context) {
-    if (context.getRuntime().getProduct() == SonarProduct.SONARLINT) {
-      context.addExtensions(
-        OmnisharpServer.class,
-        OmnisharpSensor.class,
-        OmnisharpProtocol.class,
-        OmnisharpServicesExtractor.class,
-        OmnisharpFileListener.class);
+  public void process(ModuleFileEvent event) {
+    if (!server.isOmnisharpStarted()) {
+      return;
+    }
+    switch (event.getType()) {
+      case CREATED:
+        omnisharpProtocol.fileChanged(event.getTarget().file(), OmnisharpProtocol.FileChangeType.CREATE);
+        break;
+      case DELETED:
+        omnisharpProtocol.fileChanged(event.getTarget().file(), OmnisharpProtocol.FileChangeType.DELETE);
+        break;
+      case MODIFIED:
+        omnisharpProtocol.fileChanged(event.getTarget().file(), OmnisharpProtocol.FileChangeType.CHANGE);
+        break;
+      default:
+        break;
+
     }
 
-    context.addExtensions(
-      CSharp.class,
-      CSharpSonarRulesDefinition.class);
-
-    context.addExtensions(new CSharpPropertyDefinitions().create());
   }
 
 }
