@@ -17,7 +17,7 @@
   <properties>
     <skipTests>true</skipTests>
     <maven.deploy.skip>true</maven.deploy.skip>
-    <omnisharp.version>v1.37.10</omnisharp.version>
+    <omnisharp.version>v1.37.11</omnisharp.version>
   </properties>
 
   <dependencies>
