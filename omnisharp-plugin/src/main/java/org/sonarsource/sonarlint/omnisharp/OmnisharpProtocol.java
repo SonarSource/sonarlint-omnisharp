@@ -47,6 +47,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -196,13 +198,29 @@ public class OmnisharpProtocol {
       }
       OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
       diag.id = ruleId;
-      diag.line = issue.get("Line").getAsInt();
-      diag.column = issue.get("Column").getAsInt();
-      diag.endLine = issue.get("EndLine").getAsInt();
-      diag.endColumn = issue.get("EndColumn").getAsInt();
-      diag.text = issue.get("Text").getAsString();
+      processLocation(issue, diag);
+
+      if (issue.has("AdditionalLocations")) {
+        List<OmnisharpDiagnosticLocation> additionalLocations = new ArrayList<>();
+        issue.get("AdditionalLocations").getAsJsonArray().forEach(additionalLocation -> {
+          OmnisharpDiagnosticLocation location = new OmnisharpDiagnosticLocation();
+          processLocation(additionalLocation.getAsJsonObject(), location);
+          additionalLocations.add(location);
+        });
+        diag.additionalLocations = additionalLocations.toArray(new OmnisharpDiagnosticLocation[0]);
+      }
+
       issueHandler.accept(diag);
     });
+  }
+
+  private static void processLocation(JsonObject locationJsonContainer, OmnisharpDiagnosticLocation location) {
+    location.filename = locationJsonContainer.get("FileName").getAsString();
+    location.line = locationJsonContainer.get("Line").getAsInt();
+    location.column = locationJsonContainer.get("Column").getAsInt();
+    location.endLine = locationJsonContainer.get("EndLine").getAsInt();
+    location.endColumn = locationJsonContainer.get("EndColumn").getAsInt();
+    location.text = locationJsonContainer.get("Text").getAsString();
   }
 
   private JsonObject doRequestAndWaitForResponse(String command, @Nullable JsonElement dataJson) {

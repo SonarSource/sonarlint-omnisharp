@@ -19,9 +19,13 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-public class OmnisharpDiagnostic extends OmnisharpDiagnosticLocation {
+public class OmnisharpDiagnosticLocation {
 
-  String id;
-  OmnisharpDiagnosticLocation[] additionalLocations = new OmnisharpDiagnosticLocation[0];
+  String filename;
+  int line;
+  int column;
+  int endLine;
+  int endColumn;
+  String text;
 
 }

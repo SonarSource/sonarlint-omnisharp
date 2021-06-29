@@ -41,6 +41,7 @@ package org.sonarsource.sonarlint.omnisharp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -54,6 +55,7 @@ import org.sonar.api.batch.sensor.Sensor;
 import org.sonar.api.batch.sensor.SensorContext;
 import org.sonar.api.batch.sensor.SensorDescriptor;
 import org.sonar.api.batch.sensor.issue.NewIssue;
+import org.sonar.api.batch.sensor.issue.NewIssueLocation;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
@@ -123,7 +125,7 @@ public class OmnisharpSensor implements Sensor {
     }
   }
 
-  private JsonObject buildRulesConfig(SensorContext context) {
+  private static JsonObject buildRulesConfig(SensorContext context) {
     JsonObject config = new JsonObject();
     JsonArray rulesJson = new JsonArray();
     for (ActiveRule activeRule : context.activeRules().findByRepository(CSharpPlugin.REPOSITORY_KEY)) {
@@ -156,16 +158,32 @@ public class OmnisharpSensor implements Sensor {
   private static void handle(SensorContext context, InputFile f, OmnisharpDiagnostic diag) {
     RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, diag.id);
     if (context.activeRules().find(ruleKey) != null) {
-      NewIssue newIssue = context.newIssue();
-      newIssue
-        .forRule(ruleKey)
-        .at(
-          newIssue.newLocation()
-            .on(f)
-            .at(f.newRange(diag.line, diag.column - 1, diag.endLine, diag.endColumn - 1))
-            .message(diag.text))
-        .save();
+      // Only report issues for the currently analyzed file
+      try {
+        if (Files.isSameFile(f.file().toPath(), Paths.get(diag.filename))) {
+          NewIssue newIssue = context.newIssue();
+          newIssue
+            .forRule(ruleKey)
+            .at(createLocation(newIssue, diag, f));
+          for (OmnisharpDiagnosticLocation additionalLocation : diag.additionalLocations) {
+            // Only report secondary locations on the same file
+            if (Files.isSameFile(f.file().toPath(), Paths.get(additionalLocation.filename))) {
+              newIssue.addLocation(createLocation(newIssue, additionalLocation, f));
+            }
+          }
+          newIssue.save();
+        }
+      } catch (IOException e) {
+        throw new IllegalStateException("Unable to create the issue", e);
+      }
     }
+  }
+
+  private static NewIssueLocation createLocation(NewIssue newIssue, OmnisharpDiagnosticLocation location, InputFile inputFile) {
+    return newIssue.newLocation()
+      .on(inputFile)
+      .at(inputFile.newRange(location.line, location.column - 1, location.endLine, location.endColumn - 1))
+      .message(location.text);
   }
 
 }
