@@ -18,7 +18,9 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml;
@@ -36,7 +38,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
 
             var result = testSubject.Serialize(new SonarLintConfiguration());
 
-            result.Should().BeEquivalentTo(@"﻿<?xml version=""1.0"" encoding=""utf-8""?>
+            result.Should().BeEquivalentTo(@"<?xml version=""1.0"" encoding=""utf-8""?>
 <AnalysisInput xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
   <Settings />
   <Rules />
@@ -73,7 +75,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
 
             var result = testSubject.Serialize(configuration);
 
-            result.Should().BeEquivalentTo(@"﻿<?xml version=""1.0"" encoding=""utf-8""?>
+            result.Should().BeEquivalentTo(@"<?xml version=""1.0"" encoding=""utf-8""?>
 <AnalysisInput xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
   <Settings />
   <Rules>
@@ -105,6 +107,29 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
     </Rule>
   </Rules>
 </AnalysisInput>");
+        }
+
+        [TestMethod]
+        public void Serialize_CanBeDeserialized()
+        {
+            var testSubject = CreateTestSubject();
+            
+            var serialized = testSubject.Serialize(new SonarLintConfiguration
+            {
+                Rules = new List<SonarLintRule>
+                {
+                    new()
+                    {
+                        Key = "some rule", Parameters = new List<SonarLintKeyValuePair>
+                        {
+                            new() {Key = "some key", Value = "some value"}
+                        }
+                    }
+                }
+            });
+
+            Action act = () => XDocument.Parse(serialized);
+            act.Should().NotThrow();
         }
 
         private static SonarLintConfigurationSerializer CreateTestSubject() => new();
