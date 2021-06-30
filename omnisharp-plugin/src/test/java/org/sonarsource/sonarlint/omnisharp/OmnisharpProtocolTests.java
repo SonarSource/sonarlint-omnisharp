@@ -205,12 +205,58 @@ class OmnisharpProtocolTests {
       + "        \"Projects\": ["
       + "          \"ConsoleApp1\""
       + "        ]"
+      + "      },"
+      + "      {"
+      + "        \"AdditionalLocations\": ["
+      + "          {"
+      + "            \"FileName\": \"" + toJsonAbsolutePath(f) + "\","
+      + "            \"Line\": 16,"
+      + "            \"Column\": 25,"
+      + "            \"EndLine\": 16,"
+      + "            \"EndColumn\": 30,"
+      + "            \"Text\": \"+4 (incl 3 for nesting)\""
+      + "          },"
+      + "          {"
+      + "            \"FileName\": \"" + toJsonAbsolutePath(f) + "\","
+      + "            \"Line\": 18,"
+      + "            \"Column\": 29,"
+      + "            \"EndLine\": 18,"
+      + "            \"EndColumn\": 34,"
+      + "            \"Text\": null"
+      + "          },"
+      + "          {"
+      + "            \"FileName\": \"" + toJsonAbsolutePath(f) + "\","
+      + "            \"Line\": 20,"
+      + "            \"Column\": 33,"
+      + "            \"EndLine\": 20,"
+      + "            \"EndColumn\": 38"
+      + "          }"
+      + "        ],"
+      + "        \"LogLevel\": \"Warning\","
+      + "        \"Id\": \"S3776\","
+      + "        \"Tags\": [],"
+      + "        \"FileName\": \"" + toJsonAbsolutePath(f) + "\","
+      + "        \"Line\": 7,"
+      + "        \"Column\": 21,"
+      + "        \"EndLine\": 7,"
+      + "        \"EndColumn\": 25,"
+      + "        \"Text\": \"Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed.\","
+      + "        \"Projects\": ["
+      + "          \"ConsoleApp2\""
+      + "        ]"
       + "      }"
       + "    ]"
       + "  }");
 
     assertThat(issues).extracting(o -> o.id, o -> o.line, o -> o.column, o -> o.endLine, o -> o.endColumn, o -> o.text)
-      .containsOnly(tuple("S1118", 5, 11, 5, 18, "Add a 'protected' constructor or the 'static' keyword to the class declaration."));
+      .containsOnly(tuple("S1118", 5, 11, 5, 18, "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
+        tuple("S3776", 7, 21, 7, 25, "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed."));
+
+    assertThat(issues.get(1).additionalLocations).extracting(l -> l.line, l -> l.column, l -> l.endLine, l -> l.endColumn, l -> l.text)
+      .containsOnly(
+        tuple(16, 25, 16, 30, "+4 (incl 3 for nesting)"),
+        tuple(18, 29, 18, 34, null),
+        tuple(20, 33, 20, 38, null));
   }
 
   private void doCodeCheck(File f, List<OmnisharpDiagnostic> issues, String jsonBody) throws IOException, InterruptedException {

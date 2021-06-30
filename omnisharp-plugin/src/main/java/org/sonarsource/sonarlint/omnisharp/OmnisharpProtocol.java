@@ -54,6 +54,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.log.Logger;
@@ -220,7 +221,12 @@ public class OmnisharpProtocol {
     location.column = locationJsonContainer.get("Column").getAsInt();
     location.endLine = locationJsonContainer.get("EndLine").getAsInt();
     location.endColumn = locationJsonContainer.get("EndColumn").getAsInt();
-    location.text = locationJsonContainer.get("Text").getAsString();
+    location.text = getAsStringOrNull(locationJsonContainer.get("Text"));
+  }
+
+  @CheckForNull
+  private static String getAsStringOrNull(@Nullable JsonElement element) {
+    return (element == null || element.isJsonNull()) ? null : element.getAsString();
   }
 
   private JsonObject doRequestAndWaitForResponse(String command, @Nullable JsonElement dataJson) {

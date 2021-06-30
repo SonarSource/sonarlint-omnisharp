@@ -19,6 +19,8 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
+import javax.annotation.Nullable;
+
 public class OmnisharpDiagnosticLocation {
 
   String filename;
@@ -26,6 +28,7 @@ public class OmnisharpDiagnosticLocation {
   int column;
   int endLine;
   int endColumn;
+  @Nullable
   String text;
 
 }
