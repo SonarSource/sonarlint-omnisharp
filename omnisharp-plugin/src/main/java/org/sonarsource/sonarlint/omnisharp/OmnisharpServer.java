@@ -249,12 +249,15 @@ public class OmnisharpServer implements Startable {
     }
     args.add("-v");
     if (sonarLintRuntime.getClientPid() != 0) {
-      args.add("-hpid");
+      args.add("--hostPID");
       args.add(Long.toString(sonarLintRuntime.getClientPid()));
     }
+    args.add("DotNet:enablePackageRestore=false");
+    args.add("--encoding");
+    args.add("utf-8");
     args.add("-s");
     args.add(projectBaseDir.toString());
-    args.add("-pl");
+    args.add("--plugin");
     args.add(servicesExtractor.getOmnisharpServicesDllPath().toString());
     return new ProcessExecutor()
       .directory(omnisharpPath.toFile())
