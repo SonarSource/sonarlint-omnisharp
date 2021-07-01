@@ -395,7 +395,6 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  @Disabled("Doesn't work, maybe because of https://github.com/OmniSharp/omnisharp-vscode/issues/4185")
   void testAnalyzeFileinANewProject(@TempDir Path tmpDir) throws Exception {
     ModuleInfo moduleInfo = new ModuleInfo(SOLUTION1_MODULE_KEY, null);
     when(modulesProvider.getModules()).thenReturn(Arrays.asList(moduleInfo));
