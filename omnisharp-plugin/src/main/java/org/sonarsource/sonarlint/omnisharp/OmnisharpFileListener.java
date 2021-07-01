@@ -38,6 +38,7 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import java.io.File;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
 import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileListener;
@@ -58,19 +59,30 @@ public class OmnisharpFileListener implements ModuleFileListener {
     if (!server.isOmnisharpStarted()) {
       return;
     }
+    File file = event.getTarget().file();
     switch (event.getType()) {
       case CREATED:
-        omnisharpProtocol.fileChanged(event.getTarget().file(), OmnisharpProtocol.FileChangeType.CREATE);
+        if (file.getName().endsWith(".sln") || file.getName().endsWith(".csproj")) {
+          // Stop the server so that it is restarted during the next analysis and take into account changes to the solution, or added
+          // projects
+          server.stop();
+        } else {
+          omnisharpProtocol.fileChanged(file, OmnisharpProtocol.FileChangeType.CREATE);
+        }
         break;
       case DELETED:
-        omnisharpProtocol.fileChanged(event.getTarget().file(), OmnisharpProtocol.FileChangeType.DELETE);
+        omnisharpProtocol.fileChanged(file, OmnisharpProtocol.FileChangeType.DELETE);
         break;
       case MODIFIED:
-        omnisharpProtocol.fileChanged(event.getTarget().file(), OmnisharpProtocol.FileChangeType.CHANGE);
+        if (file.getName().endsWith(".sln")) {
+          // Stop the server so that it is restarted during the next analysis and take into account changes to the solution
+          server.stop();
+        } else {
+          omnisharpProtocol.fileChanged(file, OmnisharpProtocol.FileChangeType.CHANGE);
+        }
         break;
       default:
         break;
-
     }
 
   }
