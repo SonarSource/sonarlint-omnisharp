@@ -42,7 +42,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
                 Indent = true,
                 NamespaceHandling = NamespaceHandling.OmitDuplicates,
                 OmitXmlDeclaration = false,
-                Encoding = new UTF8Encoding(false)
+                Encoding = new UTF8Encoding(false) // to avoid generating unicode BOM 
             };
 
             using (var stream = new MemoryStream {Position = 0})

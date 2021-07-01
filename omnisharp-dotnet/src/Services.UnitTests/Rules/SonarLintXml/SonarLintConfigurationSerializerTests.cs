@@ -110,6 +110,11 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
         }
 
         [TestMethod]
+        [Description(@"Test that the serialized string can be deserialized on the sonar-dotnet analyzer's side.
+        If the serialized string contains unicode BOM, XDocument.Parse/Load methods will fail with an exception:
+        'XmlException: Data at the root level is invalid'.
+        Analyzer side's code: https://github.com/SonarSource/sonar-dotnet/blob/master/analyzers/src/SonarAnalyzer.Common/Helpers/ParameterLoader.cs#L95
+        ")]
         public void Serialize_CanBeDeserialized()
         {
             var testSubject = CreateTestSubject();
