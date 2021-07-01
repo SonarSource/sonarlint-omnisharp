@@ -38,8 +38,10 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.file.Files;
@@ -76,10 +78,9 @@ public class OmnisharpServer implements Startable {
 
   private static final Logger LOG = Loggers.get(OmnisharpServer.class);
 
-  private StartedProcess process;
-  private volatile boolean omnisharpStarted;
+  private boolean omnisharpStarted;
 
-  private PipedOutputStream output;
+  private OutputStream output;
 
   private final System2 system2;
 
@@ -97,6 +98,10 @@ public class OmnisharpServer implements Startable {
   private final String omnisharpExeWin;
 
   private final SonarLintRuntime sonarLintRuntime;
+
+  private PipedInputStream pipeInput;
+
+  private StartedProcess process;
 
   public OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpProtocol omnisharpProtocol,
     SonarLintRuntime sonarLintRuntime) {
@@ -133,8 +138,6 @@ public class OmnisharpServer implements Startable {
     this.cachedDotnetCliPath = dotnetCliPath;
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
-    output = new PipedOutputStream();
-    PipedInputStream input = new PipedInputStream(output);
     String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
       .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
     ProcessExecutor processExecutor = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
@@ -147,6 +150,9 @@ public class OmnisharpServer implements Startable {
         omnisharpStarted = false;
       }
     });
+    pipeInput = new PipedInputStream();
+    output = new PipedOutputStream(pipeInput);
+
     processExecutor.redirectOutput(omnisharpProtocol.buildOutputStreamHandler(startLatch, firstUpdateProjectLatch))
       .redirectError(new LogOutputStream() {
 
@@ -155,7 +161,7 @@ public class OmnisharpServer implements Startable {
           LOG.error(line);
         }
       })
-      .redirectInput(input)
+      .redirectInput(pipeInput)
       .environment("PATH", buildPathEnv(dotnetCliPath))
       .destroyOnExit();
 
@@ -180,7 +186,7 @@ public class OmnisharpServer implements Startable {
 
     omnisharpStarted = true;
 
-    omnisharpProtocol.startRequestQueuePumper(output);
+    omnisharpProtocol.setOmnisharpProcessStdIn(output);
   }
 
   private String buildPathEnv(@Nullable Path dotnetCliPath) {
@@ -211,7 +217,7 @@ public class OmnisharpServer implements Startable {
    * Run a simple command that should return a single line on stdout
    */
   @CheckForNull
-  private String runSimpleCommand(String... command) {
+  private static String runSimpleCommand(String... command) {
     try {
       return new ProcessExecutor().command(command)
         .readOutput(true)
@@ -261,13 +267,15 @@ public class OmnisharpServer implements Startable {
     if (omnisharpStarted) {
       LOG.info("Stopping OmniSharp");
       omnisharpProtocol.stopServer();
-      omnisharpProtocol.stopRequestQueuePumper();
+      omnisharpProtocol.setOmnisharpProcessStdIn(null);
     }
-    closeOutputStream();
+    closeStreams();
     // Don't wait for process to end on Linux, because it takes too long
+    // On Windows, it is important to wait to avoid locks on some dlls
     if (system2.isOsWindows()) {
       waitForProcessToEnd();
     }
+    omnisharpStarted = false;
   }
 
   private void waitForProcessToEnd() {
@@ -287,10 +295,17 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private void closeOutputStream() {
-    if (output != null) {
+  private void closeStreams() {
+    closeQuitely(output);
+    output = null;
+    closeQuitely(pipeInput);
+    pipeInput = null;
+  }
+
+  private static void closeQuitely(Closeable closeable) {
+    if (closeable != null) {
       try {
-        output.close();
+        closeable.close();
       } catch (IOException e) {
         LOG.error("Unable to close", e);
       }
