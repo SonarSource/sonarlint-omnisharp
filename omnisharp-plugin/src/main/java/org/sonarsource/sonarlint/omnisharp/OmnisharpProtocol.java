@@ -43,17 +43,16 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.File;
-import java.io.PipedOutputStream;
-import java.util.Queue;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.sonar.api.scanner.ScannerSide;
-import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
@@ -66,16 +65,9 @@ public class OmnisharpProtocol {
   private static final Logger LOG = Loggers.get(OmnisharpProtocol.class);
 
   private final AtomicLong requestId = new AtomicLong(1L);
-  private final Queue<OmnisharpRequest> requestQueue = new ConcurrentLinkedQueue<>();
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
-  private RequestQueuePumper requestQueuePumper;
-
-  private final System2 system2;
-
-  public OmnisharpProtocol(System2 system2) {
-    this.system2 = system2;
-  }
+  private OutputStream output;
 
   LogOutputStream buildOutputStreamHandler(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch) {
     return new LogOutputStream() {
@@ -94,16 +86,8 @@ public class OmnisharpProtocol {
     };
   }
 
-  void startRequestQueuePumper(PipedOutputStream output) {
-    requestQueuePumper = new RequestQueuePumper(requestQueue, output);
-    new Thread(requestQueuePumper).start();
-  }
-
-  void stopRequestQueuePumper() {
-    if (requestQueuePumper != null) {
-      requestQueuePumper.stopProcessing();
-      requestQueuePumper = null;
-    }
+  void setOmnisharpProcessStdIn(@Nullable OutputStream output) {
+    this.output = output;
   }
 
   private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JsonObject jsonObject) {
@@ -172,18 +156,8 @@ public class OmnisharpProtocol {
   }
 
   public void stopServer() {
-    if (system2.isOsWindows()) {
-      // Don't wait for response, because on Windows the process seems to die before receiving response
-      doRequest("/stopserver", null);
-      // Give enough time for the /stopserver request to be consummed
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
-    } else {
-      doRequestAndWaitForResponse("/stopserver", null);
-    }
+    // Don't wait for the response, because sometimes the process seems to die before receiving it
+    doRequest("/stopserver", null);
   }
 
   private static void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
@@ -213,7 +187,7 @@ public class OmnisharpProtocol {
 
     OmnisharpResponseHandler omnisharpResponseHandler = new OmnisharpResponseHandler();
     responseLatchQueue.put(id, omnisharpResponseHandler);
-    enqueue(req);
+    writeRequest(req);
     try {
       if (!omnisharpResponseHandler.responseLatch.await(1, TimeUnit.MINUTES)) {
         throw new IllegalStateException("Timeout waiting for request: " + command);
@@ -227,17 +201,24 @@ public class OmnisharpProtocol {
     }
   }
 
-  void enqueue(OmnisharpRequest req) {
-    synchronized (requestQueue) {
-      requestQueue.add(req);
-      requestQueue.notifyAll();
+  synchronized void writeRequest(OmnisharpRequest req) {
+    if (output == null) {
+      LOG.warn("Unable to write request, server has been stopped");
+      return;
+    }
+    try {
+      output.write(req.getJsonPayload().getBytes(StandardCharsets.UTF_8));
+      output.write("\n".getBytes(StandardCharsets.UTF_8));
+      output.flush();
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to write in Omnisharp stdin", e);
     }
   }
 
   private void doRequest(String command, @Nullable JsonObject dataJson) {
     long id = requestId.getAndIncrement();
     OmnisharpRequest req = buildRequest(command, dataJson, id);
-    enqueue(req);
+    writeRequest(req);
   }
 
   private static OmnisharpRequest buildRequest(String command, JsonObject dataJson, long id) {

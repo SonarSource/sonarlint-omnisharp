@@ -131,7 +131,6 @@ class OmnisharpServerTests {
     underTest.stop();
 
     verify(protocol).stopServer();
-    verify(protocol).stopRequestQueuePumper();
   }
 
   private void mockOmnisharpRun(String bashScript, String batScript) throws IOException {

@@ -34,23 +34,17 @@ import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
-import org.sonarsource.sonarlint.omnisharp.OmnisharpProtocol.OmnisharpRequest;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 class OmnisharpProtocolTests {
 
@@ -62,16 +56,13 @@ class OmnisharpProtocolTests {
   private CountDownLatch firstUpdateLatch;
   private LogOutputStream logOutputStream;
 
-  private System2 system2;
-
   private PipedOutputStream output;
   private PipedInputStream input;
   private BufferedReader requestReader;
 
   @BeforeEach
   void prepare() throws IOException {
-    system2 = spy(new System2());
-    underTest = new OmnisharpProtocol(system2);
+    underTest = new OmnisharpProtocol();
 
     startLatch = new CountDownLatch(1);
     firstUpdateLatch = new CountDownLatch(1);
@@ -81,12 +72,11 @@ class OmnisharpProtocolTests {
     input = new PipedInputStream(output);
     requestReader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
 
-    underTest.startRequestQueuePumper(output);
+    underTest.setOmnisharpProcessStdIn(output);
   }
 
   @AfterEach
   void cleanup() throws IOException {
-    underTest.stopRequestQueuePumper();
     requestReader.close();
   }
 
@@ -141,52 +131,7 @@ class OmnisharpProtocolTests {
   }
 
   @Test
-  @Timeout(value = 1, unit = MINUTES)
-  void testRequestQueuePumperStartStop() throws IOException, InterruptedException {
-    underTest.enqueue(new OmnisharpRequest("first_request"));
-
-    assertThat(requestReader.readLine()).isEqualTo("first_request");
-
-    underTest.enqueue(new OmnisharpRequest("second_request"));
-
-    assertThat(requestReader.readLine()).isEqualTo("second_request");
-
-    underTest.stopRequestQueuePumper();
-
-    underTest.enqueue(new OmnisharpRequest("late_request"));
-
-    // Normally the late request should no be processed, but give it time to be sure we don't have a bug
-    Thread.sleep(100);
-
-    output.close();
-
-    // By reading -1, we know nothing more has been written to the stream, and in particular not the "late_request"
-    assertThat(input.read()).isEqualTo(-1);
-  }
-
-  @Test
-  void stopServerOnUnix() throws Exception {
-    when(system2.isOsWindows()).thenReturn(false);
-
-    // stopServer is blocking, so run it in a separate Thread
-    Thread t = new Thread(() -> {
-      underTest.stopServer();
-    });
-    t.start();
-
-    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo("{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/stopserver\"}"));
-
-    emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
-
-    // wait for stopServer to finish
-    t.join(1000);
-    assertThat(t.isAlive()).isFalse();
-  }
-
-  @Test
-  void stopServerOnWindows() throws Exception {
-    when(system2.isOsWindows()).thenReturn(true);
-
+  void stopServer() throws Exception {
     underTest.stopServer();
 
     assertThat(requestReader.readLine()).isEqualTo("{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/stopserver\"}");
