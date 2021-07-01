@@ -143,9 +143,13 @@ public class OmnisharpProtocol {
     }
   }
 
-  private void handleLog(JsonObject jsonObject) {
+  private static void handleLog(JsonObject jsonObject) {
     String level = jsonObject.get("LogLevel").getAsString();
     String message = jsonObject.get("Message").getAsString();
+    // Workaround for SonarDotnet bug flooding logs
+    if (message.contains("SonarLint.xml\"")) {
+      return;
+    }
     LOG.debug("Omnisharp: [" + level + "] " + message);
   }
 
@@ -182,7 +186,7 @@ public class OmnisharpProtocol {
     }
   }
 
-  private void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
+  private static void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
     JsonObject body = response.get("Body").getAsJsonObject();
     JsonArray issues = body.get("QuickFixes").getAsJsonArray();
     issues.forEach(i -> {
@@ -236,7 +240,7 @@ public class OmnisharpProtocol {
     enqueue(req);
   }
 
-  private OmnisharpRequest buildRequest(String command, JsonObject dataJson, long id) {
+  private static OmnisharpRequest buildRequest(String command, JsonObject dataJson, long id) {
     JsonObject args = new JsonObject();
     args.addProperty("Type", "request");
     args.addProperty("Seq", id);
