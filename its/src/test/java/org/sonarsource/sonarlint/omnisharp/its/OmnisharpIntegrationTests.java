@@ -39,7 +39,6 @@ import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -260,7 +259,6 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  @Disabled("Waiting for a fix on sonar-dotnet side")
   void testRuleParameter(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
