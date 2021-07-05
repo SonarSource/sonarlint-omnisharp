@@ -51,6 +51,8 @@ import org.sonar.api.utils.TempFolder;
 import org.sonar.api.utils.ZipUtils;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 
+import static java.util.Objects.requireNonNull;
+
 @ScannerSide
 @SonarLintSide(lifespan = SonarLintSide.MULTIPLE_ANALYSES)
 public class OmnisharpServicesExtractor implements Startable {
@@ -81,9 +83,7 @@ public class OmnisharpServicesExtractor implements Startable {
 
   private void extractOmnisharpServicesDll() {
     try (InputStream bundle = getClass().getResourceAsStream("/" + SERVICES_DLL_FILENAME)) {
-      if (bundle == null) {
-        throw new IllegalStateException(SERVICES_DLL_FILENAME + " not found in plugin jar");
-      }
+      requireNonNull(bundle, SERVICES_DLL_FILENAME + " not found in plugin jar");
       Files.copy(bundle, omnisharpServicesDir.resolve(SERVICES_DLL_FILENAME));
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract services", e);
@@ -92,9 +92,7 @@ public class OmnisharpServicesExtractor implements Startable {
 
   private void unzipAnalyzer(String analyzerVersion) {
     try (InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-" + analyzerVersion + ".zip")) {
-      if (bundle == null) {
-        throw new IllegalStateException("SonarAnalyzer not found in plugin jar");
-      }
+      requireNonNull(bundle, "SonarAnalyzer not found in plugin jar");
       ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile());
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract analyzers", e);

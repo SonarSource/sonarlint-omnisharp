@@ -19,6 +19,7 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
+import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -39,12 +40,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
+import org.sonarsource.sonarlint.omnisharp.OmnisharpProtocol.FileChangeType;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class OmnisharpProtocolTests {
 
@@ -78,6 +81,14 @@ class OmnisharpProtocolTests {
   @AfterEach
   void cleanup() throws IOException {
     requestReader.close();
+  }
+
+  @Test
+  void logWarningIfTryingToUseProtocolWhenProcessInNotSet() {
+    underTest.setOmnisharpProcessStdIn(null);
+    JsonObject config = new JsonObject();
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.config(config));
+    assertThat(thrown).hasMessage("Unable to write request, server stdin is null");
   }
 
   @ParameterizedTest
@@ -257,6 +268,45 @@ class OmnisharpProtocolTests {
         tuple(16, 25, 16, 30, "+4 (incl 3 for nesting)"),
         tuple(18, 29, 18, 34, null),
         tuple(20, 33, 20, 38, null));
+  }
+
+  @Test
+  void config() throws Exception {
+    JsonObject config = new JsonObject();
+    config.addProperty("foo", "bar");
+    // config is blocking, so run it in a separate Thread
+    Thread t = new Thread(() -> {
+      underTest.config(config);
+    });
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
+      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/sonarlint/config\",\"Arguments\":{\"foo\":\"bar\"}}"));
+
+    emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
+
+    // wait for config to finish
+    t.join(1000);
+    assertThat(t.isAlive()).isFalse();
+  }
+
+  @Test
+  void fileChanged() throws Exception {
+    File f = new File("Foo.cs");
+    // fileChanged is blocking, so run it in a separate Thread
+    Thread t = new Thread(() -> {
+      underTest.fileChanged(f, FileChangeType.CHANGE);
+    });
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
+      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/filesChanged\",\"Arguments\":[{\"FileName\":\"" + toJsonAbsolutePath(f) + "\",\"changeType\":\"Change\"}]}"));
+
+    emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
+
+    // wait for fileChanged to finish
+    t.join(1000);
+    assertThat(t.isAlive()).isFalse();
   }
 
   private void doCodeCheck(File f, List<OmnisharpDiagnostic> issues, String jsonBody) throws IOException, InterruptedException {

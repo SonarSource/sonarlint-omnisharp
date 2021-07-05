@@ -39,6 +39,7 @@ package org.sonarsource.sonarlint.omnisharp;
  */
 
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -65,7 +66,7 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   private static final Gson GSON = new Gson();
   private static final String RULES_XML = "/org/sonar/plugins/csharp/rules.xml";
 
-  private String getSonarWayJsonPath() {
+  private static String getSonarWayJsonPath() {
     return "org/sonar/plugins/" + PLUGIN_KEY + "/Sonar_way_profile.json";
   }
 
@@ -92,11 +93,11 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
     }
   }
 
-  protected String getRuleJson(String ruleKey) {
+  private static String getRuleJson(String ruleKey) {
     return "/org/sonar/plugins/csharp/" + ruleKey + "_c#.json";
   }
 
-  private void setupHotspotRules(Collection<NewRule> rules) {
+  private static void setupHotspotRules(Collection<NewRule> rules) {
     Map<NewRule, RuleMetadata> allRuleMetadata = rules.stream()
       .collect(Collectors.toMap(rule -> rule, rule -> readRuleMetadata(rule.key())));
 
@@ -106,7 +107,7 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
     hotspotRules.forEach(rule -> rule.setType(RuleType.SECURITY_HOTSPOT));
   }
 
-  private void activeDefaultRules(Collection<NewRule> rules) {
+  private static void activeDefaultRules(Collection<NewRule> rules) {
     Set<String> activeKeys = BuiltInQualityProfileJsonLoader.loadActiveKeysFromJsonProfile(getSonarWayJsonPath());
     rules.forEach(rule -> rule.setActivatedByDefault(activeKeys.contains(rule.key())));
   }
@@ -120,18 +121,16 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   }
 
   private static void updateSecurityStandards(NewRule rule, RuleMetadata ruleMetadata) {
-    for (String s : ruleMetadata.securityStandards.OWASP) {
+    for (String s : ruleMetadata.securityStandards.owasp) {
       rule.addOwaspTop10(RulesDefinition.OwaspTop10.valueOf(s));
     }
-    rule.addCwe(ruleMetadata.securityStandards.CWE);
+    rule.addCwe(ruleMetadata.securityStandards.cwe);
   }
 
-  private RuleMetadata readRuleMetadata(String ruleKey) {
+  private static RuleMetadata readRuleMetadata(String ruleKey) {
     String resourcePath = getRuleJson(ruleKey);
     try (InputStream stream = AbstractRulesDefinition.class.getResourceAsStream(resourcePath)) {
-      return stream != null
-        ? GSON.fromJson(new InputStreamReader(stream, StandardCharsets.UTF_8), RuleMetadata.class)
-        : new RuleMetadata();
+      return GSON.fromJson(new InputStreamReader(stream, StandardCharsets.UTF_8), RuleMetadata.class);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to read: " + resourcePath, e);
     }
@@ -140,23 +139,18 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   private static class RuleMetadata {
     private static final String SECURITY_HOTSPOT = "SECURITY_HOTSPOT";
 
-    String sqKey;
     String type;
     SecurityStandards securityStandards = new SecurityStandards();
-
-    String getKey() {
-      return sqKey;
-    }
 
     boolean isSecurityHotspot() {
       return SECURITY_HOTSPOT.equals(type);
     }
   }
 
-  // for deserialization purposes
-  @SuppressWarnings("squid:S00116")
   private static class SecurityStandards {
-    int[] CWE = {};
-    String[] OWASP = {};
+    @SerializedName("CWE")
+    int[] cwe = {};
+    @SerializedName("OWASP")
+    String[] owasp = {};
   }
 }

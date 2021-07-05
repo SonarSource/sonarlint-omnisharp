@@ -41,7 +41,6 @@ package org.sonarsource.sonarlint.omnisharp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -158,23 +157,21 @@ public class OmnisharpSensor implements Sensor {
   private static void handle(SensorContext context, InputFile f, OmnisharpDiagnostic diag) {
     RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, diag.id);
     if (context.activeRules().find(ruleKey) != null) {
-      // Only report issues for the currently analyzed file
-      try {
-        if (Files.isSameFile(f.file().toPath(), Paths.get(diag.filename))) {
-          NewIssue newIssue = context.newIssue();
-          newIssue
-            .forRule(ruleKey)
-            .at(createLocation(newIssue, diag, f));
-          for (OmnisharpDiagnosticLocation additionalLocation : diag.additionalLocations) {
-            // Only report secondary locations on the same file
-            if (Files.isSameFile(f.file().toPath(), Paths.get(additionalLocation.filename))) {
-              newIssue.addLocation(createLocation(newIssue, additionalLocation, f));
-            }
+      Path diagFilePath = Paths.get(diag.filename);
+      InputFile diagInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(diagFilePath.toFile()));
+      if (diagInputFile != null) {
+        NewIssue newIssue = context.newIssue();
+        newIssue
+          .forRule(ruleKey)
+          .at(createLocation(newIssue, diag, diagInputFile));
+        for (OmnisharpDiagnosticLocation additionalLocation : diag.additionalLocations) {
+          Path additionalFilePath = Paths.get(additionalLocation.filename);
+          InputFile additionalFilePathInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(additionalFilePath.toFile()));
+          if (additionalFilePathInputFile != null) {
+            newIssue.addLocation(createLocation(newIssue, additionalLocation, additionalFilePathInputFile));
           }
-          newIssue.save();
         }
-      } catch (IOException e) {
-        throw new IllegalStateException("Unable to create the issue", e);
+        newIssue.save();
       }
     }
   }
