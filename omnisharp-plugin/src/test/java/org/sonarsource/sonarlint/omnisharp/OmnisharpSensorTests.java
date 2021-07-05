@@ -244,6 +244,48 @@ class OmnisharpSensorTests {
   }
 
   @Test
+  void ignoreIssuesOnOtherFiles() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+
+    RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    Path anotherFilePath = baseDir.resolve("Bar.cs");
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    ArgumentCaptor<Consumer<OmnisharpDiagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<OmnisharpDiagnostic> issueConsummer = captor.getValue();
+
+    OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
+    diag.filename = anotherFilePath.toString();
+    diag.id = "S12345";
+    diag.line = 1;
+    diag.column = 1;
+    diag.endLine = 1;
+    diag.endColumn = 5;
+    diag.text = "Don't do this";
+
+    issueConsummer.accept(diag);
+
+    assertThat(sensorContext.allIssues()).isEmpty();
+  }
+
+  @Test
   void processSecondaryLocations() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
 
@@ -253,6 +295,7 @@ class OmnisharpSensorTests {
     Path filePath = baseDir.resolve("Foo.cs");
     String content = "Console.WriteLine(\"Hello \n Woooooooooooooooooooooooooooorld!\");";
     Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+    Path anotherFilePath = baseDir.resolve("Bar.cs");
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
@@ -295,7 +338,15 @@ class OmnisharpSensorTests {
     secondary2.endColumn = 10;
     secondary2.text = "Secondary 2";
 
-    diag.additionalLocations = new OmnisharpDiagnosticLocation[] {secondary1, secondary2};
+    OmnisharpDiagnosticLocation secondaryOnAnotherFile = new OmnisharpDiagnosticLocation();
+    secondaryOnAnotherFile.filename = anotherFilePath.toString();
+    secondaryOnAnotherFile.line = 2;
+    secondaryOnAnotherFile.column = 8;
+    secondaryOnAnotherFile.endLine = 2;
+    secondaryOnAnotherFile.endColumn = 10;
+    secondaryOnAnotherFile.text = "Another file";
+
+    diag.additionalLocations = new OmnisharpDiagnosticLocation[] {secondary1, secondary2, secondaryOnAnotherFile};
 
     issueConsummer.accept(diag);
 

@@ -66,6 +66,8 @@ import org.zeroturnaround.exec.stream.LogOutputStream;
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpProtocol {
 
+  private static final String FILENAME_PROPERTY = "FileName";
+
   private static final Logger LOG = Loggers.get(OmnisharpProtocol.class);
 
   private final AtomicLong requestId = new AtomicLong(1L);
@@ -134,16 +136,12 @@ public class OmnisharpProtocol {
   private static void handleLog(JsonObject jsonObject) {
     String level = jsonObject.get("LogLevel").getAsString();
     String message = jsonObject.get("Message").getAsString();
-    // Workaround for SonarDotnet bug flooding logs
-    if (message.contains("SonarLint.xml\"")) {
-      return;
-    }
     LOG.debug("Omnisharp: [" + level + "] " + message);
   }
 
   public void codeCheck(File f, Consumer<OmnisharpDiagnostic> issueHandler) {
     JsonObject args = new JsonObject();
-    args.addProperty("FileName", f.getAbsolutePath());
+    args.addProperty(FILENAME_PROPERTY, f.getAbsolutePath());
     JsonObject resp = doRequestAndWaitForResponse("/sonarlint/codecheck", args);
     handle(resp, issueHandler);
   }
@@ -169,7 +167,7 @@ public class OmnisharpProtocol {
   public void fileChanged(File f, FileChangeType type) {
     JsonArray args = new JsonArray();
     JsonObject req = new JsonObject();
-    req.addProperty("FileName", f.getAbsolutePath());
+    req.addProperty(FILENAME_PROPERTY, f.getAbsolutePath());
     req.addProperty("changeType", type.protocolValue);
     args.add(req);
     doRequestAndWaitForResponse("/filesChanged", args);
@@ -177,7 +175,7 @@ public class OmnisharpProtocol {
 
   public void updateBuffer(File f, String buffer) {
     JsonObject args = new JsonObject();
-    args.addProperty("FileName", f.getAbsolutePath());
+    args.addProperty(FILENAME_PROPERTY, f.getAbsolutePath());
     args.addProperty("Buffer", buffer);
     doRequestAndWaitForResponse("/updatebuffer", args);
   }
@@ -216,7 +214,7 @@ public class OmnisharpProtocol {
   }
 
   private static void processLocation(JsonObject locationJsonContainer, OmnisharpDiagnosticLocation location) {
-    location.filename = locationJsonContainer.get("FileName").getAsString();
+    location.filename = locationJsonContainer.get(FILENAME_PROPERTY).getAsString();
     location.line = locationJsonContainer.get("Line").getAsInt();
     location.column = locationJsonContainer.get("Column").getAsInt();
     location.endLine = locationJsonContainer.get("EndLine").getAsInt();
@@ -235,12 +233,13 @@ public class OmnisharpProtocol {
 
     OmnisharpResponseHandler omnisharpResponseHandler = new OmnisharpResponseHandler();
     responseLatchQueue.put(id, omnisharpResponseHandler);
-    writeRequest(req);
     try {
+      writeRequest(req);
       if (!omnisharpResponseHandler.responseLatch.await(1, TimeUnit.MINUTES)) {
         throw new IllegalStateException("Timeout waiting for request: " + command);
       }
       return omnisharpResponseHandler.response;
+
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted!", e);
@@ -251,8 +250,7 @@ public class OmnisharpProtocol {
 
   synchronized void writeRequest(OmnisharpRequest req) {
     if (output == null) {
-      LOG.warn("Unable to write request, server has been stopped");
-      return;
+      throw new IllegalStateException("Unable to write request, server stdin is null");
     }
     try {
       output.write(req.getJsonPayload().getBytes(StandardCharsets.UTF_8));
