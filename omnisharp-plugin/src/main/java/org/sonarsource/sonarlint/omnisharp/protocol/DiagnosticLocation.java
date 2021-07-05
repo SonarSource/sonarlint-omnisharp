@@ -17,11 +17,54 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.sonarlint.omnisharp;
+package org.sonarsource.sonarlint.omnisharp.protocol;
 
-public class OmnisharpDiagnostic extends OmnisharpDiagnosticLocation {
+import com.google.gson.annotations.SerializedName;
+import javax.annotation.Nullable;
 
-  String id;
-  OmnisharpDiagnosticLocation[] additionalLocations = new OmnisharpDiagnosticLocation[0];
+public class DiagnosticLocation {
+
+  @SerializedName("FileName")
+  private String filename;
+
+  @SerializedName("Line")
+  private int line;
+
+  @SerializedName("Column")
+  private int column;
+
+  @SerializedName("EndLine")
+  private int endLine;
+
+  @SerializedName("EndColumn")
+  private int endColumn;
+
+  @SerializedName("Text")
+  @Nullable
+  private String text;
+
+  public String getFilename() {
+    return filename;
+  }
+
+  public int getLine() {
+    return line;
+  }
+
+  public int getEndLine() {
+    return endLine;
+  }
+
+  public int getColumn() {
+    return column;
+  }
+
+  public int getEndColumn() {
+    return endColumn;
+  }
+
+  public String getText() {
+    return text;
+  }
 
 }

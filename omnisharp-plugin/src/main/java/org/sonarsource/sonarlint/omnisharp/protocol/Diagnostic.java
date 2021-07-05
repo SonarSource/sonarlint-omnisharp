@@ -17,18 +17,26 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.sonarlint.omnisharp;
+package org.sonarsource.sonarlint.omnisharp.protocol;
 
+import com.google.gson.annotations.SerializedName;
 import javax.annotation.Nullable;
 
-public class OmnisharpDiagnosticLocation {
+public class Diagnostic extends DiagnosticLocation {
 
-  String filename;
-  int line;
-  int column;
-  int endLine;
-  int endColumn;
+  @SerializedName("Id")
+  private String id;
+
+  @SerializedName("AdditionalLocations")
+  private DiagnosticLocation[] additionalLocations;
+
+  public String getId() {
+    return id;
+  }
+
   @Nullable
-  String text;
+  public DiagnosticLocation[] getAdditionalLocations() {
+    return additionalLocations;
+  }
 
 }

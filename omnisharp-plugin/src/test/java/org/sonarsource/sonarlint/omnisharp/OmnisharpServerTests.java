@@ -39,6 +39,7 @@ import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +59,7 @@ class OmnisharpServerTests {
   private OmnisharpServer underTest;
   private Path omnisharpDir;
   private Path solutionDir;
-  private OmnisharpProtocol protocol;
+  private OmnisharpEndpoints protocol;
   private MapSettings mapSettings;
 
   @BeforeEach
@@ -66,7 +67,7 @@ class OmnisharpServerTests {
     omnisharpDir = tmpDir.resolve("omnisharp");
     Files.createDirectory(omnisharpDir);
     solutionDir = tmpDir.resolve("solution");
-    protocol = mock(OmnisharpProtocol.class);
+    protocol = mock(OmnisharpEndpoints.class);
     mapSettings = new MapSettings();
     SonarLintRuntime runtime = mock(SonarLintRuntime.class);
     when(runtime.getClientPid()).thenReturn(123L);
@@ -74,6 +75,22 @@ class OmnisharpServerTests {
     when(servicesExtractor.getOmnisharpServicesDllPath()).thenReturn(tmpDir.resolve("fake/services.dll"));
     underTest = new OmnisharpServer(System2.INSTANCE, servicesExtractor, mapSettings.asConfig(), protocol, Paths.get("/usr/libexec/path_helper"), "run.bat",
       runtime);
+  }
+
+  @Test
+  void testSimpleCommandNoOutput() {
+    assertThat(OmnisharpServer.runSimpleCommand("echo")).isNull();
+  }
+
+  @Test
+  void testSimpleCommand() {
+    assertThat(OmnisharpServer.runSimpleCommand("echo", "Hello World!")).isEqualTo("Hello World!");
+  }
+
+  @Test
+  void testSimpleCommandError() {
+    assertThat(OmnisharpServer.runSimpleCommand("doesnt_exists")).isNull();
+    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Unable to execute command");
   }
 
   @Test

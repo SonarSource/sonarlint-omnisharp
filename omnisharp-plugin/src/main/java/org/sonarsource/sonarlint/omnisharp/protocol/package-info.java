@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.sonarlint.omnisharp;
+package org.sonarsource.sonarlint.omnisharp.protocol;
 /*
  * SonarC#
  * Copyright (C) 2014-2021 SonarSource SA
@@ -38,38 +38,6 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarProduct;
-import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
 
-public class CSharpPlugin implements Plugin {
+import javax.annotation.ParametersAreNonnullByDefault;
 
-  static final String LANGUAGE_KEY = "cs";
-  static final String LANGUAGE_NAME = "C#";
-
-  static final String REPOSITORY_KEY = "csharpsquid";
-  static final String REPOSITORY_NAME = "SonarAnalyzer";
-  static final String PLUGIN_KEY = "csharp";
-
-  static final String FILE_SUFFIXES_KEY = AbstractPropertyDefinitions.getFileSuffixProperty(LANGUAGE_KEY);
-  static final String FILE_SUFFIXES_DEFVALUE = ".cs";
-
-  @Override
-  public void define(Context context) {
-    if (context.getRuntime().getProduct() == SonarProduct.SONARLINT) {
-      context.addExtensions(
-        OmnisharpServer.class,
-        OmnisharpSensor.class,
-        OmnisharpProtocol.class,
-        OmnisharpServicesExtractor.class,
-        OmnisharpFileListener.class);
-    }
-
-    context.addExtensions(
-      CSharp.class,
-      CSharpSonarRulesDefinition.class);
-
-    context.addExtensions(new CSharpPropertyDefinitions().create());
-  }
-
-}

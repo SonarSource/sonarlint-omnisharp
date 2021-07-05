@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.sonarlint.omnisharp;
+package org.sonarsource.sonarlint.omnisharp.protocol;
 /*
  * SonarC#
  * Copyright (C) 2014-2021 SonarSource SA
@@ -47,13 +47,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.sonar.api.scanner.ScannerSide;
@@ -64,18 +63,18 @@ import org.zeroturnaround.exec.stream.LogOutputStream;
 
 @ScannerSide
 @SonarLintSide(lifespan = "MODULE")
-public class OmnisharpProtocol {
+public class OmnisharpEndpoints {
 
   private static final String FILENAME_PROPERTY = "FileName";
 
-  private static final Logger LOG = Loggers.get(OmnisharpProtocol.class);
+  private static final Logger LOG = Loggers.get(OmnisharpEndpoints.class);
 
   private final AtomicLong requestId = new AtomicLong(1L);
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
   private OutputStream output;
 
-  LogOutputStream buildOutputStreamHandler(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch) {
+  public LogOutputStream buildOutputStreamHandler(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch) {
     return new LogOutputStream() {
       @Override
       protected void processLine(String line) {
@@ -92,7 +91,7 @@ public class OmnisharpProtocol {
     };
   }
 
-  void setOmnisharpProcessStdIn(@Nullable OutputStream output) {
+  public void setOmnisharpProcessStdIn(@Nullable OutputStream output) {
     this.output = output;
   }
 
@@ -139,7 +138,7 @@ public class OmnisharpProtocol {
     LOG.debug("Omnisharp: [" + level + "] " + message);
   }
 
-  public void codeCheck(File f, Consumer<OmnisharpDiagnostic> issueHandler) {
+  public void codeCheck(File f, Consumer<Diagnostic> issueHandler) {
     JsonObject args = new JsonObject();
     args.addProperty(FILENAME_PROPERTY, f.getAbsolutePath());
     JsonObject resp = doRequestAndWaitForResponse("/sonarlint/codecheck", args);
@@ -185,41 +184,17 @@ public class OmnisharpProtocol {
     doRequest("/stopserver", null);
   }
 
-  private static void handle(JsonObject response, Consumer<OmnisharpDiagnostic> issueHandler) {
+  private static void handle(JsonObject response, Consumer<Diagnostic> issueHandler) {
     JsonObject body = response.get("Body").getAsJsonObject();
     JsonArray issues = body.get("QuickFixes").getAsJsonArray();
-    issues.forEach(i -> {
-      JsonObject issue = i.getAsJsonObject();
-      String ruleId = issue.get("Id").getAsString();
-      if (!ruleId.startsWith("S")) {
+    Diagnostic[] diagnostics = new Gson().fromJson(issues, Diagnostic[].class);
+    Stream.of(diagnostics).forEach(i -> {
+      if (!i.getId().startsWith("S")) {
         // Optimization: ignore some non SonarCS issues
         return;
       }
-      OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
-      diag.id = ruleId;
-      processLocation(issue, diag);
-
-      if (issue.has("AdditionalLocations")) {
-        List<OmnisharpDiagnosticLocation> additionalLocations = new ArrayList<>();
-        issue.get("AdditionalLocations").getAsJsonArray().forEach(additionalLocation -> {
-          OmnisharpDiagnosticLocation location = new OmnisharpDiagnosticLocation();
-          processLocation(additionalLocation.getAsJsonObject(), location);
-          additionalLocations.add(location);
-        });
-        diag.additionalLocations = additionalLocations.toArray(new OmnisharpDiagnosticLocation[0]);
-      }
-
-      issueHandler.accept(diag);
+      issueHandler.accept(i);
     });
-  }
-
-  private static void processLocation(JsonObject locationJsonContainer, OmnisharpDiagnosticLocation location) {
-    location.filename = locationJsonContainer.get(FILENAME_PROPERTY).getAsString();
-    location.line = locationJsonContainer.get("Line").getAsInt();
-    location.column = locationJsonContainer.get("Column").getAsInt();
-    location.endLine = locationJsonContainer.get("EndLine").getAsInt();
-    location.endColumn = locationJsonContainer.get("EndColumn").getAsInt();
-    location.text = getAsStringOrNull(locationJsonContainer.get("Text"));
   }
 
   @CheckForNull

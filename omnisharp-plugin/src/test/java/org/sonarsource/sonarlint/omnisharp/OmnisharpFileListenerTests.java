@@ -24,7 +24,8 @@ import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sonar.api.batch.fs.InputFile;
-import org.sonarsource.sonarlint.omnisharp.OmnisharpProtocol.FileChangeType;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChangeType;
 import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
 
 import static org.mockito.Mockito.mock;
@@ -37,13 +38,13 @@ class OmnisharpFileListenerTests {
 
   private OmnisharpFileListener underTest;
   private OmnisharpServer omnisharpServer;
-  private OmnisharpProtocol omnisharpProtocol;
+  private OmnisharpEndpoints omnisharpProtocol;
 
   @BeforeEach
   void prepare() throws IOException {
     omnisharpServer = mock(OmnisharpServer.class);
     when(omnisharpServer.isOmnisharpStarted()).thenReturn(true);
-    omnisharpProtocol = mock(OmnisharpProtocol.class);
+    omnisharpProtocol = mock(OmnisharpEndpoints.class);
     underTest = new OmnisharpFileListener(omnisharpServer, omnisharpProtocol);
   }
 
