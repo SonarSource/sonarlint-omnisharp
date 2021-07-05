@@ -43,7 +43,7 @@ import java.util.List;
 import org.sonar.api.config.PropertyDefinition;
 import org.sonar.api.resources.Qualifiers;
 
-import static org.sonarsource.sonarlint.omnisharp.CSharpPlugin.LANGUAGE_KEY;
+import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.LANGUAGE_KEY;
 
 public class CSharpPropertyDefinitions {
 
@@ -61,8 +61,8 @@ public class CSharpPropertyDefinitions {
         .build());
     result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
-        .category(CSharpPlugin.LANGUAGE_NAME)
-        .defaultValue(CSharpPlugin.FILE_SUFFIXES_DEFVALUE)
+        .category(OmnisharpPlugin.LANGUAGE_NAME)
+        .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
         .name("File suffixes")
         .description("Comma-separated list of suffixes of files to analyze.")
         .multiValues(true)

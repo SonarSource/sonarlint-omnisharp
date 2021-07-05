@@ -29,6 +29,11 @@
     </license>
   </licenses>
 
+  <modules>
+    <module>omnisharp-plugin</module>
+    <module>its</module>
+  </modules>
+
   <scm>
     <connection>scm:git:git@github.com:SonarSource/sonarlint-omnisharp.git</connection>
     <url>https://github.com/SonarSource/sonarlint-omnisharp</url>
@@ -40,11 +45,6 @@
     <junit.version>5.7.2</junit.version>
     <sonarlint-core.version>6.2.0.34235</sonarlint-core.version>
   </properties>
-
-  <modules>
-    <module>omnisharp-plugin</module>
-    <module>its</module>
-  </modules>
 
   <dependencyManagement>
     <dependencies>

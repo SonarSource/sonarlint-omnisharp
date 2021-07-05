@@ -43,23 +43,23 @@ import java.util.Objects;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.resources.AbstractLanguage;
 
-public class CSharp extends AbstractLanguage {
+public class CSharpLanguage extends AbstractLanguage {
 
   private final Configuration configuration;
 
-  public CSharp(Configuration configuration) {
-    super(CSharpPlugin.LANGUAGE_KEY, CSharpPlugin.LANGUAGE_NAME);
+  public CSharpLanguage(Configuration configuration) {
+    super(OmnisharpPlugin.LANGUAGE_KEY, OmnisharpPlugin.LANGUAGE_NAME);
     this.configuration = configuration;
   }
 
   @Override
   public String[] getFileSuffixes() {
-    return configuration.getStringArray(CSharpPlugin.FILE_SUFFIXES_KEY);
+    return configuration.getStringArray(OmnisharpPlugin.FILE_SUFFIXES_KEY);
   }
 
   @Override
   public boolean equals(Object o) {
-    return super.equals(o) && o instanceof CSharp && configuration == ((CSharp) o).configuration;
+    return super.equals(o) && o instanceof CSharpLanguage && configuration == ((CSharpLanguage) o).configuration;
   }
 
   @Override

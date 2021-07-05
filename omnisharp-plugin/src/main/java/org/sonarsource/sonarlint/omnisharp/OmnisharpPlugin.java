@@ -38,54 +38,39 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import java.io.File;
-import org.sonarsource.api.sonarlint.SonarLintSide;
+import org.sonar.api.Plugin;
+import org.sonar.api.SonarProduct;
+import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
-import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
-import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileListener;
 
-@SonarLintSide(lifespan = "MODULE")
-public class OmnisharpFileListener implements ModuleFileListener {
+public class OmnisharpPlugin implements Plugin {
 
-  private final OmnisharpEndpoints omnisharpEndpoints;
-  private final OmnisharpServer server;
+  static final String LANGUAGE_KEY = "cs";
+  static final String LANGUAGE_NAME = "C#";
 
-  public OmnisharpFileListener(OmnisharpServer server, OmnisharpEndpoints omnisharpEndpoints) {
-    this.server = server;
-    this.omnisharpEndpoints = omnisharpEndpoints;
-  }
+  static final String REPOSITORY_KEY = "csharpsquid";
+  static final String REPOSITORY_NAME = "SonarAnalyzer";
+  static final String PLUGIN_KEY = "csharp";
+
+  static final String FILE_SUFFIXES_KEY = AbstractPropertyDefinitions.getFileSuffixProperty(LANGUAGE_KEY);
+  static final String FILE_SUFFIXES_DEFVALUE = ".cs";
 
   @Override
-  public void process(ModuleFileEvent event) {
-    if (!server.isOmnisharpStarted()) {
-      return;
-    }
-    File file = event.getTarget().file();
-    switch (event.getType()) {
-      case CREATED:
-        if (file.getName().endsWith(".sln") || file.getName().endsWith(".csproj")) {
-          // Stop the server so that it is restarted during the next analysis and take into account changes to the solution, or added
-          // projects
-          server.stop();
-        } else {
-          omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.CREATE);
-        }
-        break;
-      case DELETED:
-        omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.DELETE);
-        break;
-      case MODIFIED:
-        if (file.getName().endsWith(".sln")) {
-          // Stop the server so that it is restarted during the next analysis and take into account changes to the solution
-          server.stop();
-        } else {
-          omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.CHANGE);
-        }
-        break;
-      default:
-        break;
+  public void define(Context context) {
+    if (context.getRuntime().getProduct() == SonarProduct.SONARLINT) {
+      context.addExtensions(
+        OmnisharpServer.class,
+        OmnisharpSensor.class,
+        OmnisharpEndpoints.class,
+        OmnisharpServicesExtractor.class,
+        OmnisharpFileListener.class);
     }
 
+    context.addExtensions(
+      CSharpLanguage.class,
+      CSharpSonarRulesDefinition.class);
+
+    context.addExtensions(new CSharpPropertyDefinitions().create());
   }
 
 }

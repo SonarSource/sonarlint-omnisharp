@@ -59,31 +59,34 @@ import org.sonar.api.rule.RuleKey;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.analyzer.commons.ProgressReport;
+import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
+import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 
 public class OmnisharpSensor implements Sensor {
 
   private static final Logger LOG = Loggers.get(OmnisharpSensor.class);
 
   private final OmnisharpServer server;
-  private final OmnisharpProtocol omnisharpProtocol;
+  private final OmnisharpEndpoints omnisharpEndpoints;
 
-  public OmnisharpSensor(OmnisharpServer server, OmnisharpProtocol omnisharpProtocol) {
+  public OmnisharpSensor(OmnisharpServer server, OmnisharpEndpoints omnisharpEndpoints) {
     this.server = server;
-    this.omnisharpProtocol = omnisharpProtocol;
+    this.omnisharpEndpoints = omnisharpEndpoints;
   }
 
   @Override
   public void describe(SensorDescriptor descriptor) {
     descriptor
       .name("OmniSharp")
-      .onlyOnLanguage(CSharpPlugin.LANGUAGE_KEY)
-      .createIssuesForRuleRepositories(CSharpPlugin.REPOSITORY_KEY)
+      .onlyOnLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .createIssuesForRuleRepositories(OmnisharpPlugin.REPOSITORY_KEY)
       .onlyWhenConfiguration(c -> c.hasKey(CSharpPropertyDefinitions.getOmnisharpLocation()));
   }
 
   @Override
   public void execute(SensorContext context) {
-    FilePredicate predicate = context.fileSystem().predicates().hasLanguage(CSharpPlugin.LANGUAGE_KEY);
+    FilePredicate predicate = context.fileSystem().predicates().hasLanguage(OmnisharpPlugin.LANGUAGE_KEY);
     if (!context.fileSystem().hasFiles(predicate)) {
       return;
     }
@@ -99,7 +102,7 @@ public class OmnisharpSensor implements Sensor {
     }
 
     JsonObject config = buildRulesConfig(context);
-    omnisharpProtocol.config(config);
+    omnisharpEndpoints.config(config);
 
     ProgressReport progressReport = new ProgressReport("Report about progress of OmniSharp analyzer", TimeUnit.SECONDS.toMillis(10));
     progressReport.start(StreamSupport.stream(context.fileSystem().inputFiles(predicate).spliterator(), false).map(InputFile::toString).collect(Collectors.toList()));
@@ -127,7 +130,7 @@ public class OmnisharpSensor implements Sensor {
   private static JsonObject buildRulesConfig(SensorContext context) {
     JsonObject config = new JsonObject();
     JsonArray rulesJson = new JsonArray();
-    for (ActiveRule activeRule : context.activeRules().findByRepository(CSharpPlugin.REPOSITORY_KEY)) {
+    for (ActiveRule activeRule : context.activeRules().findByRepository(OmnisharpPlugin.REPOSITORY_KEY)) {
       JsonObject ruleJson = new JsonObject();
       ruleJson.addProperty("ruleId", activeRule.ruleKey().rule());
       if (!activeRule.params().isEmpty()) {
@@ -150,25 +153,28 @@ public class OmnisharpSensor implements Sensor {
     } catch (IOException e) {
       throw new IllegalStateException("Unable to read file buffer", e);
     }
-    omnisharpProtocol.updateBuffer(f.file(), buffer);
-    omnisharpProtocol.codeCheck(f.file(), diag -> handle(context, f, diag));
+    omnisharpEndpoints.updateBuffer(f.file(), buffer);
+    omnisharpEndpoints.codeCheck(f.file(), diag -> handle(context, diag));
   }
 
-  private static void handle(SensorContext context, InputFile f, OmnisharpDiagnostic diag) {
-    RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, diag.id);
+  private static void handle(SensorContext context, Diagnostic diag) {
+    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, diag.getId());
     if (context.activeRules().find(ruleKey) != null) {
-      Path diagFilePath = Paths.get(diag.filename);
+      Path diagFilePath = Paths.get(diag.getFilename());
       InputFile diagInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(diagFilePath.toFile()));
       if (diagInputFile != null) {
         NewIssue newIssue = context.newIssue();
         newIssue
           .forRule(ruleKey)
           .at(createLocation(newIssue, diag, diagInputFile));
-        for (OmnisharpDiagnosticLocation additionalLocation : diag.additionalLocations) {
-          Path additionalFilePath = Paths.get(additionalLocation.filename);
-          InputFile additionalFilePathInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(additionalFilePath.toFile()));
-          if (additionalFilePathInputFile != null) {
-            newIssue.addLocation(createLocation(newIssue, additionalLocation, additionalFilePathInputFile));
+        DiagnosticLocation[] additionalLocations = diag.getAdditionalLocations();
+        if (additionalLocations != null) {
+          for (DiagnosticLocation additionalLocation : additionalLocations) {
+            Path additionalFilePath = Paths.get(additionalLocation.getFilename());
+            InputFile additionalFilePathInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(additionalFilePath.toFile()));
+            if (additionalFilePathInputFile != null) {
+              newIssue.addLocation(createLocation(newIssue, additionalLocation, additionalFilePathInputFile));
+            }
           }
         }
         newIssue.save();
@@ -176,11 +182,11 @@ public class OmnisharpSensor implements Sensor {
     }
   }
 
-  private static NewIssueLocation createLocation(NewIssue newIssue, OmnisharpDiagnosticLocation location, InputFile inputFile) {
+  private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
     return newIssue.newLocation()
       .on(inputFile)
-      .at(inputFile.newRange(location.line, location.column - 1, location.endLine, location.endColumn - 1))
-      .message(location.text);
+      .at(inputFile.newRange(location.getLine(), location.getColumn() - 1, location.getEndLine(), location.getEndColumn() - 1))
+      .message(location.getText());
   }
 
 }

@@ -56,10 +56,10 @@ import org.sonar.api.server.rule.RulesDefinitionXmlLoader;
 import org.sonarsource.analyzer.commons.BuiltInQualityProfileJsonLoader;
 import org.sonarsource.dotnet.shared.plugins.AbstractRulesDefinition;
 
-import static org.sonarsource.sonarlint.omnisharp.CSharpPlugin.LANGUAGE_KEY;
-import static org.sonarsource.sonarlint.omnisharp.CSharpPlugin.PLUGIN_KEY;
-import static org.sonarsource.sonarlint.omnisharp.CSharpPlugin.REPOSITORY_KEY;
-import static org.sonarsource.sonarlint.omnisharp.CSharpPlugin.REPOSITORY_NAME;
+import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.LANGUAGE_KEY;
+import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.PLUGIN_KEY;
+import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.REPOSITORY_KEY;
+import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.REPOSITORY_NAME;
 
 @ScannerSide
 public class CSharpSonarRulesDefinition implements RulesDefinition {

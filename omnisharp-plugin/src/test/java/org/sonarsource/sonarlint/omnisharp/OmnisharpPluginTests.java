@@ -28,14 +28,14 @@ import org.sonar.api.utils.Version;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CSharpPluginTests {
+class OmnisharpPluginTests {
 
   @Test
   void getExtensions() {
     SonarRuntime sonarRuntime = SonarRuntimeImpl.forSonarLint(Version.create(7, 9));
 
     Plugin.Context context = new Plugin.Context(sonarRuntime);
-    new CSharpPlugin().define(context);
+    new OmnisharpPlugin().define(context);
 
     List<?> extensions = context.getExtensions();
 

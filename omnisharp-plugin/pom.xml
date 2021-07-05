@@ -191,7 +191,7 @@
         <configuration>
           <pluginName>C# Code Quality and Security (Omnisharp)</pluginName>
           <pluginKey>csharp</pluginKey>
-          <pluginClass>org.sonarsource.sonarlint.omnisharp.CSharpPlugin</pluginClass>
+          <pluginClass>org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin</pluginClass>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <sonarLintSupported>true</sonarLintSupported>
           <sonarQubeMinVersion>${sonarLTS.version}</sonarQubeMinVersion> <!-- runtime minimal API version -->

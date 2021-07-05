@@ -28,17 +28,17 @@ import org.sonar.api.utils.System2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CSharpTests {
+class CSharpLanguageTests {
 
   private MapSettings settings;
-  private CSharp csharp;
+  private CSharpLanguage csharp;
 
   @BeforeEach
   public void init() {
     PropertyDefinitions defs = new PropertyDefinitions(System2.INSTANCE,
       new CSharpPropertyDefinitions().create());
     settings = new MapSettings(defs);
-    csharp = new CSharp(settings.asConfig());
+    csharp = new CSharpLanguage(settings.asConfig());
   }
 
   @Test
@@ -48,7 +48,7 @@ class CSharpTests {
 
   @Test
   void shouldGetCustomFileSuffixes() {
-    settings.setProperty(CSharpPlugin.FILE_SUFFIXES_KEY, ".cs,.csharp");
+    settings.setProperty(OmnisharpPlugin.FILE_SUFFIXES_KEY, ".cs,.csharp");
     assertThat(csharp.getFileSuffixes()).containsOnly(".cs", ".csharp");
   }
 
@@ -56,8 +56,8 @@ class CSharpTests {
   void equals_and_hashCode_considers_configuration() {
     MapSettings otherSettings = new MapSettings();
     otherSettings.setProperty("key", "value");
-    CSharp otherCSharp = new CSharp(otherSettings.asConfig());
-    CSharp sameCSharp = new CSharp(settings.asConfig());
+    CSharpLanguage otherCSharp = new CSharpLanguage(otherSettings.asConfig());
+    CSharpLanguage sameCSharp = new CSharpLanguage(settings.asConfig());
     FakeCSharp fakeCSharp = new FakeCSharp();
 
     assertThat(csharp).isEqualTo(sameCSharp)
@@ -71,7 +71,7 @@ class CSharpTests {
   private class FakeCSharp extends AbstractLanguage {
 
     public FakeCSharp() {
-      super(CSharpPlugin.LANGUAGE_KEY, CSharpPlugin.LANGUAGE_NAME);
+      super(OmnisharpPlugin.LANGUAGE_KEY, OmnisharpPlugin.LANGUAGE_NAME);
     }
 
     @Override

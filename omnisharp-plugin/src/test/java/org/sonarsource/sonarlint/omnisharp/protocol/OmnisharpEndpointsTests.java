@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.sonarlint.omnisharp;
+package org.sonarsource.sonarlint.omnisharp.protocol;
 
 import com.google.gson.JsonObject;
 import java.io.BufferedReader;
@@ -40,7 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
-import org.sonarsource.sonarlint.omnisharp.OmnisharpProtocol.FileChangeType;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChangeType;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -49,12 +49,12 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class OmnisharpProtocolTests {
+class OmnisharpEndpointsTests {
 
   @RegisterExtension
   LogTesterJUnit5 logTester = new LogTesterJUnit5();
 
-  private OmnisharpProtocol underTest;
+  private OmnisharpEndpoints underTest;
   private CountDownLatch startLatch;
   private CountDownLatch firstUpdateLatch;
   private LogOutputStream logOutputStream;
@@ -65,7 +65,7 @@ class OmnisharpProtocolTests {
 
   @BeforeEach
   void prepare() throws IOException {
-    underTest = new OmnisharpProtocol();
+    underTest = new OmnisharpEndpoints();
 
     startLatch = new CountDownLatch(1);
     firstUpdateLatch = new CountDownLatch(1);
@@ -170,7 +170,7 @@ class OmnisharpProtocolTests {
 
   @Test
   void codeCheckReturnsEmpty() throws Exception {
-    List<OmnisharpDiagnostic> issues = new ArrayList<>();
+    List<Diagnostic> issues = new ArrayList<>();
     File f = new File("Foo.cs");
 
     doCodeCheck(f, issues, "\"Body\": {"
@@ -182,7 +182,7 @@ class OmnisharpProtocolTests {
 
   @Test
   void codeCheck() throws Exception {
-    List<OmnisharpDiagnostic> issues = new ArrayList<>();
+    List<Diagnostic> issues = new ArrayList<>();
     File f = new File("Foo.cs");
 
     doCodeCheck(f, issues, "\"Body\": {"
@@ -259,11 +259,15 @@ class OmnisharpProtocolTests {
       + "    ]"
       + "  }");
 
-    assertThat(issues).extracting(o -> o.id, o -> o.line, o -> o.column, o -> o.endLine, o -> o.endColumn, o -> o.text)
+    assertThat(issues)
+      .extracting(Diagnostic::getId, Diagnostic::getLine, Diagnostic::getColumn, Diagnostic::getEndLine, Diagnostic::getEndColumn,
+        Diagnostic::getText)
       .containsOnly(tuple("S1118", 5, 11, 5, 18, "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("S3776", 7, 21, 7, 25, "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed."));
 
-    assertThat(issues.get(1).additionalLocations).extracting(l -> l.line, l -> l.column, l -> l.endLine, l -> l.endColumn, l -> l.text)
+    assertThat(issues.get(1).getAdditionalLocations())
+      .extracting(DiagnosticLocation::getLine, DiagnosticLocation::getColumn, DiagnosticLocation::getEndLine, DiagnosticLocation::getEndColumn,
+        DiagnosticLocation::getText)
       .containsOnly(
         tuple(16, 25, 16, 30, "+4 (incl 3 for nesting)"),
         tuple(18, 29, 18, 34, null),
@@ -309,7 +313,7 @@ class OmnisharpProtocolTests {
     assertThat(t.isAlive()).isFalse();
   }
 
-  private void doCodeCheck(File f, List<OmnisharpDiagnostic> issues, String jsonBody) throws IOException, InterruptedException {
+  private void doCodeCheck(File f, List<Diagnostic> issues, String jsonBody) throws IOException, InterruptedException {
     // codeCheck is blocking, so run it in a separate Thread
     Thread t = new Thread(() -> {
       underTest.codeCheck(f, i -> issues.add(i));

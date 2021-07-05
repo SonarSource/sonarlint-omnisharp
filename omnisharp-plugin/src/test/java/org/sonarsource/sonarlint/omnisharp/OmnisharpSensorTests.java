@@ -36,6 +36,9 @@ import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.batch.sensor.issue.Issue;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.rule.RuleKey;
+import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
+import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -51,7 +54,7 @@ import static org.mockito.Mockito.when;
 class OmnisharpSensorTests {
 
   private final OmnisharpServer mockServer = mock(OmnisharpServer.class);
-  private final OmnisharpProtocol mockProtocol = mock(OmnisharpProtocol.class);
+  private final OmnisharpEndpoints mockProtocol = mock(OmnisharpEndpoints.class);
   private OmnisharpSensor underTest;
   private Path baseDir;
 
@@ -68,8 +71,8 @@ class OmnisharpSensorTests {
     underTest.describe(descriptor);
 
     assertThat(descriptor.name()).isEqualTo("OmniSharp");
-    assertThat(descriptor.languages()).containsOnly(CSharpPlugin.LANGUAGE_KEY);
-    assertThat(descriptor.ruleRepositories()).containsOnly(CSharpPlugin.REPOSITORY_KEY);
+    assertThat(descriptor.languages()).containsOnly(OmnisharpPlugin.LANGUAGE_KEY);
+    assertThat(descriptor.ruleRepositories()).containsOnly(OmnisharpPlugin.REPOSITORY_KEY);
 
     Configuration configWithProp = mock(Configuration.class);
     when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpLocation())).thenReturn(true);
@@ -99,7 +102,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -121,9 +124,9 @@ class OmnisharpSensorTests {
       // Rule from another repo, should be ignored
       .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of("foo", "bar")).build())
       // Rule without params
-      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S123")).build())
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S123")).build())
       // Rule with params
-      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S456")).setParam("param1", "val1").setParam("param2", "val2").build())
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S456")).setParam("param1", "val1").setParam("param2", "val2").build())
       .build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -132,7 +135,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -154,7 +157,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -176,21 +179,21 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
 
-    ArgumentCaptor<Consumer<OmnisharpDiagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
 
     underTest.execute(sensorContext);
 
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
 
-    Consumer<OmnisharpDiagnostic> issueConsummer = captor.getValue();
+    Consumer<Diagnostic> issueConsummer = captor.getValue();
 
-    OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
-    diag.id = "SA12345";
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getId()).thenReturn("SA12345");
 
     issueConsummer.accept(diag);
 
@@ -201,7 +204,7 @@ class OmnisharpSensorTests {
   void reportIssueForActiveRules() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
 
-    RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -210,28 +213,28 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
     sensorContext.fileSystem().add(file);
 
-    ArgumentCaptor<Consumer<OmnisharpDiagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
 
     underTest.execute(sensorContext);
 
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
 
-    Consumer<OmnisharpDiagnostic> issueConsummer = captor.getValue();
+    Consumer<Diagnostic> issueConsummer = captor.getValue();
 
-    OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
-    diag.filename = filePath.toString();
-    diag.id = "S12345";
-    diag.line = 1;
-    diag.column = 1;
-    diag.endLine = 1;
-    diag.endColumn = 5;
-    diag.text = "Don't do this";
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
 
     issueConsummer.accept(diag);
 
@@ -247,7 +250,7 @@ class OmnisharpSensorTests {
   void ignoreIssuesOnOtherFiles() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
 
-    RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -257,28 +260,28 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
     sensorContext.fileSystem().add(file);
 
-    ArgumentCaptor<Consumer<OmnisharpDiagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
 
     underTest.execute(sensorContext);
 
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
 
-    Consumer<OmnisharpDiagnostic> issueConsummer = captor.getValue();
+    Consumer<Diagnostic> issueConsummer = captor.getValue();
 
-    OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
-    diag.filename = anotherFilePath.toString();
-    diag.id = "S12345";
-    diag.line = 1;
-    diag.column = 1;
-    diag.endLine = 1;
-    diag.endColumn = 5;
-    diag.text = "Don't do this";
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(anotherFilePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
 
     issueConsummer.accept(diag);
 
@@ -289,7 +292,7 @@ class OmnisharpSensorTests {
   void processSecondaryLocations() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
 
-    RuleKey ruleKey = RuleKey.of(CSharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -299,54 +302,54 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(CSharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
     sensorContext.fileSystem().add(file);
 
-    ArgumentCaptor<Consumer<OmnisharpDiagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
 
     underTest.execute(sensorContext);
 
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
 
-    Consumer<OmnisharpDiagnostic> issueConsummer = captor.getValue();
+    Consumer<Diagnostic> issueConsummer = captor.getValue();
 
-    OmnisharpDiagnostic diag = new OmnisharpDiagnostic();
-    diag.filename = filePath.toString();
-    diag.id = "S12345";
-    diag.line = 1;
-    diag.column = 1;
-    diag.endLine = 1;
-    diag.endColumn = 5;
-    diag.text = "Don't do this";
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
 
-    OmnisharpDiagnosticLocation secondary1 = new OmnisharpDiagnosticLocation();
-    secondary1.filename = filePath.toString();
-    secondary1.line = 2;
-    secondary1.column = 3;
-    secondary1.endLine = 2;
-    secondary1.endColumn = 5;
-    secondary1.text = "Secondary 1";
+    DiagnosticLocation secondary1 = mock(DiagnosticLocation.class);
+    when(secondary1.getFilename()).thenReturn(filePath.toString());
+    when(secondary1.getLine()).thenReturn(2);
+    when(secondary1.getColumn()).thenReturn(3);
+    when(secondary1.getEndLine()).thenReturn(2);
+    when(secondary1.getEndColumn()).thenReturn(5);
+    when(secondary1.getText()).thenReturn("Secondary 1");
 
-    OmnisharpDiagnosticLocation secondary2 = new OmnisharpDiagnosticLocation();
-    secondary2.filename = filePath.toString();
-    secondary2.line = 2;
-    secondary2.column = 8;
-    secondary2.endLine = 2;
-    secondary2.endColumn = 10;
-    secondary2.text = "Secondary 2";
+    DiagnosticLocation secondary2 = mock(DiagnosticLocation.class);
+    when(secondary2.getFilename()).thenReturn(filePath.toString());
+    when(secondary2.getLine()).thenReturn(2);
+    when(secondary2.getColumn()).thenReturn(8);
+    when(secondary2.getEndLine()).thenReturn(2);
+    when(secondary2.getEndColumn()).thenReturn(10);
+    when(secondary2.getText()).thenReturn("Secondary 2");
 
-    OmnisharpDiagnosticLocation secondaryOnAnotherFile = new OmnisharpDiagnosticLocation();
-    secondaryOnAnotherFile.filename = anotherFilePath.toString();
-    secondaryOnAnotherFile.line = 2;
-    secondaryOnAnotherFile.column = 8;
-    secondaryOnAnotherFile.endLine = 2;
-    secondaryOnAnotherFile.endColumn = 10;
-    secondaryOnAnotherFile.text = "Another file";
+    DiagnosticLocation secondaryOnAnotherFile = mock(DiagnosticLocation.class);
+    when(secondaryOnAnotherFile.getFilename()).thenReturn(anotherFilePath.toString());
+    when(secondaryOnAnotherFile.getLine()).thenReturn(2);
+    when(secondaryOnAnotherFile.getColumn()).thenReturn(8);
+    when(secondaryOnAnotherFile.getEndLine()).thenReturn(2);
+    when(secondaryOnAnotherFile.getEndColumn()).thenReturn(10);
+    when(secondaryOnAnotherFile.getText()).thenReturn("Another file");
 
-    diag.additionalLocations = new OmnisharpDiagnosticLocation[] {secondary1, secondary2, secondaryOnAnotherFile};
+    when(diag.getAdditionalLocations()).thenReturn(new DiagnosticLocation[] {secondary1, secondary2, secondaryOnAnotherFile});
 
     issueConsummer.accept(diag);
 
