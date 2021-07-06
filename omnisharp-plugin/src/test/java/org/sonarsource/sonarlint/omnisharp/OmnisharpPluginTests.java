@@ -39,7 +39,7 @@ class OmnisharpPluginTests {
 
     List<?> extensions = context.getExtensions();
 
-    assertThat(extensions).hasSize(10);
+    assertThat(extensions).hasSize(11);
   }
 
 }

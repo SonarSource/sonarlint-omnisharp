@@ -20,34 +20,33 @@
 package org.sonarsource.sonarlint.omnisharp.protocol;
 
 import com.google.gson.JsonObject;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
+import org.sonarsource.sonarlint.omnisharp.OmnisharpServer;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChangeType;
-import org.zeroturnaround.exec.stream.LogOutputStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class OmnisharpEndpointsTests {
 
@@ -57,38 +56,33 @@ class OmnisharpEndpointsTests {
   private OmnisharpEndpoints underTest;
   private CountDownLatch startLatch;
   private CountDownLatch firstUpdateLatch;
-  private LogOutputStream logOutputStream;
 
-  private PipedOutputStream output;
-  private PipedInputStream input;
-  private BufferedReader requestReader;
+  private OmnisharpServer omnisharpServer;
+
+  private final List<String> requests = new ArrayList<>();
+
+  private OmnisharpResponseProcessor responseProcessor;
 
   @BeforeEach
   void prepare() throws IOException {
-    underTest = new OmnisharpEndpoints();
+    requests.clear();
+    responseProcessor = new OmnisharpResponseProcessor();
+    underTest = new OmnisharpEndpoints(responseProcessor);
 
     startLatch = new CountDownLatch(1);
     firstUpdateLatch = new CountDownLatch(1);
-    logOutputStream = underTest.buildOutputStreamHandler(startLatch, firstUpdateLatch);
 
-    output = new PipedOutputStream();
-    input = new PipedInputStream(output);
-    requestReader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+    omnisharpServer = mock(OmnisharpServer.class);
+    underTest.setServer(omnisharpServer);
 
-    underTest.setOmnisharpProcessStdIn(output);
-  }
+    doAnswer(new Answer<Boolean>() {
 
-  @AfterEach
-  void cleanup() throws IOException {
-    requestReader.close();
-  }
-
-  @Test
-  void logWarningIfTryingToUseProtocolWhenProcessInNotSet() {
-    underTest.setOmnisharpProcessStdIn(null);
-    JsonObject config = new JsonObject();
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.config(config));
-    assertThat(thrown).hasMessage("Unable to write request, server stdin is null");
+      @Override
+      public Boolean answer(InvocationOnMock invocation) throws Throwable {
+        requests.add(invocation.getArgument(0));
+        return true;
+      }
+    }).when(omnisharpServer).writeRequestOnStdIn(anyString());
   }
 
   @ParameterizedTest
@@ -145,7 +139,7 @@ class OmnisharpEndpointsTests {
   void stopServer() throws Exception {
     underTest.stopServer();
 
-    assertThat(requestReader.readLine()).isEqualTo("{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/stopserver\"}");
+    assertThat(requests).containsExactly("{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/stopserver\"}");
   }
 
   @Test
@@ -158,7 +152,7 @@ class OmnisharpEndpointsTests {
     });
     t.start();
 
-    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).containsExactly(
       "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/updatebuffer\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\",\"Buffer\":\"Some content\"}}"));
 
     emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
@@ -284,7 +278,7 @@ class OmnisharpEndpointsTests {
     });
     t.start();
 
-    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).containsExactly(
       "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/sonarlint/config\",\"Arguments\":{\"foo\":\"bar\"}}"));
 
     emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
@@ -303,7 +297,7 @@ class OmnisharpEndpointsTests {
     });
     t.start();
 
-    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).containsExactly(
       "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/filesChanged\",\"Arguments\":[{\"FileName\":\"" + toJsonAbsolutePath(f) + "\",\"changeType\":\"Change\"}]}"));
 
     emulateReceivedMessage("{\"Type\": \"response\", \"Request_seq\": 1}");
@@ -313,6 +307,13 @@ class OmnisharpEndpointsTests {
     assertThat(t.isAlive()).isFalse();
   }
 
+  @Test
+  void failEarlyIfUnableToWriteRequestToServer() throws Exception {
+    when(omnisharpServer.writeRequestOnStdIn(anyString())).thenReturn(false);
+    JsonObject jsonObject = new JsonObject();
+    assertThrows(IllegalStateException.class, () -> underTest.config(jsonObject));
+  }
+
   private void doCodeCheck(File f, List<Diagnostic> issues, String jsonBody) throws IOException, InterruptedException {
     // codeCheck is blocking, so run it in a separate Thread
     Thread t = new Thread(() -> {
@@ -320,7 +321,7 @@ class OmnisharpEndpointsTests {
     });
     t.start();
 
-    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requestReader.readLine()).isEqualTo(
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).containsExactly(
       "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/sonarlint/codecheck\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\"}}"));
 
     emulateReceivedMessage("{"
@@ -343,7 +344,7 @@ class OmnisharpEndpointsTests {
   }
 
   private void emulateReceivedMessage(String msg) throws IOException {
-    IOUtils.write(msg + "\n", logOutputStream, StandardCharsets.UTF_8);
+    responseProcessor.handleOmnisharpOutput(startLatch, firstUpdateLatch, msg);
   }
 
 }

@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -66,6 +67,7 @@ import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 import org.zeroturnaround.exec.InvalidExitValueException;
 import org.zeroturnaround.exec.ProcessExecutor;
@@ -105,19 +107,22 @@ public class OmnisharpServer implements Startable {
 
   private StartedProcess process;
 
+  private final OmnisharpResponseProcessor omnisharpResponseProcessor;
+
   public OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
-    SonarLintRuntime sonarLintRuntime) {
-    this(system2, servicesExtractor, config, omnisharpEndpoints, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", sonarLintRuntime);
+    OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime) {
+    this(system2, servicesExtractor, config, omnisharpEndpoints, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", omnisharpResponseProcessor, sonarLintRuntime);
   }
 
   // For testing
   OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints, Path pathHelperLocationOnMac,
-    String omnisharpExeWin,
-    SonarLintRuntime sonarLintRuntime) {
+    String omnisharpExeWin, OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime) {
     this.system2 = system2;
     this.servicesExtractor = servicesExtractor;
     this.config = config;
     this.omnisharpEndpoints = omnisharpEndpoints;
+    this.omnisharpResponseProcessor = omnisharpResponseProcessor;
+    omnisharpEndpoints.setServer(this);
     this.pathHelperLocationOnMac = pathHelperLocationOnMac;
     this.omnisharpExeWin = omnisharpExeWin;
     this.sonarLintRuntime = sonarLintRuntime;
@@ -159,9 +164,14 @@ public class OmnisharpServer implements Startable {
     pipeInput = new PipedInputStream();
     output = new PipedOutputStream(pipeInput);
 
-    processExecutor.redirectOutput(omnisharpEndpoints.buildOutputStreamHandler(startLatch, firstUpdateProjectLatch))
+    processExecutor
+      .redirectOutput(new LogOutputStream() {
+        @Override
+        protected void processLine(String line) {
+          omnisharpResponseProcessor.handleOmnisharpOutput(startLatch, firstUpdateProjectLatch, line);
+        }
+      })
       .redirectError(new LogOutputStream() {
-
         @Override
         protected void processLine(String line) {
           LOG.error(line);
@@ -191,8 +201,6 @@ public class OmnisharpServer implements Startable {
     LOG.info("Solution/project configuration loaded");
 
     omnisharpStarted = true;
-
-    omnisharpEndpoints.setOmnisharpProcessStdIn(output);
   }
 
   private String buildPathEnv(@Nullable Path dotnetCliPath) {
@@ -283,7 +291,6 @@ public class OmnisharpServer implements Startable {
     if (omnisharpStarted) {
       LOG.info("Stopping OmniSharp");
       omnisharpEndpoints.stopServer();
-      omnisharpEndpoints.setOmnisharpProcessStdIn(null);
     }
     closeStreams();
     // Don't wait for process to end on Linux, because it takes too long
@@ -325,6 +332,21 @@ public class OmnisharpServer implements Startable {
       } catch (IOException e) {
         LOG.error("Unable to close", e);
       }
+    }
+  }
+
+  public synchronized boolean writeRequestOnStdIn(String str) {
+    if (!omnisharpStarted) {
+      LOG.debug("Server stopped, ignoring request");
+      return false;
+    }
+    try {
+      output.write(str.getBytes(StandardCharsets.UTF_8));
+      output.write("\n".getBytes(StandardCharsets.UTF_8));
+      output.flush();
+      return true;
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to write in Omnisharp stdin", e);
     }
   }
 
