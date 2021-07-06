@@ -1,6 +1,3 @@
-trigger:
-- main
-
 pool:
   vmImage: 'ubuntu-latest'
 
@@ -14,12 +11,7 @@ pr:
     - dp/*
 
 trigger:
-  branches:
-    exclude:
-    - branch-dotnet
-    - rg/*
-    - dp/*
-
+- main
 
 variables:
   - group: sonarsource-build-variables
