@@ -125,7 +125,7 @@ class OmnisharpServerTests {
   void processTerminatesBeforeReachingStartState() throws Exception {
     mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
 
-    mockOmnisharpRun("echo Foo", "echo \"Foo\"");
+    mockOmnisharpRun("echo Foo", "@echo off\necho Foo");
 
     underTest.start();
 
