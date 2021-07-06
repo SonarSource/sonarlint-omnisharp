@@ -28,7 +28,7 @@ The Azure pipeline builds, tests and packages both components.
 Use the following commands to build locally:
 
 .NET solution:
-`dotnet omnisharp-dotnet\SonarLint.OmniSharp.DotNet.Services.sln`
+`dotnet build omnisharp-dotnet\SonarLint.OmniSharp.DotNet.Services.sln`
 
 Java plugin:
 `mvn clean verify`
