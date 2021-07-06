@@ -125,7 +125,7 @@ stages:
               inputs:
                 source: current
                 artifact: DotNetJarContentFiles
-                path: $(Pipeline.Workspace)/DotNetJarContentFiles
+                path: omnisharp-dotnet/JarContentFiles
             - task: DownloadSecureFile@1
               displayName: 'Download Maven settings'
               name: mavenSettings
@@ -178,6 +178,7 @@ stages:
       burgrType: 'validate'
       stageName: 'validate'
       stageDisplayName: Run UTs and trigger SonarQube analysis
+      stageDependencies: build_dotnet
       jobs:
         - job: test_windows
           displayName: Run unit tests on Windows
@@ -194,6 +195,12 @@ stages:
                 key: 'validate_win | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
                 path: $(MAVEN_CACHE_FOLDER)
               displayName: Cache Maven local repo
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Download .NET artifacts'
+              inputs:
+                source: current
+                artifact: DotNetJarContentFiles
+                path: omnisharp-dotnet/JarContentFiles
             - task: DownloadSecureFile@1
               displayName: 'Download Maven settings'
               name: mavenSettings
@@ -228,6 +235,12 @@ stages:
                 key: 'validate_linux | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
                 path: $(MAVEN_CACHE_FOLDER)
               displayName: Cache Maven local repo
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Download .NET artifacts'
+              inputs:
+                source: current
+                artifact: DotNetJarContentFiles
+                path: omnisharp-dotnet/JarContentFiles
             - task: DownloadSecureFile@1
               displayName: 'Download Maven settings'
               name: mavenSettings
@@ -258,6 +271,12 @@ stages:
                 key: 'sq | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
                 path: $(MAVEN_CACHE_FOLDER)
               displayName: Cache Maven local repo
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Download .NET artifacts'
+              inputs:
+                source: current
+                artifact: DotNetJarContentFiles
+                path: omnisharp-dotnet/JarContentFiles
             - task: DownloadSecureFile@1
               displayName: 'Download Maven settings'
               name: mavenSettings

@@ -21,8 +21,8 @@
     <sonar.version>8.9.0.43852</sonar.version>
     <sonarLTS.version>7.9</sonarLTS.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <sonarAnalyzer.workDirectory>${project.build.directory}/analyzer</sonarAnalyzer.workDirectory>
-    <documentationDirectory>${project.basedir}/src/main/resources</documentationDirectory>
+    <sonarAnalyzer.directory>${project.build.directory}/analyzer</sonarAnalyzer.directory>
+    <servicesDll.directory>${project.build.directory}/services</servicesDll.directory>
   </properties>
 
   <dependencies>
@@ -180,7 +180,10 @@
         </excludes>
       </resource>
       <resource>
-        <directory>${sonarAnalyzer.workDirectory}</directory>
+        <directory>${sonarAnalyzer.directory}</directory>
+      </resource>
+      <resource>
+        <directory>${servicesDll.directory}</directory>
       </resource>
     </resources>
 
@@ -230,7 +233,7 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
-            <id>download-artifacts</id>
+            <id>download-analyzer</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>unpack</goal>
@@ -245,7 +248,7 @@
                 </artifactItem>
               </artifactItems>
               <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.xml,**/org/sonar/plugins/csharp/*.json</includes>
-              <outputDirectory>${sonarAnalyzer.workDirectory}</outputDirectory>
+              <outputDirectory>${sonarAnalyzer.directory}</outputDirectory>
             </configuration>
           </execution>
         </executions>
@@ -268,7 +271,7 @@
                 import java.nio.file.Path
                 import java.nio.file.Paths
 
-                Path path = Paths.get(properties['sonarAnalyzer.workDirectory'] + '/org/sonar/plugins/csharp/rules.xml')
+                Path path = Paths.get(properties['sonarAnalyzer.directory'] + '/org/sonar/plugins/csharp/rules.xml')
                 byte[] bytes = Files.readAllBytes(path);
                 ByteBuffer bb = ByteBuffer.wrap(bytes);
                 byte[] bom = new byte[3];
@@ -281,6 +284,27 @@
                 ]]>
               </source>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-omnisharp-services-dll</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${servicesDll.directory}</outputDirectory>
+              <resources>          
+                <resource>
+                  <directory>../omnisharp-dotnet/JarContentFiles</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>              
+            </configuration>            
           </execution>
         </executions>
       </plugin>
