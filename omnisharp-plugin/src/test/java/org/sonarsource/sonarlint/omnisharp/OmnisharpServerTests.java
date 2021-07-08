@@ -27,8 +27,10 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Clock;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import org.apache.commons.lang.SystemUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -37,6 +39,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.utils.System2;
+import org.sonar.api.utils.command.Command;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
@@ -78,24 +81,28 @@ class OmnisharpServerTests {
     OmnisharpServicesExtractor servicesExtractor = mock(OmnisharpServicesExtractor.class);
     when(servicesExtractor.getOmnisharpServicesDllPath()).thenReturn(tmpDir.resolve("fake/services.dll"));
     responseProcessor = mock(OmnisharpResponseProcessor.class);
-    underTest = new OmnisharpServer(System2.INSTANCE, servicesExtractor, mapSettings.asConfig(), endpoints, Paths.get("/usr/libexec/path_helper"), "run.bat",
+    underTest = new OmnisharpServer(System2.INSTANCE, Clock.systemUTC(), servicesExtractor, mapSettings.asConfig(), endpoints, Paths.get("/usr/libexec/path_helper"), "run.bat",
       responseProcessor, runtime);
   }
 
   @Test
   void testSimpleCommandNoOutput() {
-    assertThat(OmnisharpServer.runSimpleCommand("echo")).isNull();
+    if (SystemUtils.IS_OS_WINDOWS) {
+      assertThat(OmnisharpServer.runSimpleCommand(Command.create("echo >NUL"))).isNull();
+    } else {
+      assertThat(OmnisharpServer.runSimpleCommand(Command.create("echo > /dev/null"))).isNull();
+    }
   }
 
   @Test
   void testSimpleCommand() {
-    assertThat(OmnisharpServer.runSimpleCommand("echo", "Hello World!")).isEqualTo("Hello World!");
+    assertThat(OmnisharpServer.runSimpleCommand(Command.create("echo").addArgument("Hello World!"))).isEqualTo("Hello World!");
   }
 
   @Test
   void testSimpleCommandError() {
-    assertThat(OmnisharpServer.runSimpleCommand("doesnt_exists")).isNull();
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Unable to execute command");
+    assertThat(OmnisharpServer.runSimpleCommand(Command.create("doesnt_exists"))).isNull();
+    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Unable to execute command: doesnt_exists");
   }
 
   @Test
