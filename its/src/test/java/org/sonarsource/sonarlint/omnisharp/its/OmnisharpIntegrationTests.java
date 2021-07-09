@@ -44,8 +44,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.client.api.common.ClientModuleFileEvent;
@@ -143,7 +141,6 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  @DisabledOnOs(value = OS.MAC, disabledReason = "No issues reported on transient file")
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
@@ -192,6 +189,11 @@ class OmnisharpIntegrationTests {
         + "    }\n"
         + "}",
       false);
+
+    sonarlintEngine.fireModuleFileEvent(SOLUTION1_MODULE_KEY, ClientModuleFileEvent.of(newInputFile, ModuleFileEvent.Type.CREATED));
+
+    // Give time for Omnisharp to process the file event
+    Thread.sleep(1000);
 
     issues.clear();
     StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
