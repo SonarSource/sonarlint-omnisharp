@@ -109,22 +109,25 @@ public class OmnisharpServer implements Startable {
 
   private final Clock clock;
 
+  private final Duration serverStartupMaxWait;
+
   public OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
     OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime) {
     this(system2, Clock.systemDefaultZone(), servicesExtractor, config, omnisharpEndpoints, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", omnisharpResponseProcessor,
-      sonarLintRuntime);
+      sonarLintRuntime, SERVER_STARTUP_MAX_WAIT);
   }
 
   // For testing
   OmnisharpServer(System2 system2, Clock clock, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
     Path pathHelperLocationOnMac,
-    String omnisharpExeWin, OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime) {
+    String omnisharpExeWin, OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime, Duration serverStartupMaxWait) {
     this.system2 = system2;
     this.clock = clock;
     this.servicesExtractor = servicesExtractor;
     this.config = config;
     this.omnisharpEndpoints = omnisharpEndpoints;
     this.omnisharpResponseProcessor = omnisharpResponseProcessor;
+    this.serverStartupMaxWait = serverStartupMaxWait;
     omnisharpEndpoints.setServer(this);
     this.pathHelperLocationOnMac = pathHelperLocationOnMac;
     this.omnisharpExeWin = omnisharpExeWin;
@@ -135,7 +138,7 @@ public class OmnisharpServer implements Startable {
     checkAlive();
     if (omnisharpStarted) {
       if (!Objects.equals(cachedProjectBaseDir, projectBaseDir) || !Objects.equals(cachedDotnetCliPath, dotnetCliPath)) {
-        LOG.info("Using a different project basedir or dotnet CLI path, OmniSharp have to be restarted");
+        LOG.info("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
         stop();
       } else {
         return;
@@ -149,7 +152,7 @@ public class OmnisharpServer implements Startable {
   }
 
   private synchronized void checkAlive() {
-    if (omnisharpStarted && !startedProcess.isAlive()) {
+    if (omnisharpStarted && startedProcess != null && !startedProcess.isAlive()) {
       cleanResources();
     }
   }
@@ -172,11 +175,11 @@ public class OmnisharpServer implements Startable {
     output = startedProcess.getOutputStream();
 
     Instant start = clock.instant();
-    while (startedProcess.isAlive() && Duration.between(start, clock.instant()).compareTo(SERVER_STARTUP_MAX_WAIT) < 0) {
+    do {
       if (startLatch.await(1, TimeUnit.SECONDS)) {
         break;
       }
-    }
+    } while (startedProcess.isAlive() && Duration.between(start, clock.instant()).compareTo(serverStartupMaxWait) < 0);
     if (!startedProcess.isAlive()) {
       LOG.error("Process terminated unexpectedly");
       cleanResources();
@@ -233,9 +236,7 @@ public class OmnisharpServer implements Startable {
       int result = CommandExecutor.create().execute(command, output::add, LOG::error, 10_000);
       if (result != 0) {
         LOG.debug("Command returned with error: " + command);
-        if (!output.isEmpty()) {
-          output.forEach(LOG::debug);
-        }
+        output.forEach(LOG::debug);
         return null;
       }
       return output.isEmpty() ? null : output.get(0);
@@ -303,7 +304,8 @@ public class OmnisharpServer implements Startable {
     omnisharpStarted = false;
   }
 
-  private void waitForProcessToEnd() {
+  // Visible for testing
+  void waitForProcessToEnd() {
     if (startedProcess != null) {
       try {
         if (!startedProcess.waitFor(1, TimeUnit.MINUTES)) {

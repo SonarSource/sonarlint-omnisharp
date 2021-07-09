@@ -592,6 +592,8 @@ class OmnisharpIntegrationTests {
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
 
+    // At some point we had a bug that only appeared when waiting enough after the first thread died (unable to write to stdin, "read end
+    // dead"
     Thread.sleep(10000);
 
     final List<Issue> issuesThread2 = new ArrayList<>();
