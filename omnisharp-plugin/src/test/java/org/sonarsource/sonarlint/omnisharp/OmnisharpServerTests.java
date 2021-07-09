@@ -280,6 +280,9 @@ class OmnisharpServerTests {
 
     underTest.lazyStart(solutionDir, dotnetCliPath);
 
+    // Wait for process to run until echo
+    Thread.sleep(1000);
+
     assertThat(stdOut).hasSize(1);
     assertThat(stdOut.get(0)).startsWith("PATH=" + dotnetCliPath.getParent().toString() + File.pathSeparator);
   }
