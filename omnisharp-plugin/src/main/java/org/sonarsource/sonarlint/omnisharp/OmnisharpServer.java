@@ -153,6 +153,7 @@ public class OmnisharpServer implements Startable {
 
   private synchronized void checkAlive() {
     if (omnisharpStarted && startedProcess != null && !startedProcess.isAlive()) {
+      LOG.error("Process terminated unexpectedly");
       cleanResources();
     }
   }
@@ -174,12 +175,7 @@ public class OmnisharpServer implements Startable {
     streamConsumer.consumeStream(startedProcess.getErrorStream(), LOG::error);
     output = startedProcess.getOutputStream();
 
-    Instant start = clock.instant();
-    do {
-      if (startLatch.await(1, TimeUnit.SECONDS)) {
-        break;
-      }
-    } while (startedProcess.isAlive() && Duration.between(start, clock.instant()).compareTo(serverStartupMaxWait) < 0);
+    waitForLatchOrProcessDied(startLatch);
     if (!startedProcess.isAlive()) {
       LOG.error("Process terminated unexpectedly");
       cleanResources();
@@ -193,6 +189,8 @@ public class OmnisharpServer implements Startable {
     LOG.info("OmniSharp successfully started");
 
     LOG.info("Waiting for solution/project configuration to be loaded...");
+    waitForLatchOrProcessDied(firstUpdateProjectLatch);
+
     if (!firstUpdateProjectLatch.await(1, TimeUnit.MINUTES)) {
       startedProcess.destroyForcibly();
       throw new IllegalStateException("Timeout waiting for solution/project configuration to be loaded");
@@ -200,6 +198,18 @@ public class OmnisharpServer implements Startable {
     LOG.info("Solution/project configuration loaded");
 
     omnisharpStarted = true;
+  }
+
+  /**
+   * Wait for the latch to be counted down, or the process to died, which one come first.
+   */
+  private void waitForLatchOrProcessDied(CountDownLatch latch) throws InterruptedException {
+    Instant start = clock.instant();
+    do {
+      if (latch.await(1, TimeUnit.SECONDS)) {
+        break;
+      }
+    } while (startedProcess.isAlive() && Duration.between(start, clock.instant()).compareTo(serverStartupMaxWait) < 0);
   }
 
   private String buildPathEnv(@Nullable Path dotnetCliPath) {

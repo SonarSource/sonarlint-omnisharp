@@ -223,6 +223,15 @@ class OmnisharpServerTests {
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
 
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
+
     underTest.lazyStart(anotherSolutionDir, null);
     verify(endpoints).stopServer();
     verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
@@ -243,6 +252,15 @@ class OmnisharpServerTests {
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
 
     underTest.lazyStart(solutionDir, dotnetCliPath);
     verify(endpoints).stopServer();
@@ -277,6 +295,15 @@ class OmnisharpServerTests {
     underTest.start();
 
     underTest.lazyStart(solutionDir, null);
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
 
     assertThat(underTest.isOmnisharpStarted()).isTrue();
 
