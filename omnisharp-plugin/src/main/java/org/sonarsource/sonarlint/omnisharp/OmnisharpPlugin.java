@@ -42,6 +42,7 @@ import org.sonar.api.Plugin;
 import org.sonar.api.SonarProduct;
 import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 
 public class OmnisharpPlugin implements Plugin {
 
@@ -63,7 +64,8 @@ public class OmnisharpPlugin implements Plugin {
         OmnisharpSensor.class,
         OmnisharpEndpoints.class,
         OmnisharpServicesExtractor.class,
-        OmnisharpFileListener.class);
+        OmnisharpFileListener.class,
+        OmnisharpResponseProcessor.class);
     }
 
     context.addExtensions(

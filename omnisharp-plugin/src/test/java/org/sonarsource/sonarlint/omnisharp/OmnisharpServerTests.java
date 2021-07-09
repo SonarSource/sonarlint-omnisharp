@@ -19,6 +19,7 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,30 +28,46 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang.SystemUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.utils.System2;
+import org.sonar.api.utils.command.Command;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@Timeout(value = 20, unit = TimeUnit.SECONDS)
 class OmnisharpServerTests {
 
   @RegisterExtension
@@ -59,44 +76,83 @@ class OmnisharpServerTests {
   private OmnisharpServer underTest;
   private Path omnisharpDir;
   private Path solutionDir;
-  private OmnisharpEndpoints protocol;
+  private Path anotherSolutionDir;
+  private Path dotnetCliPath;
+  private OmnisharpEndpoints endpoints;
   private MapSettings mapSettings;
+  private OmnisharpResponseProcessor responseProcessor;
 
   @BeforeEach
   void prepare(@TempDir Path tmpDir) throws IOException {
     omnisharpDir = tmpDir.resolve("omnisharp");
     Files.createDirectory(omnisharpDir);
     solutionDir = tmpDir.resolve("solution");
-    protocol = mock(OmnisharpEndpoints.class);
+    anotherSolutionDir = tmpDir.resolve("anotherSolution");
+    if (SystemUtils.IS_OS_WINDOWS) {
+      dotnetCliPath = tmpDir.resolve("dotnetCli/dotnet.exe");
+    } else {
+      dotnetCliPath = tmpDir.resolve("dotnetCli/dotnet");
+    }
+    endpoints = mock(OmnisharpEndpoints.class);
     mapSettings = new MapSettings();
     SonarLintRuntime runtime = mock(SonarLintRuntime.class);
     when(runtime.getClientPid()).thenReturn(123L);
     OmnisharpServicesExtractor servicesExtractor = mock(OmnisharpServicesExtractor.class);
     when(servicesExtractor.getOmnisharpServicesDllPath()).thenReturn(tmpDir.resolve("fake/services.dll"));
-    underTest = new OmnisharpServer(System2.INSTANCE, servicesExtractor, mapSettings.asConfig(), protocol, Paths.get("/usr/libexec/path_helper"), "run.bat",
-      runtime);
+    responseProcessor = mock(OmnisharpResponseProcessor.class);
+    underTest = new OmnisharpServer(System2.INSTANCE, Clock.systemUTC(), servicesExtractor, mapSettings.asConfig(), endpoints, Paths.get("/usr/libexec/path_helper"), "run.bat",
+      responseProcessor, runtime, Duration.of(1, ChronoUnit.SECONDS));
+  }
+
+  @AfterEach
+  public void cleanup() {
+    underTest.stop();
   }
 
   @Test
   void testSimpleCommandNoOutput() {
-    assertThat(OmnisharpServer.runSimpleCommand("echo")).isNull();
+    if (SystemUtils.IS_OS_WINDOWS) {
+      assertThat(OmnisharpServer.runSimpleCommand(Command.create("cmd").addArgument("/c").addArgument("echo>NUL"))).isNull();
+    } else {
+      assertThat(OmnisharpServer.runSimpleCommand(Command.create("bash").addArgument("-c").addArgument("echo>/dev/null"))).isNull();
+    }
+    assertThat(logTester.logs(LoggerLevel.DEBUG)).isEmpty();
   }
 
   @Test
   void testSimpleCommand() {
-    assertThat(OmnisharpServer.runSimpleCommand("echo", "Hello World!")).isEqualTo("Hello World!");
+    assertThat(OmnisharpServer.runSimpleCommand(Command.create("echo").addArgument("Hello World!"))).isEqualTo("Hello World!");
   }
 
   @Test
   void testSimpleCommandError() {
-    assertThat(OmnisharpServer.runSimpleCommand("doesnt_exists")).isNull();
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Unable to execute command");
+    assertThat(OmnisharpServer.runSimpleCommand(Command.create("doesnt_exists"))).isNull();
+    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Unable to execute command: doesnt_exists");
+  }
+
+  @Test
+  void testSimpleCommandNonZeroExitCode() {
+    if (SystemUtils.IS_OS_WINDOWS) {
+      assertThat(OmnisharpServer.runSimpleCommand(Command.create("cmd").addArgument("/c").addArgument("exit 1"))).isNull();
+      assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Command returned with error: cmd /c exit 1");
+    } else {
+      assertThat(OmnisharpServer.runSimpleCommand(Command.create("bash").addArgument("-c").addArgument("exit 1"))).isNull();
+      assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Command returned with error: bash -c exit 1");
+    }
+  }
+
+  @Test
+  void dontWriteRequestIfServerStopped() {
+    underTest.writeRequestOnStdIn("foo");
+    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Server stopped, ignoring request");
   }
 
   @Test
   void stopDoesNothingIfNotStarted() {
     underTest.stop();
-    verifyNoInteractions(protocol);
+
+    verify(endpoints).setServer(underTest);
+    verifyNoMoreInteractions(endpoints);
   }
 
   @Test
@@ -112,27 +168,26 @@ class OmnisharpServerTests {
   void processTerminatesBeforeReachingStartState() throws Exception {
     mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
 
-    mockOmnisharpRun("echo Foo", "echo \"Foo\"");
+    mockOmnisharpRun("echo Foo", "@echo off\necho Foo");
 
     underTest.start();
 
     underTest.lazyStart(solutionDir, null);
 
-    verify(protocol).buildOutputStreamHandler(any(), any());
-    verifyNoMoreInteractions(protocol);
+    verify(endpoints).setServer(underTest);
+    verify(responseProcessor).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verifyNoMoreInteractions(endpoints);
 
     assertThat(logTester.logs(LoggerLevel.ERROR)).contains("Process terminated unexpectedly");
   }
 
   @Test
-  void stopCallStopServer() throws Exception {
+  void multipleCallToStartOnlyStartsOnce() throws Exception {
     mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
 
-    mockOmnisharpRun("read -p \"Press enter to continue\"", "pause");
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "echo Foo\npause");
 
-    underTest.start();
-
-    when(protocol.buildOutputStreamHandler(any(), any())).thenAnswer(new Answer<Void>() {
+    doAnswer(new Answer<Void>() {
       @Override
       public Void answer(InvocationOnMock invocation) throws Throwable {
         CountDownLatch startLatch = invocation.getArgument(0, CountDownLatch.class);
@@ -141,13 +196,192 @@ class OmnisharpServerTests {
         projectConfigLatch.countDown();
         return null;
       }
-    });
+    }).when(responseProcessor).handleOmnisharpOutput(any(), any(), anyString());
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null);
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
 
     underTest.lazyStart(solutionDir, null);
 
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+  }
+
+  @Test
+  void automaticallyRestartIfDifferentSolutionDir() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "@echo off\necho Foo\npause");
+
+    mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null);
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(endpoints, never()).stopServer();
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
+
+    underTest.lazyStart(anotherSolutionDir, null);
+    verify(endpoints).stopServer();
+    verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
+  }
+
+  @Test
+  void automaticallyRestartIfDifferentDotnetCliPath() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "@echo off\necho Foo\npause");
+
+    mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null);
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(endpoints, never()).stopServer();
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
+
+    underTest.lazyStart(solutionDir, dotnetCliPath);
+    verify(endpoints).stopServer();
+    verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
+  }
+
+  @Test
+  void shouldPassDotnetCliInPathEnv() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("echo \"PATH=$PATH\"\nread -p \"Press enter to continue\"", "@echo off\necho PATH=%PATH%\npause");
+
+    List<String> stdOut = mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, dotnetCliPath);
+
+    // Wait for process to run until echo
+    Thread.sleep(1000);
+
+    assertThat(stdOut).hasSize(1);
+    assertThat(stdOut.get(0)).startsWith("PATH=" + dotnetCliPath.getParent().toString() + File.pathSeparator);
+  }
+
+  @Test
+  void stopCallStopServer() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "echo \"Foo\"\npause");
+
+    mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null);
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
+
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+
     underTest.stop();
 
-    verify(protocol).stopServer();
+    verify(endpoints).stopServer();
+  }
+
+  @Test
+  void stopDontCallStopServerIfProcessDeadAlready() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "echo Foo\npause");
+
+    mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null);
+
+    // Write something on stdin to resume program
+    underTest.writeRequestOnStdIn("");
+
+    // give time for process to die
+    Thread.sleep(1000);
+
+    underTest.stop();
+
+    verify(endpoints, never()).stopServer();
+  }
+
+  @Test
+  void testWaitForProcessToEnd() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "echo Foo\npause");
+
+    mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null);
+
+    Thread waitForEnd = new Thread() {
+      @Override
+      public void run() {
+        underTest.waitForProcessToEnd();
+      }
+    };
+    waitForEnd.start();
+    // Wait a bit to ensure the thread is waiting for process to end
+    Thread.sleep(1000);
+    assertThat(waitForEnd.isAlive()).isTrue();
+
+    // Write something on stdin to resume program
+    underTest.writeRequestOnStdIn("");
+    // give time for process to die
+    Thread.sleep(1000);
+
+    waitForEnd.join(1000);
+    assertThat(waitForEnd.isAlive()).isFalse();
+    // The call should return immediately
+    underTest.waitForProcessToEnd();
+  }
+
+  @Test
+  void timeoutIfServerTakeTooLongToStart() throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("read -p \"Press enter to continue\"", "pause");
+
+    underTest.start();
+
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, null));
+    assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
+    assertThat(underTest.isOmnisharpStarted()).isFalse();
   }
 
   private void mockOmnisharpRun(String bashScript, String batScript) throws IOException {
@@ -161,6 +395,22 @@ class OmnisharpServerTests {
       Files.createFile(run, permissions);
       Files.write(run, ("#!/bin/bash \n" + bashScript).getBytes(StandardCharsets.UTF_8));
     }
+  }
+
+  private List<String> mockResponseProcessor() {
+    List<String> stdOut = new ArrayList<>();
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        CountDownLatch startLatch = invocation.getArgument(0, CountDownLatch.class);
+        startLatch.countDown();
+        CountDownLatch projectConfigLatch = invocation.getArgument(1, CountDownLatch.class);
+        projectConfigLatch.countDown();
+        stdOut.add(invocation.getArgument(2, String.class));
+        return null;
+      }
+    }).when(responseProcessor).handleOmnisharpOutput(any(), any(), anyString());
+    return stdOut;
   }
 
 }

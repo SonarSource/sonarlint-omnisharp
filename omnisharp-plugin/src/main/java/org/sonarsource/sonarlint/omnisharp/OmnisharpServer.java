@@ -38,22 +38,22 @@ package org.sonarsource.sonarlint.omnisharp;
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
@@ -62,21 +62,21 @@ import org.sonar.api.Startable;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.System2;
+import org.sonar.api.utils.command.Command;
+import org.sonar.api.utils.command.CommandException;
+import org.sonar.api.utils.command.CommandExecutor;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
-import org.zeroturnaround.exec.InvalidExitValueException;
-import org.zeroturnaround.exec.ProcessExecutor;
-import org.zeroturnaround.exec.ProcessResult;
-import org.zeroturnaround.exec.StartedProcess;
-import org.zeroturnaround.exec.listener.ProcessListener;
-import org.zeroturnaround.exec.stream.LogOutputStream;
 
 @ScannerSide
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpServer implements Startable {
+
+  private static final Duration SERVER_STARTUP_MAX_WAIT = Duration.of(1, ChronoUnit.MINUTES);
 
   private static final Logger LOG = Loggers.get(OmnisharpServer.class);
 
@@ -101,32 +101,44 @@ public class OmnisharpServer implements Startable {
 
   private final SonarLintRuntime sonarLintRuntime;
 
-  private PipedInputStream pipeInput;
+  private Process startedProcess;
 
-  private StartedProcess process;
+  private final OmnisharpResponseProcessor omnisharpResponseProcessor;
+
+  private StreamConsumer streamConsumer;
+
+  private final Clock clock;
+
+  private final Duration serverStartupMaxWait;
 
   public OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
-    SonarLintRuntime sonarLintRuntime) {
-    this(system2, servicesExtractor, config, omnisharpEndpoints, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", sonarLintRuntime);
+    OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime) {
+    this(system2, Clock.systemDefaultZone(), servicesExtractor, config, omnisharpEndpoints, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", omnisharpResponseProcessor,
+      sonarLintRuntime, SERVER_STARTUP_MAX_WAIT);
   }
 
   // For testing
-  OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints, Path pathHelperLocationOnMac,
-    String omnisharpExeWin,
-    SonarLintRuntime sonarLintRuntime) {
+  OmnisharpServer(System2 system2, Clock clock, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
+    Path pathHelperLocationOnMac,
+    String omnisharpExeWin, OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime, Duration serverStartupMaxWait) {
     this.system2 = system2;
+    this.clock = clock;
     this.servicesExtractor = servicesExtractor;
     this.config = config;
     this.omnisharpEndpoints = omnisharpEndpoints;
+    this.omnisharpResponseProcessor = omnisharpResponseProcessor;
+    this.serverStartupMaxWait = serverStartupMaxWait;
+    omnisharpEndpoints.setServer(this);
     this.pathHelperLocationOnMac = pathHelperLocationOnMac;
     this.omnisharpExeWin = omnisharpExeWin;
     this.sonarLintRuntime = sonarLintRuntime;
   }
 
-  public void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
+  public synchronized void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
+    checkAlive();
     if (omnisharpStarted) {
       if (!Objects.equals(cachedProjectBaseDir, projectBaseDir) || !Objects.equals(cachedDotnetCliPath, dotnetCliPath)) {
-        LOG.info("Using a different project basedir or dotnet CLI path, OmniSharp have to be restarted");
+        LOG.info("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
         stop();
       } else {
         return;
@@ -136,63 +148,68 @@ public class OmnisharpServer implements Startable {
   }
 
   public boolean isOmnisharpStarted() {
-    return omnisharpStarted;
+    return omnisharpStarted && startedProcess.isAlive();
   }
 
-  private synchronized void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
+  private synchronized void checkAlive() {
+    if (omnisharpStarted && startedProcess != null && !startedProcess.isAlive()) {
+      LOG.error("Process terminated unexpectedly");
+      cleanResources();
+    }
+  }
+
+  private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
     this.cachedProjectBaseDir = projectBaseDir;
     this.cachedDotnetCliPath = dotnetCliPath;
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
       .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
-    ProcessExecutor processExecutor = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
-    processExecutor.addListener(new ProcessListener() {
-      @Override
-      public void afterStop(Process process) {
-        // Release startLatch if the process stops immediately
-        startLatch.countDown();
-
-        omnisharpStarted = false;
-      }
-    });
-    pipeInput = new PipedInputStream();
-    output = new PipedOutputStream(pipeInput);
-
-    processExecutor.redirectOutput(omnisharpEndpoints.buildOutputStreamHandler(startLatch, firstUpdateProjectLatch))
-      .redirectError(new LogOutputStream() {
-
-        @Override
-        protected void processLine(String line) {
-          LOG.error(line);
-        }
-      })
-      .redirectInput(pipeInput)
-      .environment("PATH", buildPathEnv(dotnetCliPath))
-      .destroyOnExit();
+    ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
+    processBuilder.environment().put("PATH", buildPathEnv(dotnetCliPath));
 
     LOG.info("Starting OmniSharp...");
-    process = processExecutor.start();
-    if (!startLatch.await(1, TimeUnit.MINUTES)) {
-      process.getProcess().destroyForcibly();
-      throw new IllegalStateException("Timeout waiting for Omnisharp server to start");
-    }
-    if (!process.getProcess().isAlive()) {
+    startedProcess = processBuilder.start();
+    streamConsumer = new StreamConsumer();
+    streamConsumer.consumeStream(startedProcess.getInputStream(), l -> omnisharpResponseProcessor.handleOmnisharpOutput(startLatch, firstUpdateProjectLatch, l));
+    streamConsumer.consumeStream(startedProcess.getErrorStream(), LOG::error);
+    output = startedProcess.getOutputStream();
+
+    waitForLatchOrProcessDied(startLatch);
+    if (!startedProcess.isAlive()) {
       LOG.error("Process terminated unexpectedly");
+      cleanResources();
       return;
+    }
+    if (!startLatch.await(1, TimeUnit.SECONDS)) {
+      startedProcess.destroyForcibly();
+      cleanResources();
+      throw new IllegalStateException("Timeout waiting for Omnisharp server to start");
     }
     LOG.info("OmniSharp successfully started");
 
     LOG.info("Waiting for solution/project configuration to be loaded...");
+    waitForLatchOrProcessDied(firstUpdateProjectLatch);
+
     if (!firstUpdateProjectLatch.await(1, TimeUnit.MINUTES)) {
-      process.getProcess().destroyForcibly();
+      startedProcess.destroyForcibly();
       throw new IllegalStateException("Timeout waiting for solution/project configuration to be loaded");
     }
     LOG.info("Solution/project configuration loaded");
 
     omnisharpStarted = true;
+  }
 
-    omnisharpEndpoints.setOmnisharpProcessStdIn(output);
+  /**
+   * Wait for the latch to be counted down, or the process to died, which one come first.
+   */
+  private void waitForLatchOrProcessDied(CountDownLatch latch) throws InterruptedException {
+    Instant start = clock.instant();
+    do {
+      if (latch.await(1, TimeUnit.SECONDS)) {
+        break;
+      }
+    } while (startedProcess.isAlive() && Duration.between(start, clock.instant()).compareTo(serverStartupMaxWait) < 0);
   }
 
   private String buildPathEnv(@Nullable Path dotnetCliPath) {
@@ -207,7 +224,7 @@ public class OmnisharpServer implements Startable {
 
   private String getPathEnv() {
     if (system2.isOsMac() && Files.exists(pathHelperLocationOnMac)) {
-      String pathHelperOutput = runSimpleCommand(pathHelperLocationOnMac.toString(), "-s");
+      String pathHelperOutput = runSimpleCommand(Command.create(pathHelperLocationOnMac.toString()).addArgument("-s"));
       if (pathHelperOutput != null) {
         Pattern regex = Pattern.compile(".*PATH=\"([^\"]*)\"; export PATH;.*");
         Matcher matchResult = regex.matcher(pathHelperOutput);
@@ -223,31 +240,23 @@ public class OmnisharpServer implements Startable {
    * Run a simple command that should return a single line on stdout
    */
   @CheckForNull
-  static String runSimpleCommand(String... command) {
-    ProcessExecutor processExecutor = new ProcessExecutor().command(command)
-      .readOutput(true)
-      .exitValueNormal()
-      .timeout(10, TimeUnit.SECONDS);
-    ProcessResult result = null;
+  static String runSimpleCommand(Command command) {
+    List<String> output = new ArrayList<>();
     try {
-      result = processExecutor.execute();
-      List<String> output = result
-        .getOutput()
-        .getLines();
-      return output.isEmpty() ? null : output.get(0);
-    } catch (InvalidExitValueException | IOException | TimeoutException e) {
-      LOG.debug("Unable to execute command", e);
-      if (result != null) {
-        LOG.debug(result.outputString());
+      int result = CommandExecutor.create().execute(command, output::add, LOG::error, 10_000);
+      if (result != 0) {
+        LOG.debug("Command returned with error: " + command);
+        output.forEach(LOG::debug);
+        return null;
       }
+      return output.isEmpty() ? null : output.get(0);
+    } catch (CommandException e) {
+      LOG.debug("Unable to execute command: " + command, e);
       return null;
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted", e);
     }
   }
 
-  private ProcessExecutor buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc) {
+  private ProcessBuilder buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc) {
     Path omnisharpPath = Paths.get(omnisharpLoc);
     List<String> args = new ArrayList<>();
     if (system2.isOsWindows()) {
@@ -268,9 +277,7 @@ public class OmnisharpServer implements Startable {
     args.add(projectBaseDir.toString());
     args.add("--plugin");
     args.add(servicesExtractor.getOmnisharpServicesDllPath().toString());
-    return new ProcessExecutor()
-      .directory(omnisharpPath.toFile())
-      .command(args);
+    return new ProcessBuilder(args).directory(omnisharpPath.toFile());
   }
 
   @Override
@@ -280,51 +287,62 @@ public class OmnisharpServer implements Startable {
 
   @Override
   public synchronized void stop() {
+    checkAlive();
     if (omnisharpStarted) {
       LOG.info("Stopping OmniSharp");
       omnisharpEndpoints.stopServer();
-      omnisharpEndpoints.setOmnisharpProcessStdIn(null);
     }
-    closeStreams();
-    // Don't wait for process to end on Linux, because it takes too long
+    // Don't wait for startedProcess to end on Linux, because it takes too long.
     // On Windows, it is important to wait to avoid locks on some dlls
     if (system2.isOsWindows()) {
       waitForProcessToEnd();
     }
+    cleanResources();
+  }
+
+  private void cleanResources() {
+    if (streamConsumer != null) {
+      try {
+        streamConsumer.await();
+      } catch (InterruptedException e) {
+        LOG.debug("Interrupted!", e);
+        Thread.currentThread().interrupt();
+      }
+      streamConsumer = null;
+    }
+    startedProcess = null;
     omnisharpStarted = false;
   }
 
-  private void waitForProcessToEnd() {
-    if (process != null) {
+  // Visible for testing
+  void waitForProcessToEnd() {
+    if (startedProcess != null) {
       try {
-        process.getFuture().get(1, TimeUnit.MINUTES);
+        if (!startedProcess.waitFor(1, TimeUnit.MINUTES)) {
+          LOG.warn("Unable to terminate OmniSharp, killing it");
+          startedProcess.destroyForcibly();
+        }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-      } catch (ExecutionException e) {
-        LOG.error("Error while executing OmniSharp", e);
-      } catch (TimeoutException e) {
-        LOG.warn("Unable to terminate OmniSharp, killing it");
-        process.getProcess().destroyForcibly();
       }
 
-      process = null;
+      startedProcess = null;
     }
   }
 
-  private void closeStreams() {
-    closeQuitely(output);
-    output = null;
-    closeQuitely(pipeInput);
-    pipeInput = null;
-  }
-
-  private static void closeQuitely(Closeable closeable) {
-    if (closeable != null) {
-      try {
-        closeable.close();
-      } catch (IOException e) {
-        LOG.error("Unable to close", e);
-      }
+  public synchronized boolean writeRequestOnStdIn(String str) {
+    checkAlive();
+    if (!omnisharpStarted) {
+      LOG.debug("Server stopped, ignoring request");
+      return false;
+    }
+    try {
+      output.write(str.getBytes(StandardCharsets.UTF_8));
+      output.write("\n".getBytes(StandardCharsets.UTF_8));
+      output.flush();
+      return true;
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to write in Omnisharp stdin", e);
     }
   }
 
