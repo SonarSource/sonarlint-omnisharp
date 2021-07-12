@@ -16,7 +16,7 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>8.26.0.34174</analyzer.version>
+    <analyzer.version>8.26.0.34506</analyzer.version>
     <sonar.analyzer.commons>1.14.1.690</sonar.analyzer.commons>
     <sonar.version>8.9.0.43852</sonar.version>
     <sonarLTS.version>7.9</sonarLTS.version>
