@@ -1,5 +1,5 @@
 trigger:
-- main
+- branch-1.0
 
 pool:
   vmImage: 'ubuntu-latest'
