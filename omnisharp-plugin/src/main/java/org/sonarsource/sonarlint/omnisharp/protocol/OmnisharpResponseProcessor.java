@@ -55,7 +55,7 @@ public class OmnisharpResponseProcessor {
 
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
-  public void handleOmnisharpOutput(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line) {
+  public void handleOmnisharpOutput(CountDownLatch startLatch, String line) {
     JsonObject jsonObject;
     try {
       jsonObject = JsonParser.parseString(line).getAsJsonObject();
@@ -63,10 +63,10 @@ public class OmnisharpResponseProcessor {
       LOG.debug(line);
       return;
     }
-    handleJsonMessage(startLatch, firstUpdateProjectLatch, line, jsonObject);
+    handleJsonMessage(startLatch, line, jsonObject);
   }
 
-  private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JsonObject jsonObject) {
+  private void handleJsonMessage(CountDownLatch startLatch, String line, JsonObject jsonObject) {
     String type = jsonObject.get("Type").getAsString();
     switch (type) {
       case "response":
@@ -85,11 +85,6 @@ public class OmnisharpResponseProcessor {
             break;
           case "started":
             startLatch.countDown();
-            break;
-          case "ProjectAdded":
-          case "ProjectChanged":
-          case "ProjectRemoved":
-            firstUpdateProjectLatch.countDown();
             break;
           case "Diagnostic":
             // For now we ignore diagnostics "pushed" by Omnisharp

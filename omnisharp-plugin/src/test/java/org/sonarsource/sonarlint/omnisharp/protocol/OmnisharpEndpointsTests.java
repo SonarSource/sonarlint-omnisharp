@@ -55,7 +55,6 @@ class OmnisharpEndpointsTests {
 
   private OmnisharpEndpoints underTest;
   private CountDownLatch startLatch;
-  private CountDownLatch firstUpdateLatch;
 
   private OmnisharpServer omnisharpServer;
 
@@ -70,7 +69,6 @@ class OmnisharpEndpointsTests {
     underTest = new OmnisharpEndpoints(responseProcessor);
 
     startLatch = new CountDownLatch(1);
-    firstUpdateLatch = new CountDownLatch(1);
 
     omnisharpServer = mock(OmnisharpServer.class);
     underTest.setServer(omnisharpServer);
@@ -89,22 +87,14 @@ class OmnisharpEndpointsTests {
   @ValueSource(strings = {"ProjectAdded", "ProjectChanged", "ProjectRemoved"})
   void testStartLatch(String firstConfigEvent) throws IOException {
     assertThat(startLatch.getCount()).isEqualTo(1);
-    assertThat(firstUpdateLatch.getCount()).isEqualTo(1);
 
     emulateReceivedMessage("Random");
 
     assertThat(startLatch.getCount()).isEqualTo(1);
-    assertThat(firstUpdateLatch.getCount()).isEqualTo(1);
 
     emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"started\"}");
 
     assertThat(startLatch.getCount()).isZero();
-    assertThat(firstUpdateLatch.getCount()).isEqualTo(1);
-
-    emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"" + firstConfigEvent + "\"}");
-
-    assertThat(startLatch.getCount()).isZero();
-    assertThat(firstUpdateLatch.getCount()).isZero();
   }
 
   @Test
@@ -344,7 +334,7 @@ class OmnisharpEndpointsTests {
   }
 
   private void emulateReceivedMessage(String msg) throws IOException {
-    responseProcessor.handleOmnisharpOutput(startLatch, firstUpdateLatch, msg);
+    responseProcessor.handleOmnisharpOutput(startLatch, msg);
   }
 
 }

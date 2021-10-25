@@ -162,7 +162,6 @@ public class OmnisharpServer implements Startable {
     this.cachedProjectBaseDir = projectBaseDir;
     this.cachedDotnetCliPath = dotnetCliPath;
     CountDownLatch startLatch = new CountDownLatch(1);
-    CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
       .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
     ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
@@ -171,7 +170,7 @@ public class OmnisharpServer implements Startable {
     LOG.info("Starting OmniSharp...");
     startedProcess = processBuilder.start();
     streamConsumer = new StreamConsumer();
-    streamConsumer.consumeStream(startedProcess.getInputStream(), l -> omnisharpResponseProcessor.handleOmnisharpOutput(startLatch, firstUpdateProjectLatch, l));
+    streamConsumer.consumeStream(startedProcess.getInputStream(), l -> omnisharpResponseProcessor.handleOmnisharpOutput(startLatch, l));
     streamConsumer.consumeStream(startedProcess.getErrorStream(), LOG::error);
     output = startedProcess.getOutputStream();
 
@@ -187,15 +186,6 @@ public class OmnisharpServer implements Startable {
       throw new IllegalStateException("Timeout waiting for Omnisharp server to start");
     }
     LOG.info("OmniSharp successfully started");
-
-    LOG.info("Waiting for solution/project configuration to be loaded...");
-    waitForLatchOrProcessDied(firstUpdateProjectLatch);
-
-    if (!firstUpdateProjectLatch.await(1, TimeUnit.MINUTES)) {
-      startedProcess.destroyForcibly();
-      throw new IllegalStateException("Timeout waiting for solution/project configuration to be loaded");
-    }
-    LOG.info("Solution/project configuration loaded");
 
     omnisharpStarted = true;
   }
@@ -271,6 +261,7 @@ public class OmnisharpServer implements Startable {
       args.add(Long.toString(sonarLintRuntime.getClientPid()));
     }
     args.add("DotNet:enablePackageRestore=false");
+    args.add("MsBuild:loadProjectsOnDemand=true");
     args.add("--encoding");
     args.add("utf-8");
     args.add("-s");

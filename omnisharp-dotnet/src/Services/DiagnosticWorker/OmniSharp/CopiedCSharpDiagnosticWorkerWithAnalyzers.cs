@@ -91,7 +91,14 @@ namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
 
         public async Task<ImmutableArray<DocumentDiagnostics>> GetDiagnostics(ImmutableArray<string> documentPaths)
         {
-            var documentIds = GetDocumentIdsFromPaths(documentPaths);
+            if (!documentPaths.Any()) return ImmutableArray<DocumentDiagnostics>.Empty;
+            var documentIds =
+                (await Task.WhenAll(
+                    documentPaths
+                        .Select(docPath => _workspace.GetDocumentsFromFullProjectModelAsync(docPath)))
+                ).SelectMany(s => s)
+                .Select(d => d.Id)
+                .ToImmutableArray();
 
             return await GetDiagnosticsByDocumentIds(documentIds, waitForDocuments: true);
         }
@@ -111,14 +118,6 @@ namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
             return documentIds
                 .Where(x => _currentDiagnosticResultLookup.ContainsKey(x))
                 .Select(x => _currentDiagnosticResultLookup[x])
-                .ToImmutableArray();
-        }
-
-        private ImmutableArray<DocumentId> GetDocumentIdsFromPaths(ImmutableArray<string> documentPaths)
-        {
-            return documentPaths
-                .Select(docPath => _workspace.GetDocumentId(docPath))
-                .Where(x => x != default)
                 .ToImmutableArray();
         }
 

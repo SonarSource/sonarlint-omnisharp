@@ -175,7 +175,7 @@ class OmnisharpServerTests {
     underTest.lazyStart(solutionDir, null);
 
     verify(endpoints).setServer(underTest);
-    verify(responseProcessor).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(responseProcessor).handleOmnisharpOutput(any(), eq("Foo"));
     verifyNoMoreInteractions(endpoints);
 
     assertThat(logTester.logs(LoggerLevel.ERROR)).contains("Process terminated unexpectedly");
@@ -192,11 +192,9 @@ class OmnisharpServerTests {
       public Void answer(InvocationOnMock invocation) throws Throwable {
         CountDownLatch startLatch = invocation.getArgument(0, CountDownLatch.class);
         startLatch.countDown();
-        CountDownLatch projectConfigLatch = invocation.getArgument(1, CountDownLatch.class);
-        projectConfigLatch.countDown();
         return null;
       }
-    }).when(responseProcessor).handleOmnisharpOutput(any(), any(), anyString());
+    }).when(responseProcessor).handleOmnisharpOutput(any(), anyString());
 
     underTest.start();
 
@@ -205,7 +203,7 @@ class OmnisharpServerTests {
 
     underTest.lazyStart(solutionDir, null);
 
-    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), eq("Foo"));
   }
 
   @Test
@@ -220,7 +218,7 @@ class OmnisharpServerTests {
 
     underTest.lazyStart(solutionDir, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
-    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
 
     doAnswer(new Answer<Void>() {
@@ -234,7 +232,7 @@ class OmnisharpServerTests {
 
     underTest.lazyStart(anotherSolutionDir, null);
     verify(endpoints).stopServer();
-    verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), eq("Foo"));
     assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
   }
 
@@ -250,7 +248,7 @@ class OmnisharpServerTests {
 
     underTest.lazyStart(solutionDir, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
-    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
 
     doAnswer(new Answer<Void>() {
@@ -264,7 +262,7 @@ class OmnisharpServerTests {
 
     underTest.lazyStart(solutionDir, dotnetCliPath);
     verify(endpoints).stopServer();
-    verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), eq("Foo"));
     assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
   }
 
@@ -404,12 +402,10 @@ class OmnisharpServerTests {
       public Void answer(InvocationOnMock invocation) throws Throwable {
         CountDownLatch startLatch = invocation.getArgument(0, CountDownLatch.class);
         startLatch.countDown();
-        CountDownLatch projectConfigLatch = invocation.getArgument(1, CountDownLatch.class);
-        projectConfigLatch.countDown();
-        stdOut.add(invocation.getArgument(2, String.class));
+        stdOut.add(invocation.getArgument(1, String.class));
         return null;
       }
-    }).when(responseProcessor).handleOmnisharpOutput(any(), any(), anyString());
+    }).when(responseProcessor).handleOmnisharpOutput(any(), anyString());
     return stdOut;
   }
 
