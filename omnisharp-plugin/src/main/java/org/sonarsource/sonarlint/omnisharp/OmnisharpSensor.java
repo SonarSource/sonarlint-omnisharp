@@ -102,27 +102,30 @@ public class OmnisharpSensor implements Sensor {
     }
 
     JsonObject config = buildRulesConfig(context);
-    omnisharpEndpoints.config(config);
+    // Use a synchronized block to ensure analysis is done with the right configuration
+    synchronized (omnisharpEndpoints) {
+      omnisharpEndpoints.config(config);
 
-    ProgressReport progressReport = new ProgressReport("Report about progress of OmniSharp analyzer", TimeUnit.SECONDS.toMillis(10));
-    progressReport.start(StreamSupport.stream(context.fileSystem().inputFiles(predicate).spliterator(), false).map(InputFile::toString).collect(Collectors.toList()));
-    boolean successfullyCompleted = false;
-    boolean cancelled = false;
-    try {
-      for (InputFile inputFile : context.fileSystem().inputFiles(predicate)) {
-        if (context.isCancelled()) {
-          cancelled = true;
-          break;
+      ProgressReport progressReport = new ProgressReport("Report about progress of OmniSharp analyzer", TimeUnit.SECONDS.toMillis(10));
+      progressReport.start(StreamSupport.stream(context.fileSystem().inputFiles(predicate).spliterator(), false).map(InputFile::toString).collect(Collectors.toList()));
+      boolean successfullyCompleted = false;
+      boolean cancelled = false;
+      try {
+        for (InputFile inputFile : context.fileSystem().inputFiles(predicate)) {
+          if (context.isCancelled()) {
+            cancelled = true;
+            break;
+          }
+          scanFile(context, inputFile);
+          progressReport.nextFile();
         }
-        scanFile(context, inputFile);
-        progressReport.nextFile();
-      }
-      successfullyCompleted = !cancelled;
-    } finally {
-      if (successfullyCompleted) {
-        progressReport.stop();
-      } else {
-        progressReport.cancel();
+        successfullyCompleted = !cancelled;
+      } finally {
+        if (successfullyCompleted) {
+          progressReport.stop();
+        } else {
+          progressReport.cancel();
+        }
       }
     }
   }
