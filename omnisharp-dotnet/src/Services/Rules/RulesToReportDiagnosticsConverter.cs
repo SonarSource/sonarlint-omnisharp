@@ -48,7 +48,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
             
             if (unrecognizedActiveRules.Any())
             {
-                throw new ArgumentException($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}", nameof(activeRules));
+                // TODO - log rules
+//                throw new ArgumentException($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}", nameof(activeRules));
             }
             
             var diagnosticOptions = allRules

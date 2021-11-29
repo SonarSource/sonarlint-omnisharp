@@ -57,22 +57,26 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             result["rule2"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
         }
 
-        [TestMethod]
-        public void Convert_UnrecognizedActiveRule_ArgumentException()
+        [TestMethod] // See https://jira.sonarsource.com/browse/SLI-637
+        public void Convert_UnrecognizedActiveRules_AreIgnored()
         {
-            var existingAnalyzerRules = new[] {"rule1", "rule2"}.ToImmutableHashSet();
+            var existingAnalyzerRules = new[] {"knownRule_active", "knownRule_inactive"}.ToImmutableHashSet();
             var activeRules = new[]
             {
                 "unknown1",
                 "unknown2",
-                "rule1"
+                "knownRule_active"
             }.ToImmutableHashSet();
 
             var testSubject = CreateTestSubject();
-            Action act = () => testSubject.Convert(activeRules, existingAnalyzerRules);
+            var result = testSubject.Convert(activeRules, existingAnalyzerRules);
 
-            act.Should().Throw<ArgumentException>().And.ParamName.Should().Be("activeRules");
-            act.Should().Throw<ArgumentException>().And.Message.Should().Be("Unrecognized active rules: unknown1,unknown2 (Parameter 'activeRules')");
+            // Unrecognized rules should be ignored.
+            // Scenario: user is connected to SonarCloud which is using a newer version of the C# analyzer
+            // which has new rules that are not in the embedded version.
+            result.Count.Should().Be(2);
+            result["knownRule_active"].Should().Be(RulesToReportDiagnosticsConverter.EnabledRuleSeverity);
+            result["knownRule_inactive"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
         }
 
         [TestMethod]
