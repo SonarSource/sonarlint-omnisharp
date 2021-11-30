@@ -21,7 +21,9 @@
 using System;
 using System.Collections.Immutable;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using SonarLint.OmniSharp.DotNet.Services.Rules;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
@@ -101,6 +103,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             result["rule4"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
         }
 
-        private static RulesToReportDiagnosticsConverter CreateTestSubject() => new();
+        private static RulesToReportDiagnosticsConverter CreateTestSubject() => new(new Mock<ILoggerFactory>().Object);
     }
 }

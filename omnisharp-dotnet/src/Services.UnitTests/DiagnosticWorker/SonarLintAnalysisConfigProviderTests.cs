@@ -172,8 +172,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 
             return new SonarLintAnalysisConfigProvider(ruleDefinitionsRepository,
                 sonarCodeActionProvider,
-                rulesToAdditionalTextConverter,
-                rulesToReportDiagnosticsConverter);
+                rulesToReportDiagnosticsConverter,
+                rulesToAdditionalTextConverter);
         }
 
         private static ISonarAnalyzerCodeActionProvider CreateSonarCodeActionProvider(ImmutableArray<DiagnosticAnalyzer> sonarAnalyzers)

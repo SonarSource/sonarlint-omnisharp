@@ -21,8 +21,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
@@ -31,12 +33,22 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
         Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules);
     }
 
+    [Export(typeof(IRulesToReportDiagnosticsConverter))]
     internal class RulesToReportDiagnosticsConverter : IRulesToReportDiagnosticsConverter
     {
+        private readonly ILogger _logger;
+
         // the severity is handled on the java side; we're using 'warn' just to make sure that the rule is run. 
         internal const ReportDiagnostic EnabledRuleSeverity = ReportDiagnostic.Warn;
         internal const ReportDiagnostic DisabledRuleSeverity = ReportDiagnostic.Suppress;
-        
+
+        [ImportingConstructor]
+        public RulesToReportDiagnosticsConverter(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<RulesToReportDiagnosticsConverter>();
+            _logger.LogWarning("XXX initialized");
+        }
+
         public Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules)
         {
             if (allRules.IsEmpty)
@@ -48,8 +60,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
             
             if (unrecognizedActiveRules.Any())
             {
-                // TODO - log rules
-//                throw new ArgumentException($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}", nameof(activeRules));
+                _logger.LogInformation($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}. These might be new rules that exist on the server but not in SonarLint.");
             }
             
             var diagnosticOptions = allRules
