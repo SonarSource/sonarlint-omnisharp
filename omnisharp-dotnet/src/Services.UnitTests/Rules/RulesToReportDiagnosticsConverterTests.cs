@@ -19,7 +19,9 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -62,6 +64,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
         [TestMethod] // See https://jira.sonarsource.com/browse/SLI-637
         public void Convert_UnrecognizedActiveRules_AreIgnored()
         {
+            var logger = new TestLogger();
             var existingAnalyzerRules = new[] {"knownRule_active", "knownRule_inactive"}.ToImmutableHashSet();
             var activeRules = new[]
             {
@@ -70,15 +73,17 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
                 "knownRule_active"
             }.ToImmutableHashSet();
 
-            var testSubject = CreateTestSubject();
+            var testSubject = CreateTestSubject(logger);
             var result = testSubject.Convert(activeRules, existingAnalyzerRules);
 
-            // Unrecognized rules should be ignored.
+            // Unrecognized rules should be logged then ignored.
             // Scenario: user is connected to SonarCloud which is using a newer version of the C# analyzer
             // which has new rules that are not in the embedded version.
             result.Count.Should().Be(2);
             result["knownRule_active"].Should().Be(RulesToReportDiagnosticsConverter.EnabledRuleSeverity);
             result["knownRule_inactive"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
+
+            logger.Messages.Any(x => x.Contains("unknown1") && x.Contains("unknown2")).Should().BeTrue();
         }
 
         [TestMethod]
@@ -103,6 +108,27 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
             result["rule4"].Should().Be(RulesToReportDiagnosticsConverter.DisabledRuleSeverity);
         }
 
-        private static RulesToReportDiagnosticsConverter CreateTestSubject() => new(new Mock<ILoggerFactory>().Object);
+        private static RulesToReportDiagnosticsConverter CreateTestSubject(ILogger logger = null)
+        {
+            logger ??= Mock.Of<ILogger>();
+
+            var factory = new Mock<ILoggerFactory>();
+            factory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(logger);
+
+            var testSubject = new RulesToReportDiagnosticsConverter(factory.Object);
+
+            return testSubject;
+        }
+
+        private class TestLogger : ILogger, IDisposable
+        {
+            public IList<string> Messages { get; } = new List<string>();
+            IDisposable ILogger.BeginScope<TState>(TState state) => this;
+            void IDisposable.Dispose() { /* no-op */ }
+
+            bool ILogger.IsEnabled(LogLevel logLevel) => true;
+            void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+                => Messages.Add(state.ToString());
+        }
     }
 }

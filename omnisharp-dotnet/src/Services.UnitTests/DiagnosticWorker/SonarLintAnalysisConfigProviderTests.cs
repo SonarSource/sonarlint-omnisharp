@@ -42,7 +42,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         {
             CheckTypeCanBeImported<SonarLintAnalysisConfigProvider, ISonarLintAnalysisConfigProvider>(
                  CreateExport<IActiveRuleDefinitionsRepository>(),
-                 CreateExport<ISonarAnalyzerCodeActionProvider>(CreateSonarCodeActionProvider(ImmutableArray<DiagnosticAnalyzer>.Empty)));
+                 CreateExport<ISonarAnalyzerCodeActionProvider>(CreateSonarCodeActionProvider(ImmutableArray<DiagnosticAnalyzer>.Empty)),
+                 CreateExport<IRulesToReportDiagnosticsConverter>());
         }
 
         [TestMethod]

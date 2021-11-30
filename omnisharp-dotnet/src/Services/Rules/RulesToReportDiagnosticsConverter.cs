@@ -25,6 +25,7 @@ using System.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
@@ -45,8 +46,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
         [ImportingConstructor]
         public RulesToReportDiagnosticsConverter(ILoggerFactory loggerFactory)
         {
-            _logger = loggerFactory.CreateLogger<RulesToReportDiagnosticsConverter>();
-            _logger.LogWarning("XXX initialized");
+            // Note: creating a logger using the same category as the main diagnostic worker type/
+            // If we use a differenty category the output is not logged and does not appear in the
+            // SonarLint pane in Rider.
+            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorkerWithAnalyzers>();
         }
 
         public Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules)
@@ -60,9 +63,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
             
             if (unrecognizedActiveRules.Any())
             {
-                _logger.LogInformation($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}. These might be new rules that exist on the server but not in SonarLint.");
+                _logger.LogInformation($@"Unrecognized active rules: {string.Join(", ", unrecognizedActiveRules)}. These might be new rules that exist on the server but not in SonarLint.");
             }
-            
+
             var diagnosticOptions = allRules
                 .ToDictionary(ruleId => ruleId,
                     ruleId => activeRules.Contains(ruleId)
