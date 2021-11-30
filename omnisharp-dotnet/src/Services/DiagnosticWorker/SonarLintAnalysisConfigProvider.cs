@@ -58,18 +58,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 
         [ImportingConstructor]
         public SonarLintAnalysisConfigProvider(IActiveRuleDefinitionsRepository activeRuleDefinitionsRepository,
-            ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider)
+            ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider,
+            IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter)
             : this(activeRuleDefinitionsRepository,
                 sonarAnalyzerCodeActionProvider,
-                new RulesToAdditionalTextConverter(),
-                new RulesToReportDiagnosticsConverter())
+                rulesToReportDiagnosticsConverter,
+                new RulesToAdditionalTextConverter())
         {
         }
 
         internal SonarLintAnalysisConfigProvider(IActiveRuleDefinitionsRepository activeRuleDefinitionsRepository,
             ISonarAnalyzerCodeActionProvider sonarAnalyzerCodeActionProvider,
-            IRulesToAdditionalTextConverter rulesToAdditionalTextConverter,
-            IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter)
+            IRulesToReportDiagnosticsConverter rulesToReportDiagnosticsConverter,
+            IRulesToAdditionalTextConverter rulesToAdditionalTextConverter)
         {
             this.activeRuleDefinitionsRepository = activeRuleDefinitionsRepository;
             this.rulesToAdditionalTextConverter = rulesToAdditionalTextConverter;
