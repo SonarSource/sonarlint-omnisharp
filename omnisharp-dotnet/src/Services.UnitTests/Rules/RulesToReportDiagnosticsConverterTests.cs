@@ -27,12 +27,20 @@ using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using SonarLint.OmniSharp.DotNet.Services.Rules;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 {
     [TestClass]
     public class RulesToReportDiagnosticsConverterTests
     {
+        [TestMethod]
+        public void MefCtor_CheckIsExported()
+        {
+            CheckTypeCanBeImported<RulesToReportDiagnosticsConverter, IRulesToReportDiagnosticsConverter>(
+                CreateExport<ILoggerFactory>());
+        }
+
         [TestMethod]
         public void Convert_NoAnalyzerRules_ArgumentException()
         {
