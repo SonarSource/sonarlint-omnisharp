@@ -62,7 +62,7 @@ stages:
             includeNuGetOrg: false
 
 
-        - task: SonarQubePrepare@4
+        - task: SonarQubePrepare@5
           inputs:
             SonarQube: 'Next'
             scannerMode: 'MSBuild'
@@ -71,11 +71,6 @@ stages:
             projectVersion: '$(SONAR_PROJECT_VERSION)'
         # NOTE: we're using coverlet -> openxml format for code coverage so we can run on non-Windows agents
             extraProperties: |
-              sonar.analysis.buildNumber=$(Build.BuildId)
-              sonar.analysis.pipeline=$(Build.BuildId)
-              sonar.analysis.sha1=$(System.PullRequest.SourceCommitId)
-              sonar.analysis.prNumber=$(System.PullRequest.PullRequestNumber)
-              sonar.analysis.repository=$(Build.Repository.ID)
               sonar.cs.opencover.reportsPaths="$(Build.SourcesDirectory)/**/TestResults/coverage.**.xml"
 
         # Build and run can be invoked in a single "test" command.
@@ -95,7 +90,7 @@ stages:
             path: omnisharp-dotnet/JarContentFiles 
             artifact: DotNetJarContentFiles
               
-        - task: SonarQubeAnalyze@4
+        - task: SonarQubeAnalyze@5
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
@@ -287,7 +282,12 @@ stages:
               name: mavenSettings
               inputs:
                 secureFile: 'maven-settings.xml'
-            - template: prepare-sq-analysis-steps.yml
+            - task: SonarQubePrepare@5
+              name: prepareSqAnalysis
+              displayName: Prepare SonarQube analysis
+              inputs:
+                SonarQube: 'Next'
+                scannerMode: 'Other'
             - task: Maven@3
               env:
                 ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
