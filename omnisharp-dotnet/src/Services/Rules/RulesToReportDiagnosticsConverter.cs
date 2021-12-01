@@ -21,8 +21,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
@@ -31,12 +34,24 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
         Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules);
     }
 
+    [Export(typeof(IRulesToReportDiagnosticsConverter))]
     internal class RulesToReportDiagnosticsConverter : IRulesToReportDiagnosticsConverter
     {
+        private readonly ILogger _logger;
+
         // the severity is handled on the java side; we're using 'warn' just to make sure that the rule is run. 
         internal const ReportDiagnostic EnabledRuleSeverity = ReportDiagnostic.Warn;
         internal const ReportDiagnostic DisabledRuleSeverity = ReportDiagnostic.Suppress;
-        
+
+        [ImportingConstructor]
+        public RulesToReportDiagnosticsConverter(ILoggerFactory loggerFactory)
+        {
+            // Note: creating a logger using the same category as the main diagnostic worker type/
+            // If we use a differenty category the output is not logged and does not appear in the
+            // SonarLint pane in Rider.
+            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorkerWithAnalyzers>();
+        }
+
         public Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules)
         {
             if (allRules.IsEmpty)
@@ -48,9 +63,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
             
             if (unrecognizedActiveRules.Any())
             {
-                throw new ArgumentException($@"Unrecognized active rules: {string.Join(",", unrecognizedActiveRules)}", nameof(activeRules));
+                _logger.LogInformation($@"Unrecognized active rules: {string.Join(", ", unrecognizedActiveRules)}. These might be new rules that exist on the server but not in SonarLint.");
             }
-            
+
             var diagnosticOptions = allRules
                 .ToDictionary(ruleId => ruleId,
                     ruleId => activeRules.Contains(ruleId)
