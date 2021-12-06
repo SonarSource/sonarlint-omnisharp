@@ -12,7 +12,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref:  refs/tags/v1.0.12
+      ref:  refs/tags/v1.0.16
 
 
 stages:
@@ -61,15 +61,13 @@ stages:
             vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
             includeNuGetOrg: false
 
-
-        - task: SonarQubePrepare@5
-          inputs:
-            SonarQube: 'Next'
+        - template: prepare-sq-analysis-steps.yml@commonTemplates
+          parameters:
             scannerMode: 'MSBuild'
             projectKey: 'sonarlint-omnisharp-dotnet'
             projectName: 'sonarlint-omnisharp-dotnet'
             projectVersion: '$(SONAR_PROJECT_VERSION)'
-        # NOTE: we're using coverlet -> openxml format for code coverage so we can run on non-Windows agents
+            # NOTE: we're using coverlet -> openxml format for code coverage so we can run on non-Windows agents
             extraProperties: |
               sonar.cs.opencover.reportsPaths="$(Build.SourcesDirectory)/**/TestResults/coverage.**.xml"
 
@@ -282,12 +280,7 @@ stages:
               name: mavenSettings
               inputs:
                 secureFile: 'maven-settings.xml'
-            - task: SonarQubePrepare@5
-              name: prepareSqAnalysis
-              displayName: Prepare SonarQube analysis
-              inputs:
-                SonarQube: 'Next'
-                scannerMode: 'Other'
+            - template: prepare-sq-analysis-steps.yml
             - task: Maven@3
               env:
                 ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
