@@ -75,12 +75,18 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
 
             sonarLintConfiguration.Rules[0].Key.Should().Be("rule1");
             sonarLintConfiguration.Rules[0].Parameters.Should().BeEquivalentTo(
-                new SonarLintKeyValuePair{Key = "param1", Value = "value1"});
+                new[]
+                {
+                    new SonarLintKeyValuePair { Key = "param1", Value = "value1" }
+                });
 
             sonarLintConfiguration.Rules[1].Key.Should().Be("rule2");
             sonarLintConfiguration.Rules[1].Parameters.Should().BeEquivalentTo(
-                new SonarLintKeyValuePair{Key = "param2", Value = "value2"},
-                new SonarLintKeyValuePair{Key = "param3", Value = "value3"});
+                new[]
+                {
+                    new SonarLintKeyValuePair { Key = "param2", Value = "value2" },
+                    new SonarLintKeyValuePair { Key = "param3", Value = "value3" }
+                });
         }
 
         [TestMethod]
@@ -113,7 +119,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
 
             sonarLintConfiguration.Rules[0].Key.Should().Be("rule with params");
             sonarLintConfiguration.Rules[0].Parameters.Should().BeEquivalentTo(
-                new SonarLintKeyValuePair { Key = "param1", Value = "value1" });
+                new [] { new SonarLintKeyValuePair { Key = "param1", Value = "value1" } });
         }
 
         private static RulesToSonarLintConfigurationConverter CreateTestSubject() => new();
