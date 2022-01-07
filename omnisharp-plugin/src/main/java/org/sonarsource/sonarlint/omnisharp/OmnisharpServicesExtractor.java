@@ -45,6 +45,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Predicate;
+import java.util.zip.ZipEntry;
 import org.sonar.api.Startable;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.TempFolder;
@@ -93,7 +95,7 @@ public class OmnisharpServicesExtractor implements Startable {
   private void unzipAnalyzer(String analyzerVersion) {
     try (InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-" + analyzerVersion + ".zip")) {
       requireNonNull(bundle, "SonarAnalyzer not found in plugin jar");
-      ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile());
+      ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile(), (Predicate<ZipEntry>) ze -> ze.getName().endsWith(".dll"));
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract analyzers", e);
     }
