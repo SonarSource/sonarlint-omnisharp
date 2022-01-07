@@ -58,7 +58,7 @@ class OmnisharpServicesExtractorTests {
     Collection<File> content = FileUtils.listFiles(analyzersDir.toFile(), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
     assertThat(content)
       .extracting(File::getName)
-      .containsExactly(
+      .containsExactlyInAnyOrder(
         "SonarAnalyzer.dll",
         "SonarAnalyzer.CSharp.dll",
         "SonarAnalyzer.CFG.dll",
