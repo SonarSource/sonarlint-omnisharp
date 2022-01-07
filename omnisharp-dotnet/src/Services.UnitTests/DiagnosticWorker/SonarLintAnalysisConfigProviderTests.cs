@@ -120,7 +120,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 
             var analysisConfig = testSubject.Get(CreateCompilation(), CreateOptions());
 
-            analysisConfig.AnalyzerOptions.AdditionalFiles.Should().BeEquivalentTo(additionalFile);
+            analysisConfig.AnalyzerOptions.AdditionalFiles.Should().BeEquivalentTo(new[] { additionalFile });
         }
 
         [TestMethod]
@@ -136,7 +136,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             var analysisConfig = testSubject.Get(CreateCompilation(), existingOptions);
 
             var additionalFiles = analysisConfig.AnalyzerOptions.AdditionalFiles;
-            additionalFiles.Should().BeEquivalentTo(existingUnrelatedAdditionalFile, newAdditionalFileWithSameName);
+            additionalFiles.Should().BeEquivalentTo(new[] { existingUnrelatedAdditionalFile, newAdditionalFileWithSameName });
             additionalFiles[0].GetText().ToString().Should().Be("some content2");
             additionalFiles[1].GetText().ToString().Should().Be("some new content");
         }
