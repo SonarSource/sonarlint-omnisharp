@@ -268,7 +268,7 @@ class OmnisharpIntegrationTests {
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S126", "Add the missing 'else' clause.", 13, 10, 13, 17, inputFile.getPath(), "CRITICAL"));
+        tuple("csharpsquid:S126", "Add the missing 'else' clause with either the appropriate action or a suitable comment as to why no action is taken.", 13, 10, 13, 17, inputFile.getPath(), "CRITICAL"));
   }
 
   @Test
