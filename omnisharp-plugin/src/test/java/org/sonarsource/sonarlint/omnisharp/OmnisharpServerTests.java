@@ -387,7 +387,7 @@ class OmnisharpServerTests {
   private void mockOmnisharpRun(String bashScript, String batScript) throws IOException {
     if (System2.INSTANCE.isOsWindows()) {
       Path run = omnisharpDir.resolve("run.bat");
-      Files.write(run, batScript.getBytes(StandardCharsets.UTF_8));
+      Files.write(run, ("@echo off\n" + batScript).getBytes(StandardCharsets.UTF_8));
     } else {
       Path run = omnisharpDir.resolve("run");
       Set<PosixFilePermission> ownerWritable = PosixFilePermissions.fromString("rwxr-xr-x");
