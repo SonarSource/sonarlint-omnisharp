@@ -92,7 +92,8 @@ public class OmnisharpSensor implements Sensor {
     }
     try {
       Path dotnetCliExePath = context.config().get(CSharpPropertyDefinitions.getDotnetCliExeLocation()).map(Paths::get).orElse(null);
-      server.lazyStart(context.fileSystem().baseDir().toPath(), dotnetCliExePath);
+      Path monoExePath = context.config().get(CSharpPropertyDefinitions.getMonoExeLocation()).map(Paths::get).orElse(null);
+      server.lazyStart(context.fileSystem().baseDir().toPath(), dotnetCliExePath, monoExePath);
     } catch (InterruptedException e) {
       LOG.warn("Interrupted", e);
       Thread.currentThread().interrupt();
