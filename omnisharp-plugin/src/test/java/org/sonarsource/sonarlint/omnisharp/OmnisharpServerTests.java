@@ -469,7 +469,7 @@ class OmnisharpServerTests {
 
   private void mockMono(String bashScript, String batScript) throws IOException {
     if (System2.INSTANCE.isOsWindows()) {
-      writeBash("echo Mono Argument=%1\n" + batScript, monoPath);
+      writeBat("echo Mono Argument=%1\n" + batScript, monoPath);
     } else {
       writeBash("echo \"Mono Argument=$1\"\n" + bashScript, monoPath);
     }
