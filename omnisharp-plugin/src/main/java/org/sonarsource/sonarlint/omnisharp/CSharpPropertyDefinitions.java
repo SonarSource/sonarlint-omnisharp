@@ -60,6 +60,10 @@ public class CSharpPropertyDefinitions {
         .hidden()
         .build());
     result.add(
+      PropertyDefinition.builder(getMonoExeLocation())
+        .hidden()
+        .build());
+    result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
         .category(OmnisharpPlugin.LANGUAGE_NAME)
         .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
@@ -81,5 +85,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getDotnetCliExeLocation() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.dotnetCliExeLocation";
+  }
+
+  public static String getMonoExeLocation() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.monoExeLocation";
   }
 }

@@ -109,7 +109,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, null);
+    verify(mockServer).lazyStart(baseDir, null, null);
 
     verify(mockProtocol).updateBuffer(filePath.toFile(), content);
     verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
@@ -164,7 +164,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, null);
+    verify(mockServer).lazyStart(baseDir, null, null);
     verify(mockProtocol).config(any());
     verifyNoMoreInteractions(mockProtocol);
   }

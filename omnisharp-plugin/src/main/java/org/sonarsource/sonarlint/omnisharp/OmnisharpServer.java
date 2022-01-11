@@ -90,6 +90,7 @@ public class OmnisharpServer implements Startable {
 
   private Path cachedProjectBaseDir;
   private Path cachedDotnetCliPath;
+  private Path cachedMonoPath;
 
   private final OmnisharpEndpoints omnisharpEndpoints;
 
@@ -134,17 +135,17 @@ public class OmnisharpServer implements Startable {
     this.sonarLintRuntime = sonarLintRuntime;
   }
 
-  public synchronized void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
+  public synchronized void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath) throws IOException, InterruptedException {
     checkAlive();
     if (omnisharpStarted) {
-      if (!Objects.equals(cachedProjectBaseDir, projectBaseDir) || !Objects.equals(cachedDotnetCliPath, dotnetCliPath)) {
-        LOG.info("Using a different project basedir or dotnet CLI path, OmniSharp has to be restarted");
+      if (!Objects.equals(cachedProjectBaseDir, projectBaseDir) || !Objects.equals(cachedDotnetCliPath, dotnetCliPath) || !Objects.equals(cachedMonoPath, monoPath)) {
+        LOG.info("Using a different project basedir, dotnet CLI path or Mono location, OmniSharp has to be restarted");
         stop();
       } else {
         return;
       }
     }
-    doStart(projectBaseDir, dotnetCliPath);
+    doStart(projectBaseDir, dotnetCliPath, monoPath);
   }
 
   public boolean isOmnisharpStarted() {
@@ -158,14 +159,15 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath) throws IOException, InterruptedException {
+  private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath) throws IOException, InterruptedException {
     this.cachedProjectBaseDir = projectBaseDir;
     this.cachedDotnetCliPath = dotnetCliPath;
+    this.cachedMonoPath = monoPath;
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
       .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
-    ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc);
+    ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc, monoPath);
     processBuilder.environment().put("PATH", buildPathEnv(dotnetCliPath));
 
     LOG.info("Starting OmniSharp...");
@@ -256,11 +258,14 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private ProcessBuilder buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc) {
+  private ProcessBuilder buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc, @Nullable Path monoPath) {
     Path omnisharpPath = Paths.get(omnisharpLoc);
     List<String> args = new ArrayList<>();
     if (system2.isOsWindows()) {
       args.add(omnisharpPath.resolve(omnisharpExeWin).toString());
+    } else if (monoPath != null) {
+      args.add(monoPath.toString());
+      args.add("omnisharp/OmniSharp.exe");
     } else {
       args.add("bash");
       args.add("run");
