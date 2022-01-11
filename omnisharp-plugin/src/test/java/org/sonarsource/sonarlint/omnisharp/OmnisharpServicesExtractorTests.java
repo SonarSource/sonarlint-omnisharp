@@ -19,9 +19,13 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -50,11 +54,15 @@ class OmnisharpServicesExtractorTests {
     underTest.start();
     assertThat(slTmpDir.resolve("slServices"))
       .isDirectoryContaining("glob:**/SonarLint.OmniSharp.DotNet.Services.dll");
-    assertThat(slTmpDir.resolve("slServices/analyzers"))
-      .isDirectoryContaining("glob:**/SonarAnalyzer.dll")
-      .isDirectoryContaining("glob:**/SonarAnalyzer.CSharp.dll")
-      .isDirectoryContaining("glob:**/SonarAnalyzer.CFG.dll")
-      .isDirectoryContaining("glob:**/Google.Protobuf.dll");
+    Path analyzersDir = slTmpDir.resolve("slServices/analyzers");
+    Collection<File> content = FileUtils.listFiles(analyzersDir.toFile(), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
+    assertThat(content)
+      .extracting(File::getName)
+      .containsExactlyInAnyOrder(
+        "SonarAnalyzer.dll",
+        "SonarAnalyzer.CSharp.dll",
+        "SonarAnalyzer.CFG.dll",
+        "Google.Protobuf.dll");
     assertThat(underTest.getOmnisharpServicesDllPath()).endsWith(Paths.get("SonarLint.OmniSharp.DotNet.Services.dll"));
   }
 
