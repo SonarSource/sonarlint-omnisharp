@@ -142,7 +142,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
             // second call should have an additional file
             result = await testSubject.AnalyzeDocumentAsync(document, CancellationToken.None);
             result.FirstOrDefault(x => x.Id == TestAnalyzer.Descriptor.Id).Should().NotBeNull();
-            analyzer.SuppliedAdditionalFiles.Should().BeEquivalentTo(additionalFile);
+            analyzer.SuppliedAdditionalFiles.Should().BeEquivalentTo(new [] {additionalFile});
         }
 
         [TestMethod]

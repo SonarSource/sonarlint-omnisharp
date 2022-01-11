@@ -1,44 +1,44 @@
 <Project>
 
-  <PropertyGroup Label="Package locking">
-    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+	<PropertyGroup Label="Package locking">
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 
-    <!-- Set the compilation constant if strong-naming -->
-    <DefineConstants Condition=" '$(SignAssembly)' == true ">$(DefineConstants);SignAssembly</DefineConstants>
-  </PropertyGroup>
-  
-  <!-- ****************************************************-->
-  <!-- SonarLint connected mode settings i.e. ruleset and additional files. -->
-  <!-- ****************************************************-->
-  <PropertyGroup>
-    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory).sonarlint\sonarlint-omnisharp-dotnetcsharp.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  
-  <ItemGroup Label="Common items">
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory).sonarlint\sonarlint-omnisharp-dotnet\CSharp\SonarLint.xml">
-      <Link>Properties\SonarLint.xml</Link>
-    </AdditionalFiles>
-  </ItemGroup>
-  
-  <!-- ****************************************************-->
-  <!-- OmniSharp assembly references                       -->
-  <!-- ****************************************************-->
-  <PropertyGroup>
-    <!-- TODO: this version needs to be kept in sync with
+		<!-- Set the compilation constant if strong-naming -->
+		<DefineConstants Condition=" '$(SignAssembly)' == true ">$(DefineConstants);SignAssembly</DefineConstants>
+	</PropertyGroup>
+
+	<!-- ****************************************************-->
+	<!-- SonarLint connected mode settings i.e. ruleset and additional files. -->
+	<!-- ****************************************************-->
+	<PropertyGroup>
+		<CodeAnalysisRuleSet>$(MSBuildThisFileDirectory).sonarlint\sonarlint-omnisharp-dotnetcsharp.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+
+	<ItemGroup Label="Common items">
+		<AdditionalFiles Include="$(MSBuildThisFileDirectory).sonarlint\sonarlint-omnisharp-dotnet\CSharp\SonarLint.xml">
+			<Link>Properties\SonarLint.xml</Link>
+		</AdditionalFiles>
+	</ItemGroup>
+
+	<!-- ****************************************************-->
+	<!-- OmniSharp assembly references                       -->
+	<!-- ****************************************************-->
+	<PropertyGroup>
+		<!-- TODO: this version needs to be kept in sync with
       1) the version in the POM for the ITs
       2) the version in the POM of the SonarLint.IntelliJ repo -->
-    <OmniSharpVersion>v1.37.11</OmniSharpVersion>
+		<OmniSharpVersion>v1.38.0</OmniSharpVersion>
 
-    <OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)</OmniSharpLocalDownloadDir>
-    <OmniSharpUnzippedDir>$(OmniSharpLocalDownloadDir)\unzipped</OmniSharpUnzippedDir>
-  </PropertyGroup>
-  <Import Project="build\DownloadOmniSharp.targets"/>
+		<OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)</OmniSharpLocalDownloadDir>
+		<OmniSharpUnzippedDir>$(OmniSharpLocalDownloadDir)\unzipped</OmniSharpUnzippedDir>
+	</PropertyGroup>
+	<Import Project="build\DownloadOmniSharp.targets"/>
 
-  <ItemGroup Label="OmniSharp assemblies">
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Abstractions.dll" Private="$(CopyOmniSharpToOutput)" />
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Shared.dll" Private="$(CopyOmniSharpToOutput)" />
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
-    <Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
-  </ItemGroup>
+	<ItemGroup Label="OmniSharp assemblies">
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Abstractions.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Shared.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
+	</ItemGroup>
 
 </Project>
