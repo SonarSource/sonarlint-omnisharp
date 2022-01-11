@@ -162,6 +162,7 @@ public class OmnisharpServer implements Startable {
   private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath) throws IOException, InterruptedException {
     this.cachedProjectBaseDir = projectBaseDir;
     this.cachedDotnetCliPath = dotnetCliPath;
+    this.cachedMonoPath = monoPath;
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
