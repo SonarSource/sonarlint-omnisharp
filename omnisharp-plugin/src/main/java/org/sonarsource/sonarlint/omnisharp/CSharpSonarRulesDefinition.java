@@ -49,10 +49,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.sonar.api.SonarRuntime;
 import org.sonar.api.rules.RuleType;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.server.rule.RulesDefinition;
 import org.sonar.api.server.rule.RulesDefinitionXmlLoader;
+import org.sonar.api.utils.Version;
 import org.sonarsource.analyzer.commons.BuiltInQualityProfileJsonLoader;
 import org.sonarsource.dotnet.shared.plugins.AbstractRulesDefinition;
 
@@ -66,8 +68,14 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   private static final Gson GSON = new Gson();
   private static final String RULES_XML = "/org/sonar/plugins/csharp/rules.xml";
 
+  private final boolean isOwaspByVersionSupported;
+
   private static String getSonarWayJsonPath() {
     return "org/sonar/plugins/" + PLUGIN_KEY + "/Sonar_way_profile.json";
+  }
+
+  public CSharpSonarRulesDefinition(SonarRuntime sonarRuntime) {
+    this.isOwaspByVersionSupported = sonarRuntime.getApiVersion().isGreaterThanOrEqual(Version.create(9, 3));
   }
 
   @Override
@@ -97,13 +105,13 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
     return "/org/sonar/plugins/csharp/" + ruleKey + "_c#.json";
   }
 
-  private static void setupHotspotRules(Collection<NewRule> rules) {
+  private void setupHotspotRules(Collection<NewRule> rules) {
     Map<NewRule, RuleMetadata> allRuleMetadata = rules.stream()
       .collect(Collectors.toMap(rule -> rule, rule -> readRuleMetadata(rule.key())));
 
     Set<NewRule> hotspotRules = getHotspotRules(allRuleMetadata);
 
-    allRuleMetadata.forEach(CSharpSonarRulesDefinition::updateSecurityStandards);
+    allRuleMetadata.forEach(this::updateSecurityStandards);
     hotspotRules.forEach(rule -> rule.setType(RuleType.SECURITY_HOTSPOT));
   }
 
@@ -120,9 +128,14 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
       .collect(Collectors.toSet());
   }
 
-  private static void updateSecurityStandards(NewRule rule, RuleMetadata ruleMetadata) {
-    for (String s : ruleMetadata.securityStandards.owasp) {
+  private void updateSecurityStandards(NewRule rule, RuleMetadata ruleMetadata) {
+    for (String s : ruleMetadata.securityStandards.owasp2017) {
       rule.addOwaspTop10(RulesDefinition.OwaspTop10.valueOf(s));
+    }
+    if (isOwaspByVersionSupported) {
+      for (String s : ruleMetadata.securityStandards.owasp2021) {
+        rule.addOwaspTop10(RulesDefinition.OwaspTop10Version.Y2021, RulesDefinition.OwaspTop10.valueOf(s));
+      }
     }
     rule.addCwe(ruleMetadata.securityStandards.cwe);
   }
@@ -139,6 +152,7 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   private static class RuleMetadata {
     private static final String SECURITY_HOTSPOT = "SECURITY_HOTSPOT";
 
+    String sqKey;
     String type;
     SecurityStandards securityStandards = new SecurityStandards();
 
@@ -150,7 +164,11 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   private static class SecurityStandards {
     @SerializedName("CWE")
     int[] cwe = {};
+
+    @SerializedName("OWASP Top 10 2021")
+    String[] owasp2021 = {};
+
     @SerializedName("OWASP")
-    String[] owasp = {};
+    String[] owasp2017 = {};
   }
 }
