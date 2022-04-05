@@ -141,6 +141,29 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  void analyzeDotnet6Project(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolution(tmpDir, "DotNet6Project");
+    ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), "INFO"));
+  }
+
+  @Test
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
@@ -268,7 +291,8 @@ class OmnisharpIntegrationTests {
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S126", "Add the missing 'else' clause with either the appropriate action or a suitable comment as to why no action is taken.", 13, 10, 13, 17, inputFile.getPath(), "CRITICAL"));
+        tuple("csharpsquid:S126", "Add the missing 'else' clause with either the appropriate action or a suitable comment as to why no action is taken.", 13, 10, 13, 17,
+          inputFile.getPath(), "CRITICAL"));
   }
 
   @Test
