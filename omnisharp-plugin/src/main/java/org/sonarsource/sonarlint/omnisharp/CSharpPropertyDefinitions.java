@@ -64,6 +64,10 @@ public class CSharpPropertyDefinitions {
         .hidden()
         .build());
     result.add(
+      PropertyDefinition.builder(getMSBuildPath())
+        .hidden()
+        .build());
+    result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
         .category(OmnisharpPlugin.LANGUAGE_NAME)
         .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
@@ -89,5 +93,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getMonoExeLocation() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.monoExeLocation";
+  }
+
+  public static String getMSBuildPath() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.msBuildPath";
   }
 }
