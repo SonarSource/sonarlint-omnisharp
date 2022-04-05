@@ -91,6 +91,7 @@ public class OmnisharpServer implements Startable {
   private Path cachedProjectBaseDir;
   private Path cachedDotnetCliPath;
   private Path cachedMonoPath;
+  private Path cachedMsBuildPath;
 
   private final OmnisharpEndpoints omnisharpEndpoints;
 
@@ -135,17 +136,34 @@ public class OmnisharpServer implements Startable {
     this.sonarLintRuntime = sonarLintRuntime;
   }
 
-  public synchronized void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath) throws IOException, InterruptedException {
+  public synchronized void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath, @Nullable Path msBuildPath)
+    throws IOException, InterruptedException {
     checkAlive();
     if (omnisharpStarted) {
-      if (!Objects.equals(cachedProjectBaseDir, projectBaseDir) || !Objects.equals(cachedDotnetCliPath, dotnetCliPath) || !Objects.equals(cachedMonoPath, monoPath)) {
-        LOG.info("Using a different project basedir, dotnet CLI path or Mono location, OmniSharp has to be restarted");
+      boolean shouldRestart = false;
+      if (!Objects.equals(cachedProjectBaseDir, projectBaseDir)) {
+        shouldRestart = true;
+        LOG.info("Using a different project basedir, OmniSharp has to be restarted");
+      }
+      if (!Objects.equals(cachedDotnetCliPath, dotnetCliPath)) {
+        shouldRestart = true;
+        LOG.info("Using a different dotnet CLI path, OmniSharp has to be restarted");
+      }
+      if (!Objects.equals(cachedMonoPath, monoPath)) {
+        shouldRestart = true;
+        LOG.info("Using a different Mono location, OmniSharp has to be restarted");
+      }
+      if (!Objects.equals(cachedMsBuildPath, msBuildPath)) {
+        shouldRestart = true;
+        LOG.info("Using a different MSBuild path, OmniSharp has to be restarted");
+      }
+      if (shouldRestart) {
         stop();
       } else {
         return;
       }
     }
-    doStart(projectBaseDir, dotnetCliPath, monoPath);
+    doStart(projectBaseDir, dotnetCliPath, monoPath, msBuildPath);
   }
 
   public boolean isOmnisharpStarted() {
@@ -159,15 +177,16 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath) throws IOException, InterruptedException {
+  private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath, @Nullable Path msBuildPath) throws IOException, InterruptedException {
     this.cachedProjectBaseDir = projectBaseDir;
     this.cachedDotnetCliPath = dotnetCliPath;
     this.cachedMonoPath = monoPath;
+    this.cachedMsBuildPath = msBuildPath;
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
     String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
       .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
-    ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc, monoPath);
+    ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc, monoPath, msBuildPath);
     processBuilder.environment().put("PATH", buildPathEnv(dotnetCliPath));
 
     LOG.info("Starting OmniSharp...");
@@ -258,7 +277,7 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private ProcessBuilder buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc, @Nullable Path monoPath) {
+  private ProcessBuilder buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc, @Nullable Path monoPath, @Nullable Path msBuildPath) {
     Path omnisharpPath = Paths.get(omnisharpLoc);
     List<String> args = new ArrayList<>();
     if (system2.isOsWindows()) {
@@ -274,6 +293,11 @@ public class OmnisharpServer implements Startable {
     if (sonarLintRuntime.getClientPid() != 0) {
       args.add("--hostPID");
       args.add(Long.toString(sonarLintRuntime.getClientPid()));
+    }
+    if (msBuildPath != null) {
+      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
+    } else {
+      args.add("MsBuild:useBundledOnly=true");
     }
     args.add("DotNet:enablePackageRestore=false");
     args.add("--encoding");
