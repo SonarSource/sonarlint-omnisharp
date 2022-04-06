@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
     <artifactId>sonarlint-omnisharp-parent</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
   </parent>
 
   <artifactId>sonarlint-omnisharp-its</artifactId>
