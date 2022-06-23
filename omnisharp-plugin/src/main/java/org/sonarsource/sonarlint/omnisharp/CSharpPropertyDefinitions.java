@@ -68,6 +68,10 @@ public class CSharpPropertyDefinitions {
         .hidden()
         .build());
     result.add(
+      PropertyDefinition.builder(getSolutionPath())
+        .hidden()
+        .build());
+    result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
         .category(OmnisharpPlugin.LANGUAGE_NAME)
         .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
@@ -97,5 +101,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getMSBuildPath() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.msBuildPath";
+  }
+
+  public static String getSolutionPath() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.solutionPath";
   }
 }

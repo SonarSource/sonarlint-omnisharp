@@ -107,7 +107,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testSingleSolution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -142,7 +142,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void analyzeDotnet6Project(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "DotNet6Project");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
     ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
       "// TODO foo\n"
         + "Console.WriteLine(\"Hello, World!\");",
@@ -165,7 +165,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -236,7 +236,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testRuleActivation(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -297,7 +297,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testRuleParameter(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -366,8 +366,8 @@ class OmnisharpIntegrationTests {
   void testMultipleSolutions(@TempDir Path tmpDir) throws Exception {
     sonarlintEngine.declareModule(MODULE_INFO_2);
 
-    Path console1BaseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
-    Path console2BaseDir = prepareTestSolution(tmpDir, "ConsoleApp2");
+    Path console1BaseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path console2BaseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp2");
 
     ClientInputFile inputFile1 = prepareInputFile(console1BaseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
@@ -433,8 +433,86 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  void testMultipleSolutionsInSameFolder(@TempDir Path tmpDir) throws Exception {
+    sonarlintEngine.declareModule(MODULE_INFO_2);
+
+    // emulate a repo that contains multiple solutions
+    Path repoBaseDir = prepareTestSolution(tmpDir, "ConsoleAppWithTwoSlnNotInRoot");
+
+    ClientInputFile inputFile1 = prepareInputFile(repoBaseDir, "ConsoleApp1/Program1.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program1\n"
+        + "    {\n"
+        + "        static void Main(string[] args)\n"
+        + "        {\n"
+        + "            // TODO foo\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    ClientInputFile inputFile2 = prepareInputFile(repoBaseDir, "ConsoleApp2/Program2.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp2\n"
+        + "{\n"
+        + "    class Program2\n"
+        + "    {\n"
+        + "        static void Main(string[] args)\n"
+        + "        {\n"
+        + "            // TODO foo\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    final List<Issue> issuesConsole1 = new ArrayList<>();
+    Path solution1Sln = repoBaseDir.resolve("Solution/ConsoleApp1.sln");
+    restore(solution1Sln);
+    StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .setBaseDir(repoBaseDir)
+      .addInputFiles(inputFile1, inputFile2)
+      .putExtraProperty("sonar.cs.internal.solutionPath", solution1Sln.toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration1, i -> issuesConsole1.add(i), null, null);
+
+    assertThat(issuesConsole1)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile1.getPath(), "MAJOR"),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), "INFO"));
+    // No issues in ConsoleApp2/Program2.cs because it is not part of Solution
+
+    final List<Issue> issuesConsole2 = new ArrayList<>();
+    Path solution2Sln = repoBaseDir.resolve("Solution/ConsoleApp2.sln");
+    restore(solution2Sln);
+    StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
+      .setModuleKey(SOLUTION2_MODULE_KEY)
+      .setBaseDir(repoBaseDir)
+      .addInputFiles(inputFile1, inputFile2)
+      .putExtraProperty("sonar.cs.internal.solutionPath", solution2Sln.toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration2, i -> issuesConsole2.add(i), null, null);
+
+    assertThat(issuesConsole2)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile2.getPath(), "MAJOR"),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), "INFO"));
+    // No issues in ConsoleApp1/Program1.cs because it is not part of Solution
+  }
+
+  @Test
   void testAnalyzeFileinANewProject(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -529,7 +607,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testConcurrentAnalysis(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -575,7 +653,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void shouldNotFailAfterFirstThreadDied(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolution(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -642,18 +720,30 @@ class OmnisharpIntegrationTests {
 
   }
 
-  private Path prepareTestSolution(Path tmpDir, String name) throws IOException, InterruptedException {
-    Path baseDir = tmpDir.toRealPath().resolve(name);
-    Files.createDirectories(baseDir);
-    FileUtils.copyDirectory(new File("src/test/projects/" + name), baseDir.toFile());
+  private Path prepareTestSolutionAndRestore(Path tmpDir, String name) throws IOException, InterruptedException {
+    Path baseDir = prepareTestSolution(tmpDir, name);
     restore(baseDir);
     return baseDir;
   }
 
-  private void restore(Path baseDir) throws IOException, InterruptedException {
-    ProcessBuilder pb = new ProcessBuilder("dotnet", "restore")
-      .directory(baseDir.toFile())
-      .inheritIO();
+  private Path prepareTestSolution(Path tmpDir, String name) throws IOException, InterruptedException {
+    Path baseDir = tmpDir.toRealPath().resolve(name);
+    Files.createDirectories(baseDir);
+    FileUtils.copyDirectory(new File("src/test/projects/" + name), baseDir.toFile());
+    return baseDir;
+  }
+
+  private void restore(Path solutionDirOrFile) throws IOException, InterruptedException {
+    ProcessBuilder pb;
+    if (Files.isRegularFile(solutionDirOrFile)) {
+      pb = new ProcessBuilder("dotnet", "restore", solutionDirOrFile.getFileName().toString())
+        .directory(solutionDirOrFile.getParent().toFile())
+        .inheritIO();
+    } else {
+      pb = new ProcessBuilder("dotnet", "restore")
+        .directory(solutionDirOrFile.toFile())
+        .inheritIO();
+    }
     Process process = pb.start();
     if (process.waitFor() != 0) {
       fail("Unable to run dotnet restore");
