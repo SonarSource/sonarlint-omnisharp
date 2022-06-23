@@ -164,7 +164,7 @@ class OmnisharpServerTests {
   void omnisharpLocationRequired() throws Exception {
     underTest.start();
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(null, null, null, null));
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(null, null, null, null, null));
     assertThat(thrown).hasMessage("Property 'sonar.cs.internal.omnisharpLocation' is required");
 
   }
@@ -177,7 +177,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
 
     verify(endpoints).setServer(underTest);
     verify(responseProcessor).handleOmnisharpOutput(any(), any(), eq("Foo"));
@@ -205,10 +205,10 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
 
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
   }
@@ -223,7 +223,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
@@ -237,14 +237,14 @@ class OmnisharpServerTests {
       }
     }).when(endpoints).stopServer();
 
-    underTest.lazyStart(anotherSolutionDir, null, null, null);
+    underTest.lazyStart(anotherSolutionDir, null, null, null, null);
     verify(endpoints).stopServer();
     verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different project basedir, OmniSharp has to be restarted");
 
     // Same solution, should not restart
     clearInvocations(endpoints);
-    underTest.lazyStart(anotherSolutionDir, null, null, null);
+    underTest.lazyStart(anotherSolutionDir, null, null, null, null);
     verifyNoInteractions(endpoints);
   }
 
@@ -258,7 +258,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
@@ -272,14 +272,14 @@ class OmnisharpServerTests {
       }
     }).when(endpoints).stopServer();
 
-    underTest.lazyStart(solutionDir, dotnetCliPath, null, null);
+    underTest.lazyStart(solutionDir, dotnetCliPath, null, null, null);
     verify(endpoints).stopServer();
     verify(responseProcessor, times(2)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different dotnet CLI path, OmniSharp has to be restarted");
 
     // Same dotnetCliPath, should not restart
     clearInvocations(endpoints);
-    underTest.lazyStart(solutionDir, dotnetCliPath, null, null);
+    underTest.lazyStart(solutionDir, dotnetCliPath, null, null, null);
     verifyNoInteractions(endpoints);
   }
 
@@ -292,7 +292,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
@@ -310,7 +310,7 @@ class OmnisharpServerTests {
     mockMono("echo Foo\nread -p \"Press enter to continue\"", "@echo off\necho Foo\npause");
     mockResponseProcessor();
 
-    underTest.lazyStart(solutionDir, null, monoPath, null);
+    underTest.lazyStart(solutionDir, null, monoPath, null, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(endpoints).stopServer();
 
@@ -326,7 +326,7 @@ class OmnisharpServerTests {
 
     // Same monoPath, should not restart
     clearInvocations(endpoints);
-    underTest.lazyStart(solutionDir, null, monoPath, null);
+    underTest.lazyStart(solutionDir, null, monoPath, null, null);
     verify(endpoints, never()).stopServer();
   }
 
@@ -339,7 +339,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
     verify(endpoints, never()).stopServer();
@@ -355,7 +355,7 @@ class OmnisharpServerTests {
 
     clearInvocations(responseProcessor);
 
-    underTest.lazyStart(solutionDir, null, null, msBuildPath);
+    underTest.lazyStart(solutionDir, null, null, msBuildPath, null);
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(endpoints).stopServer();
 
@@ -364,7 +364,45 @@ class OmnisharpServerTests {
 
     // Same msBuildPath, should not restart
     clearInvocations(endpoints);
-    underTest.lazyStart(solutionDir, null, null, msBuildPath);
+    underTest.lazyStart(solutionDir, null, null, msBuildPath, null);
+    verify(endpoints, never()).stopServer();
+  }
+
+  @Test
+  void automaticallyRestartIfDifferentSolutionPath(@TempDir Path solutionPath) throws Exception {
+    mapSettings.setProperty("sonar.cs.internal.omnisharpLocation", omnisharpDir.toString());
+
+    mockOmnisharpRun("echo Foo\nread -p \"Press enter to continue\"", "@echo off\necho Foo\npause");
+    mockResponseProcessor();
+
+    underTest.start();
+
+    underTest.lazyStart(solutionDir, null, null, null, null);
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+    verify(responseProcessor, times(1)).handleOmnisharpOutput(any(), any(), eq("Foo"));
+    verify(endpoints, never()).stopServer();
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        // Write something on stdin to resume program
+        underTest.writeRequestOnStdIn("");
+        return null;
+      }
+    }).when(endpoints).stopServer();
+
+    clearInvocations(responseProcessor);
+
+    underTest.lazyStart(solutionDir, null, null, null, solutionPath);
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+    verify(endpoints).stopServer();
+
+    assertThat(logTester.logs(LoggerLevel.INFO)).contains("Using a different solution path, OmniSharp has to be restarted");
+    logTester.clear();
+
+    // Same solutionPath, should not restart
+    clearInvocations(endpoints);
+    underTest.lazyStart(solutionDir, null, null, null, solutionPath);
     verify(endpoints, never()).stopServer();
   }
 
@@ -378,7 +416,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, dotnetCliPath, null, null);
+    underTest.lazyStart(solutionDir, dotnetCliPath, null, null, null);
 
     // Wait for process to run until echo
     Thread.sleep(1000);
@@ -397,7 +435,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
 
     doAnswer(new Answer<Void>() {
       @Override
@@ -425,7 +463,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
 
     // Write something on stdin to resume program
     underTest.writeRequestOnStdIn("");
@@ -447,7 +485,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    underTest.lazyStart(solutionDir, null, null, null);
+    underTest.lazyStart(solutionDir, null, null, null, null);
 
     Thread waitForEnd = new Thread() {
       @Override
@@ -479,7 +517,7 @@ class OmnisharpServerTests {
 
     underTest.start();
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, null, null, null));
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, null, null, null, null));
     assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
   }
