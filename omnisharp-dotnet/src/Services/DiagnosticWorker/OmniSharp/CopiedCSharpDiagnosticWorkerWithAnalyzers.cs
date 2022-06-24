@@ -31,7 +31,7 @@ namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
     /// Changes:
     ///     1. Making <see cref="AnalyzeDocument"/> protected-virtual
     ///     2. Keeping the workaround of `_workspaceAnalyzerOptionsConstructor` that was removed in OmniSharp v1.38.2.
-    ///     The new fix uses internals from `Microsoft.CodeAnalysis.Diagnostics` which we don't have access to.
+    ///     The new fix uses internals from `Microsoft.CodeAnalysis.ExternalAccess.OmniSharp.dll` which we cannot access.
     ///     https://github.com/OmniSharp/omnisharp-roslyn/commit/741ea40c0ca3cc363ce2859362612d5e518915a1
     /// </summary>
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
