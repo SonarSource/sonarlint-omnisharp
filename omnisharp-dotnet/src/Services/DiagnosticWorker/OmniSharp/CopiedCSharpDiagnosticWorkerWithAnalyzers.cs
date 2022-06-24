@@ -39,7 +39,7 @@ namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
     {
         private readonly AnalyzerWorkQueue _workQueue;
         private readonly SemaphoreSlim _throttler;
-        private readonly ILogger<CSharpDiagnosticWorkerWithAnalyzers> _logger;
+        private readonly ILogger<CopiedCSharpDiagnosticWorkerWithAnalyzers> _logger;
 
         private readonly ConcurrentDictionary<DocumentId, DocumentDiagnostics> _currentDiagnosticResultLookup = new();
         private readonly ImmutableArray<ICodeActionProvider> _providers;
@@ -61,7 +61,7 @@ namespace OmniSharp.Roslyn.CSharp.Services.Diagnostics
             DiagnosticEventForwarder forwarder,
             OmniSharpOptions options)
         {
-            _logger = loggerFactory.CreateLogger<CSharpDiagnosticWorkerWithAnalyzers>();
+            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorkerWithAnalyzers>();
             _providers = providers.ToImmutableArray();
             _workQueue = new AnalyzerWorkQueue(loggerFactory, timeoutForPendingWorkMs: options.RoslynExtensionsOptions.DocumentAnalysisTimeoutMs * 3);
             _throttler = new SemaphoreSlim(options.RoslynExtensionsOptions.DiagnosticWorkersThreadCount);

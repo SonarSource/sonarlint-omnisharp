@@ -57,9 +57,6 @@
 			<AutoGen>True</AutoGen>
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
-		<Compile Remove="DiagnosticWorker\OmniSharp\WorkspaceAnalyzerOptions.cs" />
-		<Compile Remove="DiagnosticWorker\OmniSharp\IdeAnalyzerOptions.cs" />
-		<Compile Remove="DiagnosticWorker\OmniSharp\OmniSharpWorkspaceAnalyzerOptionsFactory.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
