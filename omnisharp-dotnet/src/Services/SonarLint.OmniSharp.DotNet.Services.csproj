@@ -5,6 +5,7 @@
 
 		<!-- We don't want to ship the OmniSharp assemblies -->
 		<CopyOmniSharpToOutput>false</CopyOmniSharpToOutput>
+		<LangVersion>9</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -12,12 +13,19 @@
          Referencing a different version of NewtonSoft.Json doesn't seem to cause a problem,
          but we're targeting the same version to be on the safe side.
     -->
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.0-6.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.3.0-1.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.3.0-1.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Features" Version="4.3.0-1.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.3.0-1.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0-1.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.3.0-1.final" />
 		<PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="3.1.12" />
-		<PackageReference Include="System.Composition.AttributedModel" Version="1.0.31" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+		<PackageReference Include="System.Composition.AttributedModel" Version="6.0.0" />
+		<PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
 	</ItemGroup>
 
 
@@ -49,6 +57,9 @@
 			<AutoGen>True</AutoGen>
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
+		<Compile Remove="DiagnosticWorker\OmniSharp\WorkspaceAnalyzerOptions.cs" />
+		<Compile Remove="DiagnosticWorker\OmniSharp\IdeAnalyzerOptions.cs" />
+		<Compile Remove="DiagnosticWorker\OmniSharp\OmniSharpWorkspaceAnalyzerOptionsFactory.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

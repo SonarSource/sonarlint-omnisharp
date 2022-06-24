@@ -27,7 +27,7 @@
 		<!-- TODO: this version needs to be kept in sync with
       1) the version in the POM for the ITs
       2) the version in the POM of the SonarLint.IntelliJ repo -->
-		<OmniSharpVersion>v1.38.0</OmniSharpVersion>
+		<OmniSharpVersion>v1.39.0</OmniSharpVersion>
 
 		<OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)</OmniSharpLocalDownloadDir>
 		<OmniSharpUnzippedDir>$(OmniSharpLocalDownloadDir)\unzipped</OmniSharpUnzippedDir>
@@ -39,6 +39,13 @@
 		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Shared.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
+
+		<!-- The following DLLs are added to avoid assembly conflicts. 
+		They cannot be solved with a BindingRedirect since we are a netstandard application.
+		 -->
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\System.Buffers.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\System.Numerics.Vectors.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\System.ValueTuple.dll" Private="$(CopyOmniSharpToOutput)" />
 	</ItemGroup>
 
 </Project>
