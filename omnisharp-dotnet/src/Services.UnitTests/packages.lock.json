@@ -449,16 +449,9 @@
       "sonarlint.omnisharp.dotnet.services": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.CodeAnalysis.CSharp": "4.3.0-1.final",
           "Microsoft.CodeAnalysis.CSharp.Features": "4.3.0-1.final",
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "4.3.0-1.final",
-          "Microsoft.CodeAnalysis.Common": "4.3.0-1.final",
-          "Microsoft.CodeAnalysis.Features": "4.3.0-1.final",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "4.3.0-1.final",
           "Microsoft.Extensions.Logging": "6.0.0",
-          "Microsoft.Extensions.Logging.Abstractions": "6.0.0",
-          "Microsoft.Extensions.Options": "6.0.0",
-          "Microsoft.Extensions.Primitives": "6.0.0",
           "Newtonsoft.Json": "13.0.1",
           "System.Collections.Immutable": "6.0.0",
           "System.Composition.AttributedModel": "6.0.0"
