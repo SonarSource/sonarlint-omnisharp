@@ -16,8 +16,8 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>8.37.0.45539</analyzer.version>
-    <sonar.analyzer.commons>1.24.0.965</sonar.analyzer.commons>
+    <analyzer.version>8.40.0.48530</analyzer.version>
+    <sonar.analyzer.commons>1.25.0.1003</sonar.analyzer.commons>
     <sonar.version>9.3.0.51899</sonar.version>
     <sonarLTS.version>7.9</sonarLTS.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
