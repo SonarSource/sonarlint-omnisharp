@@ -39,7 +39,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
             var result = testSubject.Serialize(new SonarLintConfiguration());
 
             result.Should().BeEquivalentTo(@"<?xml version=""1.0"" encoding=""utf-8""?>
-<AnalysisInput xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
+<AnalysisInput xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
   <Settings />
   <Rules />
 </AnalysisInput>");
@@ -76,7 +76,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
             var result = testSubject.Serialize(configuration);
 
             result.Should().BeEquivalentTo(@"<?xml version=""1.0"" encoding=""utf-8""?>
-<AnalysisInput xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
+<AnalysisInput xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
   <Settings />
   <Rules>
     <Rule>
