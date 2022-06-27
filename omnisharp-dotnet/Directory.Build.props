@@ -40,6 +40,8 @@
 		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
 
+		<Reference Include="$(OmniSharpUnzippedDir)\omnisharp\Microsoft.CodeAnalysis.Elfie.dll" />
+
 		<!-- The following DLLs are added to avoid assembly conflicts. 
 		They cannot be solved with a BindingRedirect since we are a netstandard application.
 		 -->
