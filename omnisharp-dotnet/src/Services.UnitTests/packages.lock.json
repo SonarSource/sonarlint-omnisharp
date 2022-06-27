@@ -23,45 +23,6 @@
           "System.Configuration.ConfigurationManager": "4.4.0"
         }
       },
-      "Microsoft.CodeAnalysis.CSharp.Features": {
-        "type": "Direct",
-        "requested": "[4.3.0-1.final, )",
-        "resolved": "4.3.0-1.final",
-        "contentHash": "9uhci5uCLrSXqwCiBQIFKogwbvSBSrnQsTZX4Fl8RIrl50JCZbiX6RbJeFF0B8OiqEw8iDxxFxGa0p3LXuCc5w==",
-        "dependencies": {
-          "Humanizer.Core": "2.14.1",
-          "Microsoft.CodeAnalysis.CSharp": "[4.3.0-1.final]",
-          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.3.0-1.final]",
-          "Microsoft.CodeAnalysis.Common": "[4.3.0-1.final]",
-          "Microsoft.CodeAnalysis.Features": "[4.3.0-1.final]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.3.0-1.final]"
-        }
-      },
-      "Microsoft.CodeAnalysis.CSharp.Workspaces": {
-        "type": "Direct",
-        "requested": "[4.3.0-1.final, )",
-        "resolved": "4.3.0-1.final",
-        "contentHash": "wAZsNIPEOPxpva+1NADgS+y7FE0Y71trTXnivlxi3ENvJRGBk6yBV1Rlvd0f7t4FdUvpCDu/7gPipaZfbAts2Q==",
-        "dependencies": {
-          "Humanizer.Core": "2.14.1",
-          "Microsoft.CodeAnalysis.CSharp": "[4.3.0-1.final]",
-          "Microsoft.CodeAnalysis.Common": "[4.3.0-1.final]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.3.0-1.final]"
-        }
-      },
-      "Microsoft.Extensions.Logging": {
-        "type": "Direct",
-        "requested": "[6.0.0, )",
-        "resolved": "6.0.0",
-        "contentHash": "eIbyj40QDg1NDz0HBW0S5f3wrLVnKWnDJ/JtZ+yJDFnDj90VoPuoPmFkeaXrtu+0cKm5GRAwoDf+dBWXK0TUdg==",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "6.0.0",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "6.0.0",
-          "Microsoft.Extensions.Logging.Abstractions": "6.0.0",
-          "Microsoft.Extensions.Options": "6.0.0",
-          "System.Diagnostics.DiagnosticSource": "6.0.0"
-        }
-      },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
         "requested": "[16.6.1, )",
@@ -109,12 +70,6 @@
         "requested": "[1.4.0, )",
         "resolved": "1.4.0",
         "contentHash": "kV/yZ0XLiOElsVeLT0GnNrsoKcPvVNOP6Cv2zkAiceJY0rpro0L+3t54bRApLwTg1mxlo4rLziBG7X6X69KcrQ=="
-      },
-      "Newtonsoft.Json": {
-        "type": "Direct",
-        "requested": "[13.0.1, )",
-        "resolved": "13.0.1",
-        "contentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A=="
       },
       "SQLitePCLRaw.core": {
         "type": "Direct",
@@ -182,6 +137,30 @@
         "contentHash": "YSZa5KVYl3zzha6OPkRcJHCpkc61qH4R5nKeN4EU8xORpdfh46vSodQi4EkdEki7WIJ+J/6WCLLFWEzm4dLtMA==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Common": "[4.3.0-1.final]"
+        }
+      },
+      "Microsoft.CodeAnalysis.CSharp.Features": {
+        "type": "Transitive",
+        "resolved": "4.3.0-1.final",
+        "contentHash": "9uhci5uCLrSXqwCiBQIFKogwbvSBSrnQsTZX4Fl8RIrl50JCZbiX6RbJeFF0B8OiqEw8iDxxFxGa0p3LXuCc5w==",
+        "dependencies": {
+          "Humanizer.Core": "2.14.1",
+          "Microsoft.CodeAnalysis.CSharp": "[4.3.0-1.final]",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.3.0-1.final]",
+          "Microsoft.CodeAnalysis.Common": "[4.3.0-1.final]",
+          "Microsoft.CodeAnalysis.Features": "[4.3.0-1.final]",
+          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.3.0-1.final]"
+        }
+      },
+      "Microsoft.CodeAnalysis.CSharp.Workspaces": {
+        "type": "Transitive",
+        "resolved": "4.3.0-1.final",
+        "contentHash": "wAZsNIPEOPxpva+1NADgS+y7FE0Y71trTXnivlxi3ENvJRGBk6yBV1Rlvd0f7t4FdUvpCDu/7gPipaZfbAts2Q==",
+        "dependencies": {
+          "Humanizer.Core": "2.14.1",
+          "Microsoft.CodeAnalysis.CSharp": "[4.3.0-1.final]",
+          "Microsoft.CodeAnalysis.Common": "[4.3.0-1.final]",
+          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.3.0-1.final]"
         }
       },
       "Microsoft.CodeAnalysis.Elfie": {
@@ -255,6 +234,18 @@
         "type": "Transitive",
         "resolved": "6.0.0",
         "contentHash": "xlzi2IYREJH3/m6+lUrQlujzX8wDitm4QGnUu6kUXTQAWPuZY8i+ticFJbzfqaetLA6KR/rO6Ew/HuYD+bxifg=="
+      },
+      "Microsoft.Extensions.Logging": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "eIbyj40QDg1NDz0HBW0S5f3wrLVnKWnDJ/JtZ+yJDFnDj90VoPuoPmFkeaXrtu+0cKm5GRAwoDf+dBWXK0TUdg==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection": "6.0.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "6.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "6.0.0",
+          "Microsoft.Extensions.Options": "6.0.0",
+          "System.Diagnostics.DiagnosticSource": "6.0.0"
+        }
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "Transitive",
@@ -392,6 +383,11 @@
           "System.Xml.ReaderWriter": "4.3.0",
           "System.Xml.XDocument": "4.3.0"
         }
+      },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.1",
+        "contentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A=="
       },
       "NuGet.Frameworks": {
         "type": "Transitive",
@@ -554,8 +550,11 @@
       },
       "System.Collections.Immutable": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "FXkLXiK0sVVewcso0imKQoOxjoPAj42R8HtjjbSjVPAzwDfzoyoznWxgA3c38LDbN9SJux1xXoXYAhz98j7r2g=="
+        "resolved": "6.0.0",
+        "contentHash": "l4zZJ1WU2hqpQQHXz1rvC3etVZN+2DLmQMO79FhOTZHMn8tDRr+WU287sbomD0BETlmKDn0ygUgVy9k5xkkJdA==",
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
       },
       "System.Collections.NonGeneric": {
         "type": "Transitive",
@@ -1502,7 +1501,15 @@
         }
       },
       "sonarlint.omnisharp.dotnet.services": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.CSharp.Features": "4.3.0-1.final",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "4.3.0-1.final",
+          "Microsoft.Extensions.Logging": "6.0.0",
+          "Newtonsoft.Json": "13.0.1",
+          "System.Collections.Immutable": "6.0.0",
+          "System.Composition.AttributedModel": "6.0.0"
+        }
       }
     }
   }
