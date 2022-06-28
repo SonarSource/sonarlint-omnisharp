@@ -43,7 +43,7 @@ stages:
 
             # Read the version from the file
             [xml]$versionProps = Get-Content "$versionFilePath"
-            $sonarProjectVersion = $versionProps.project.version
+            $sonarProjectVersion = $versionProps.project.version.Replace("-SNAPSHOT", "")
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
 
             # Set the variable to it can be used by other tasks
@@ -89,6 +89,14 @@ stages:
             artifact: DotNetJarContentFiles
               
         - task: SonarQubeAnalyze@5
+        
+        - template: whitesource.yml@commonTemplates
+          parameters:
+            productName : 'SonarLint/OmniSharp'
+            # Note: the project name doesn't match the repo slug so the releasability check won't work for this project
+            projectName : 'SonarSource/sonar-omnisharp/dotnet'
+            projectVersion: '$(SONAR_PROJECT_VERSION)'
+            configFilePath: '$(Build.SourcesDirectory)/omnisharp-dotnet/build/whitesource/wss-unified-agent.config'
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
@@ -259,7 +267,7 @@ stages:
                 jdkVersionOption: '1.11'
                 mavenOptions: $(MAVEN_OPTS)        
         - job: sonarqube
-          displayName: SonarQube analysis on Next
+          displayName: SonarQube analysis on Next and WhiteSource analysis
           variables:
             MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
             MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
@@ -294,6 +302,15 @@ stages:
                 mavenOptions: $(MAVEN_OPTS)
                 sonarQubeRunAnalysis: true
                 sqMavenPluginVersionChoice: 'latest'
+            - template: whitesource-with-maven-repox.yml@commonTemplates
+              parameters:
+                productName : 'SonarLint/OmniSharp'
+                # the projectName has to match the repo name for the releasability check to work
+                projectName : 'SonarSource/sonarlint-omnisharp'
+                configFilePath: '$(Build.SourcesDirectory)/whitesource/wss-unified-agent.config'
+                mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
+                mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
+
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
       burgrName: 'qa'
