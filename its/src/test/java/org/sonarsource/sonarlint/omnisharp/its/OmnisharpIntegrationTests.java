@@ -61,6 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@Disabled("Java side needs to download the .net 6 build of omnisharp")
 class OmnisharpIntegrationTests {
 
   private static final String SOLUTION1_MODULE_KEY = "solution1";
