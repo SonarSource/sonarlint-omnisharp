@@ -175,6 +175,18 @@ class OmnisharpEndpointsTests {
   }
 
   @Test
+  void codeCheckFailed() throws Exception {
+    List<Diagnostic> issues = new ArrayList<>();
+    File f = new File("Foo.cs");
+
+    codeCheckFailed(f, "Some error");
+
+    assertThat(logTester.logs(LoggerLevel.ERROR)).contains("Some error");
+
+    assertThat(issues).isEmpty();
+  }
+
+  @Test
   void codeCheck() throws Exception {
     List<Diagnostic> issues = new ArrayList<>();
     File f = new File("Foo.cs");
@@ -331,6 +343,32 @@ class OmnisharpEndpointsTests {
       + "  \"Success\": true,"
       + "  \"Message\": null,"
       + jsonBody + ","
+      + "  \"Seq\": 409,"
+      + "  \"Type\": \"response\""
+      + "}");
+
+    // wait for codeCheck to finish
+    t.join(1000);
+  }
+
+  private void codeCheckFailed(File f, String message) throws IOException, InterruptedException {
+    // codeCheck is blocking, so run it in a separate Thread
+    Thread t = new Thread(() -> {
+      underTest.codeCheck(f, i -> {
+      });
+    });
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).containsExactly(
+      "{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/sonarlint/codecheck\",\"Arguments\":{\"FileName\":\"" + toJsonAbsolutePath(f) + "\"}}"));
+
+    emulateReceivedMessage("{"
+      + "  \"Request_seq\": 1,"
+      + "  \"Command\": \"/sonarlint/codecheck\","
+      + "  \"Running\": true,"
+      + "  \"Success\": false,"
+      + "  \"Message\": \"" + message + "\","
+      + "  \"Body\": null,"
       + "  \"Seq\": 409,"
       + "  \"Type\": \"response\""
       + "}");

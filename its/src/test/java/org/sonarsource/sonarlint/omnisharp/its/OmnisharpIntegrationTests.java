@@ -30,8 +30,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +45,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.Disabled;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.client.api.common.ClientModuleFileEvent;
 import org.sonarsource.sonarlint.core.client.api.common.Language;
@@ -62,7 +61,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@Disabled("Tests need to reference the .net 6 build of OmniSharp")
 class OmnisharpIntegrationTests {
 
   private static final String SOLUTION1_MODULE_KEY = "solution1";
@@ -80,12 +78,19 @@ class OmnisharpIntegrationTests {
         FalseFileFilter.FALSE)
       .iterator().next();
 
+    String omnisharpMonoPath = new File("target/omnisharp-mono").getAbsolutePath();
+    String omnisharpWinPath = new File("target/omnisharp-win").getAbsolutePath();
+    String omnisharpNet6Path = new File("target/omnisharp-net6").getAbsolutePath();
     StandaloneGlobalConfiguration config = StandaloneGlobalConfiguration.builder()
       .addPlugin(pluginJar.toURI().toURL())
       .addEnabledLanguage(Language.CS)
       .setSonarLintUserHome(slHome)
       .setLogOutput((msg, level) -> System.out.println(msg))
-      .setExtraProperties(Collections.singletonMap("sonar.cs.internal.omnisharpLocation", new File("target/omnisharp").getAbsolutePath()))
+      .setExtraProperties(
+        Map.of(
+          "sonar.cs.internal.omnisharpMonoLocation", omnisharpMonoPath,
+          "sonar.cs.internal.omnisharpWinLocation", omnisharpWinPath,
+          "sonar.cs.internal.omnisharpNet6Location", omnisharpNet6Path))
       .setClientPid(ProcessHandle.current().pid())
       .build();
     sonarlintEngine = new StandaloneSonarLintEngineImpl(config);
@@ -108,8 +113,8 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void testSingleSolution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+  void analyzeNet5Solution(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -131,6 +136,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
 
@@ -143,7 +150,7 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void analyzeDotnet6Project(@TempDir Path tmpDir) throws Exception {
+  void analyzeNet6Solution(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
     ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
       "// TODO foo\n"
@@ -155,6 +162,33 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), "INFO"));
+  }
+
+  @Test
+  void analyzeFramework4_8Solution(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNetFramework4_8");
+    ClientInputFile inputFile = prepareInputFile(baseDir, "DotNetFramework4_8/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "false")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNetFramework4_8.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
 
@@ -167,7 +201,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -189,6 +223,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
 
@@ -225,6 +261,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(newInputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
 
@@ -238,7 +276,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testRuleActivation(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -269,6 +307,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
 
@@ -284,6 +324,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .addExcludedRules(RuleKey.parse("csharpsquid:S1135"))
       .addIncludedRules(RuleKey.parse("csharpsquid:S126"))
       .build();
@@ -299,7 +341,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testRuleParameter(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -338,6 +380,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
 
@@ -353,6 +397,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .addRuleParameter(RuleKey.parse("csharpsquid:S3776"), "threshold", "20")
       .build();
     sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
@@ -365,13 +411,13 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void testMultipleSolutions(@TempDir Path tmpDir) throws Exception {
+  void testChangingSolutions(@TempDir Path tmpDir) throws Exception {
     sonarlintEngine.declareModule(MODULE_INFO_2);
 
-    Path console1BaseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
-    Path console2BaseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp2");
+    Path solution1BaseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
+    Path solution2BaseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
 
-    ClientInputFile inputFile1 = prepareInputFile(console1BaseDir, "ConsoleApp1/Program.cs",
+    ClientInputFile inputFile1 = prepareInputFile(solution1BaseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
         + "namespace ConsoleApp1\n"
@@ -387,7 +433,7 @@ class OmnisharpIntegrationTests {
         + "}",
       false);
 
-    ClientInputFile inputFile2 = prepareInputFile(console2BaseDir, "ConsoleApp2/Program.cs",
+    ClientInputFile inputFile2 = prepareInputFile(solution2BaseDir, "DotNet6Project/Program.cs",
       "using System;\n"
         + "\n"
         + "namespace ConsoleApp2\n"
@@ -406,7 +452,9 @@ class OmnisharpIntegrationTests {
     final List<Issue> issuesConsole1 = new ArrayList<>();
     StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
       .setModuleKey(SOLUTION1_MODULE_KEY)
-      .setBaseDir(console1BaseDir)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", solution1BaseDir.resolve("ConsoleApp1.sln").toString())
+      .setBaseDir(solution1BaseDir)
       .addInputFile(inputFile1)
       .build();
     sonarlintEngine.analyze(analysisConfiguration1, i -> issuesConsole1.add(i), null, null);
@@ -421,7 +469,9 @@ class OmnisharpIntegrationTests {
     final List<Issue> issuesConsole2 = new ArrayList<>();
     StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
       .setModuleKey(SOLUTION2_MODULE_KEY)
-      .setBaseDir(console2BaseDir)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", solution2BaseDir.resolve("DotNet6Project.sln").toString())
+      .setBaseDir(solution2BaseDir)
       .addInputFile(inputFile2)
       .build();
     sonarlintEngine.analyze(analysisConfiguration2, i -> issuesConsole2.add(i), null, null);
@@ -480,6 +530,7 @@ class OmnisharpIntegrationTests {
       .setModuleKey(SOLUTION1_MODULE_KEY)
       .setBaseDir(repoBaseDir)
       .addInputFiles(inputFile1, inputFile2)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", solution1Sln.toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration1, i -> issuesConsole1.add(i), null, null);
@@ -499,6 +550,7 @@ class OmnisharpIntegrationTests {
       .setModuleKey(SOLUTION2_MODULE_KEY)
       .setBaseDir(repoBaseDir)
       .addInputFiles(inputFile1, inputFile2)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", solution2Sln.toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration2, i -> issuesConsole2.add(i), null, null);
@@ -514,7 +566,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testAnalyzeFileinANewProject(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -537,6 +589,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
 
@@ -594,6 +648,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(testInputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
 
@@ -609,7 +665,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testConcurrentAnalysis(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -631,6 +687,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
 
     ExecutorService threadPool = Executors.newFixedThreadPool(5);
@@ -655,7 +713,7 @@ class OmnisharpIntegrationTests {
 
   @Test
   void shouldNotFailAfterFirstThreadDied(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleApp1");
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
         + "\n"
@@ -676,6 +734,8 @@ class OmnisharpIntegrationTests {
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
 
     final List<Issue> issuesThread1 = new ArrayList<>();

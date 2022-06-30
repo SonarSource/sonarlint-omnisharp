@@ -75,7 +75,9 @@ class OmnisharpSensorTests {
     assertThat(descriptor.ruleRepositories()).containsOnly(OmnisharpPlugin.REPOSITORY_KEY);
 
     Configuration configWithProp = mock(Configuration.class);
-    when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpLocation())).thenReturn(true);
+    when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpMonoLocation())).thenReturn(true);
+    when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpWinLocation())).thenReturn(true);
+    when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpNet6Location())).thenReturn(true);
 
     Configuration configWithoutProp = mock(Configuration.class);
 
@@ -109,7 +111,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, false, null, null, null, null);
 
     verify(mockProtocol).updateBuffer(filePath.toFile(), content);
     verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
@@ -164,7 +166,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, false, null, null, null, null);
     verify(mockProtocol).config(any());
     verifyNoMoreInteractions(mockProtocol);
   }
