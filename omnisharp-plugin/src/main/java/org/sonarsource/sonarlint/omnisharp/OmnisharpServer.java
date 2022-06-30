@@ -19,39 +19,28 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sonar.api.Startable;
-import org.sonar.api.config.Configuration;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.System2;
-import org.sonar.api.utils.command.Command;
-import org.sonar.api.utils.command.CommandException;
-import org.sonar.api.utils.command.CommandExecutor;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
-import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 
 @ScannerSide
 @SonarLintSide(lifespan = "MODULE")
@@ -67,23 +56,14 @@ public class OmnisharpServer implements Startable {
 
   private final System2 system2;
 
-  private final OmnisharpServicesExtractor servicesExtractor;
-
   private Path cachedProjectBaseDir;
   private Path cachedDotnetCliPath;
   private Path cachedMonoPath;
   private Path cachedMsBuildPath;
   private Path cachedSolutionPath;
+  private boolean cachedUseNet6;
 
   private final OmnisharpEndpoints omnisharpEndpoints;
-
-  private final Path pathHelperLocationOnMac;
-
-  private final Configuration config;
-
-  private final String omnisharpExeWin;
-
-  private final SonarLintRuntime sonarLintRuntime;
 
   private Process startedProcess;
 
@@ -95,61 +75,51 @@ public class OmnisharpServer implements Startable {
 
   private final Duration serverStartupMaxWait;
 
-  public OmnisharpServer(System2 system2, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
-    OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime) {
-    this(system2, Clock.systemDefaultZone(), servicesExtractor, config, omnisharpEndpoints, Paths.get("/usr/libexec/path_helper"), "OmniSharp.exe", omnisharpResponseProcessor,
-      sonarLintRuntime, SERVER_STARTUP_MAX_WAIT);
+  private final OmnisharpCommandBuilder omnisharpCommandBuilder;
+
+  public OmnisharpServer(System2 system2, OmnisharpEndpoints omnisharpEndpoints,
+    OmnisharpResponseProcessor omnisharpResponseProcessor, OmnisharpCommandBuilder omnisharpCommandBuilder) {
+    this(system2, Clock.systemDefaultZone(), omnisharpEndpoints, omnisharpResponseProcessor,
+      omnisharpCommandBuilder, SERVER_STARTUP_MAX_WAIT);
   }
 
   // For testing
-  OmnisharpServer(System2 system2, Clock clock, OmnisharpServicesExtractor servicesExtractor, Configuration config, OmnisharpEndpoints omnisharpEndpoints,
-    Path pathHelperLocationOnMac,
-    String omnisharpExeWin, OmnisharpResponseProcessor omnisharpResponseProcessor, SonarLintRuntime sonarLintRuntime, Duration serverStartupMaxWait) {
+  OmnisharpServer(System2 system2, Clock clock, OmnisharpEndpoints omnisharpEndpoints,
+    OmnisharpResponseProcessor omnisharpResponseProcessor, OmnisharpCommandBuilder omnisharpCommandBuilder, Duration serverStartupMaxWait) {
     this.system2 = system2;
     this.clock = clock;
-    this.servicesExtractor = servicesExtractor;
-    this.config = config;
     this.omnisharpEndpoints = omnisharpEndpoints;
     this.omnisharpResponseProcessor = omnisharpResponseProcessor;
+    this.omnisharpCommandBuilder = omnisharpCommandBuilder;
     this.serverStartupMaxWait = serverStartupMaxWait;
     omnisharpEndpoints.setServer(this);
-    this.pathHelperLocationOnMac = pathHelperLocationOnMac;
-    this.omnisharpExeWin = omnisharpExeWin;
-    this.sonarLintRuntime = sonarLintRuntime;
   }
 
-  public synchronized void lazyStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath, @Nullable Path msBuildPath, @Nullable Path solutionPath)
+  public synchronized void lazyStart(Path projectBaseDir, boolean useNet6, @Nullable Path dotnetCliPath, @Nullable Path monoPath, @Nullable Path msBuildPath,
+    @Nullable Path solutionPath)
     throws IOException, InterruptedException {
     checkAlive();
-    if (omnisharpStarted) {
-      boolean shouldRestart = false;
-      if (!Objects.equals(cachedProjectBaseDir, projectBaseDir)) {
-        shouldRestart = true;
-        LOG.info("Using a different project basedir, OmniSharp has to be restarted");
-      }
-      if (!Objects.equals(cachedDotnetCliPath, dotnetCliPath)) {
-        shouldRestart = true;
-        LOG.info("Using a different dotnet CLI path, OmniSharp has to be restarted");
-      }
-      if (!Objects.equals(cachedMonoPath, monoPath)) {
-        shouldRestart = true;
-        LOG.info("Using a different Mono location, OmniSharp has to be restarted");
-      }
-      if (!Objects.equals(cachedMsBuildPath, msBuildPath)) {
-        shouldRestart = true;
-        LOG.info("Using a different MSBuild path, OmniSharp has to be restarted");
-      }
-      if (!Objects.equals(cachedSolutionPath, solutionPath)) {
-        shouldRestart = true;
-        LOG.info("Using a different solution path, OmniSharp has to be restarted");
-      }
-      if (shouldRestart) {
-        stop();
-      } else {
-        return;
-      }
+    AtomicBoolean shouldRestart = new AtomicBoolean(false);
+    this.cachedProjectBaseDir = checkIfRestartRequired(cachedProjectBaseDir, projectBaseDir, "project basedir", shouldRestart);
+    this.cachedDotnetCliPath = checkIfRestartRequired(cachedDotnetCliPath, dotnetCliPath, "dotnet CLI path", shouldRestart);
+    this.cachedMonoPath = checkIfRestartRequired(cachedMonoPath, monoPath, "Mono location", shouldRestart);
+    this.cachedMsBuildPath = checkIfRestartRequired(cachedMsBuildPath, msBuildPath, "MSBuild path", shouldRestart);
+    this.cachedSolutionPath = checkIfRestartRequired(cachedSolutionPath, solutionPath, "solution path", shouldRestart);
+    this.cachedUseNet6 = checkIfRestartRequired(cachedUseNet6, useNet6, "flavor of OmniSharp", shouldRestart);
+    if (shouldRestart.get()) {
+      stop();
     }
-    doStart(projectBaseDir, dotnetCliPath, monoPath, msBuildPath, solutionPath);
+    if (!omnisharpStarted) {
+      doStart();
+    }
+  }
+
+  private <G> G checkIfRestartRequired(G oldValue, G newValue, String label, AtomicBoolean shouldRestart) {
+    if (omnisharpStarted && !Objects.equals(oldValue, newValue)) {
+      shouldRestart.set(true);
+      LOG.info("Using a different {}, OmniSharp has to be restarted", label);
+    }
+    return newValue;
   }
 
   public boolean isOmnisharpStarted() {
@@ -163,21 +133,20 @@ public class OmnisharpServer implements Startable {
     }
   }
 
-  private void doStart(Path projectBaseDir, @Nullable Path dotnetCliPath, @Nullable Path monoPath, @Nullable Path msBuildPath, @Nullable Path solutionPath)
+  private void doStart()
     throws IOException, InterruptedException {
-    this.cachedProjectBaseDir = projectBaseDir;
-    this.cachedDotnetCliPath = dotnetCliPath;
-    this.cachedMonoPath = monoPath;
-    this.cachedMsBuildPath = msBuildPath;
-    this.cachedSolutionPath = solutionPath;
+
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch firstUpdateProjectLatch = new CountDownLatch(1);
-    String omnisharpLoc = config.get(CSharpPropertyDefinitions.getOmnisharpLocation())
-      .orElseThrow(() -> new IllegalStateException("Property '" + CSharpPropertyDefinitions.getOmnisharpLocation() + "' is required"));
-    ProcessBuilder processBuilder = buildOmnisharpCommand(projectBaseDir, omnisharpLoc, monoPath, msBuildPath, solutionPath);
-    processBuilder.environment().put("PATH", buildPathEnv(dotnetCliPath));
+    ProcessBuilder processBuilder;
+    if (cachedUseNet6) {
+      processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath);
+    } else {
+      processBuilder = omnisharpCommandBuilder.build(cachedProjectBaseDir, cachedMonoPath, cachedMsBuildPath, cachedSolutionPath);
+    }
 
     LOG.info("Starting OmniSharp...");
+    LOG.debug(processBuilder.command().stream().collect(Collectors.joining(" ")));
     startedProcess = processBuilder.start();
     streamConsumer = new StreamConsumer();
     streamConsumer.consumeStream(startedProcess.getInputStream(), l -> omnisharpResponseProcessor.handleOmnisharpOutput(startLatch, firstUpdateProjectLatch, l));
@@ -219,82 +188,6 @@ public class OmnisharpServer implements Startable {
         break;
       }
     } while (startedProcess.isAlive() && Duration.between(start, clock.instant()).compareTo(serverStartupMaxWait) < 0);
-  }
-
-  private String buildPathEnv(@Nullable Path dotnetCliPath) {
-    StringBuilder sb = new StringBuilder();
-    if (dotnetCliPath != null) {
-      sb.append(dotnetCliPath.getParent().toString());
-      sb.append(File.pathSeparatorChar);
-    }
-    sb.append(getPathEnv());
-    return sb.toString();
-  }
-
-  private String getPathEnv() {
-    if (system2.isOsMac() && Files.exists(pathHelperLocationOnMac)) {
-      String pathHelperOutput = runSimpleCommand(Command.create(pathHelperLocationOnMac.toString()).addArgument("-s"));
-      if (pathHelperOutput != null) {
-        Pattern regex = Pattern.compile(".*PATH=\"([^\"]*)\"; export PATH;.*");
-        Matcher matchResult = regex.matcher(pathHelperOutput);
-        if (matchResult.matches()) {
-          return matchResult.group(1);
-        }
-      }
-    }
-    return system2.envVariable("PATH");
-  }
-
-  /**
-   * Run a simple command that should return a single line on stdout
-   */
-  @CheckForNull
-  static String runSimpleCommand(Command command) {
-    List<String> output = new ArrayList<>();
-    try {
-      int result = CommandExecutor.create().execute(command, output::add, LOG::error, 10_000);
-      if (result != 0) {
-        LOG.debug("Command returned with error: " + command);
-        output.forEach(LOG::debug);
-        return null;
-      }
-      return output.isEmpty() ? null : output.get(0);
-    } catch (CommandException e) {
-      LOG.debug("Unable to execute command: " + command, e);
-      return null;
-    }
-  }
-
-  private ProcessBuilder buildOmnisharpCommand(Path projectBaseDir, String omnisharpLoc, @Nullable Path monoPath, @Nullable Path msBuildPath, @Nullable Path solutionPath) {
-    Path omnisharpPath = Paths.get(omnisharpLoc);
-    List<String> args = new ArrayList<>();
-    if (system2.isOsWindows()) {
-      args.add(omnisharpPath.resolve(omnisharpExeWin).toString());
-    } else if (monoPath != null) {
-      args.add(monoPath.toString());
-      args.add("omnisharp/OmniSharp.exe");
-    } else {
-      args.add("bash");
-      args.add("run");
-    }
-    args.add("-v");
-    if (sonarLintRuntime.getClientPid() != 0) {
-      args.add("--hostPID");
-      args.add(Long.toString(sonarLintRuntime.getClientPid()));
-    }
-    if (msBuildPath != null) {
-      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
-    } else {
-      args.add("MsBuild:useBundledOnly=true");
-    }
-    args.add("DotNet:enablePackageRestore=false");
-    args.add("--encoding");
-    args.add("utf-8");
-    args.add("-s");
-    args.add(solutionPath != null ? solutionPath.toString() : projectBaseDir.toString());
-    args.add("--plugin");
-    args.add(servicesExtractor.getOmnisharpServicesDllPath().toString());
-    return new ProcessBuilder(args).directory(omnisharpPath.toFile());
   }
 
   @Override

@@ -31,6 +31,8 @@ import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.sonar.api.scanner.ScannerSide;
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.omnisharp.OmnisharpServer;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor.OmnisharpResponseHandler;
@@ -38,6 +40,8 @@ import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor.O
 @ScannerSide
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpEndpoints {
+
+  private static final Logger LOG = Loggers.get(OmnisharpEndpoints.class);
 
   private static final String FILENAME_PROPERTY = "FileName";
 
@@ -102,6 +106,12 @@ public class OmnisharpEndpoints {
   }
 
   private static void handle(JsonObject response, Consumer<Diagnostic> issueHandler) {
+    boolean success = response.get("Success").getAsBoolean();
+    if (!success) {
+      String message = response.get("Message").getAsString();
+      LOG.error(message);
+      return;
+    }
     JsonObject body = response.get("Body").getAsJsonObject();
     JsonArray issues = body.get("QuickFixes").getAsJsonArray();
     Diagnostic[] diagnostics = new Gson().fromJson(issues, Diagnostic[].class);

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -26,7 +25,7 @@
       <artifactId>jsr305</artifactId>
       <version>3.0.2</version>
       <scope>provided</scope>
-    </dependency>  
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
@@ -71,14 +70,9 @@
           </configuration>
         </plugin>
         <plugin>
-          <groupId>com.googlecode.maven-download-plugin</groupId>
-          <artifactId>download-maven-plugin</artifactId>
-          <version>1.6.3</version>
-        </plugin>
-        <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <!-- To fix https://newbedev.com/surefire-maven-plugin-corrupted-stdout-by-directly-writing-to-native-stream-in-forked-jvm -->
-          <version>3.0.0-M5</version>
+          <version>3.0.0-M7</version>
           <configuration>
             <!-- Activate the use of TCP to transmit events to the plugin -->
             <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory" />
@@ -86,6 +80,51 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>com.googlecode.maven-download-plugin</groupId>
+        <artifactId>download-maven-plugin</artifactId>
+        <version>1.6.8</version>
+        <executions>
+          <execution>
+            <id>download-omnisharp-windows</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://github.com/henryju/omnisharp-roslyn/releases/download/v1.39.0-shrinked/omnisharp-net472.zip</url>
+              <unpack>true</unpack>
+              <outputDirectory>${project.build.directory}/omnisharp-win</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-omnisharp-mono</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://github.com/henryju/omnisharp-roslyn/releases/download/v1.39.0-shrinked/omnisharp-mono.zip</url>
+              <unpack>true</unpack>
+              <outputDirectory>${project.build.directory}/omnisharp-mono</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-omnisharp-net6</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://github.com/henryju/omnisharp-roslyn/releases/download/v1.39.0-shrinked/omnisharp-net6.0.zip</url>
+              <unpack>true</unpack>
+              <outputDirectory>${project.build.directory}/omnisharp-net6</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>
@@ -121,98 +160,6 @@
         </plugins>
       </build>
     </profile>
-    <profile>
-      <id>omnisharp-windows</id>
-      <activation>
-        <os>
-          <family>windows</family>
-        </os>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.maven-download-plugin</groupId>
-            <artifactId>download-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>download-omnisharp-windows</id>
-                <phase>generate-test-resources</phase>
-                <goals>
-                  <goal>wget</goal>
-                </goals>
-                <configuration>
-                  <url>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/${omnisharp.version}/omnisharp-win-x64.zip</url>
-                  <unpack>true</unpack>
-                  <outputDirectory>${project.build.directory}/omnisharp</outputDirectory>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>omnisharp-linux</id>
-      <activation>
-        <os>
-          <family>unix</family>
-          <name>Linux</name>
-        </os>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.maven-download-plugin</groupId>
-            <artifactId>download-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>download-omnisharp-linux</id>
-                <phase>generate-test-resources</phase>
-                <goals>
-                  <goal>wget</goal>
-                </goals>
-                <configuration>
-                  <url>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/${omnisharp.version}/omnisharp-linux-x64.zip</url>
-                  <unpack>true</unpack>
-                  <outputDirectory>${project.build.directory}/omnisharp</outputDirectory>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>omnisharp-macos</id>
-      <activation>
-        <os>
-          <family>mac</family>
-        </os>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.maven-download-plugin</groupId>
-            <artifactId>download-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>download-omnisharp-macos</id>
-                <phase>generate-test-resources</phase>
-                <goals>
-                  <goal>wget</goal>
-                </goals>
-                <configuration>
-                  <url>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/${omnisharp.version}/omnisharp-osx.zip</url>
-                  <unpack>true</unpack>
-                  <outputDirectory>${project.build.directory}/omnisharp</outputDirectory>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
-
 
 </project>

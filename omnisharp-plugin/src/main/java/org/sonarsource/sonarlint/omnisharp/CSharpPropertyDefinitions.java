@@ -21,6 +21,7 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.sonar.api.PropertyType;
 import org.sonar.api.config.PropertyDefinition;
 import org.sonar.api.resources.Qualifiers;
 
@@ -33,7 +34,15 @@ public class CSharpPropertyDefinitions {
   public List<PropertyDefinition> create() {
     List<PropertyDefinition> result = new ArrayList<>();
     result.add(
-      PropertyDefinition.builder(getOmnisharpLocation())
+      PropertyDefinition.builder(getOmnisharpMonoLocation())
+        .hidden()
+        .build());
+    result.add(
+      PropertyDefinition.builder(getOmnisharpWinLocation())
+        .hidden()
+        .build());
+    result.add(
+      PropertyDefinition.builder(getOmnisharpNet6Location())
         .hidden()
         .build());
     result.add(
@@ -53,6 +62,11 @@ public class CSharpPropertyDefinitions {
         .hidden()
         .build());
     result.add(
+      PropertyDefinition.builder(getUseNet6())
+        .type(PropertyType.BOOLEAN)
+        .hidden()
+        .build());
+    result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
         .category(OmnisharpPlugin.LANGUAGE_NAME)
         .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
@@ -68,8 +82,16 @@ public class CSharpPropertyDefinitions {
     return PROP_PREFIX + LANGUAGE_KEY + ".file.suffixes";
   }
 
-  public static String getOmnisharpLocation() {
-    return PROP_PREFIX + LANGUAGE_KEY + ".internal.omnisharpLocation";
+  public static String getOmnisharpMonoLocation() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.omnisharpMonoLocation";
+  }
+
+  public static String getOmnisharpWinLocation() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.omnisharpWinLocation";
+  }
+
+  public static String getOmnisharpNet6Location() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.omnisharpNet6Location";
   }
 
   public static String getDotnetCliExeLocation() {
@@ -86,5 +108,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getSolutionPath() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.solutionPath";
+  }
+
+  public static String getUseNet6() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.useNet6";
   }
 }

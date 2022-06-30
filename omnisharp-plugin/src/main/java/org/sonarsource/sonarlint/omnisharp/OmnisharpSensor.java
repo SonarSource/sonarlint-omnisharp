@@ -62,7 +62,9 @@ public class OmnisharpSensor implements Sensor {
       .name("OmniSharp")
       .onlyOnLanguage(OmnisharpPlugin.LANGUAGE_KEY)
       .createIssuesForRuleRepositories(OmnisharpPlugin.REPOSITORY_KEY)
-      .onlyWhenConfiguration(c -> c.hasKey(CSharpPropertyDefinitions.getOmnisharpLocation()));
+      .onlyWhenConfiguration(c -> c.hasKey(CSharpPropertyDefinitions.getOmnisharpMonoLocation())
+        || c.hasKey(CSharpPropertyDefinitions.getOmnisharpWinLocation())
+        || c.hasKey(CSharpPropertyDefinitions.getOmnisharpNet6Location()));
   }
 
   @Override
@@ -76,7 +78,8 @@ public class OmnisharpSensor implements Sensor {
       Path monoExePath = context.config().get(CSharpPropertyDefinitions.getMonoExeLocation()).map(Paths::get).orElse(null);
       Path msBuildPath = context.config().get(CSharpPropertyDefinitions.getMSBuildPath()).map(Paths::get).orElse(null);
       Path solutionPath = context.config().get(CSharpPropertyDefinitions.getSolutionPath()).map(Paths::get).orElse(null);
-      server.lazyStart(context.fileSystem().baseDir().toPath(), dotnetCliExePath, monoExePath, msBuildPath, solutionPath);
+      boolean useFramework = context.config().getBoolean(CSharpPropertyDefinitions.getUseNet6()).orElse(false);
+      server.lazyStart(context.fileSystem().baseDir().toPath(), useFramework, dotnetCliExePath, monoExePath, msBuildPath, solutionPath);
     } catch (InterruptedException e) {
       LOG.warn("Interrupted", e);
       Thread.currentThread().interrupt();
