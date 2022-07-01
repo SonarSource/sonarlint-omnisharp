@@ -12,7 +12,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref:  refs/heads/dp/mend
+      ref:  refs/tags/v1.0.17
 
 
 stages:
@@ -93,9 +93,12 @@ stages:
         - template: whitesource.yml@commonTemplates
           parameters:
             productName : 'SonarLint/OmniSharp'
-            # Note: the project name doesn't match the repo slug so the releasability check won't work for this project
-            projectName : 'SonarSource/sonar-omnisharp/dotnet'
-            projectVersion: '$(SONAR_PROJECT_VERSION)'
+            # We're running two WhiteSource scans in this pipeline, one for .NET and one for Java.
+            # They can't both have the same projectName. We'll use the default projectName for the Java
+            # project so it works with the releasability check.
+            projectName : 'SonarSource/sonarlint-omnisharp/dotnet'
+            releaseVersion: '$(SONAR_PROJECT_VERSION)'
+            # Using a different agent config file for the .NET scan
             configFilePath: '$(Build.SourcesDirectory)/omnisharp-dotnet/build/whitesource/wss-unified-agent.config'
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
@@ -304,10 +307,9 @@ stages:
                 sqMavenPluginVersionChoice: 'latest'
             - template: whitesource-with-maven-repox.yml@commonTemplates
               parameters:
+                # NB using the default projectName for this scan so it works with the releasability check.
+                # The .NET WhiteSource scan (above) uses a custom projectName.
                 productName : 'SonarLint/OmniSharp'
-                # the projectName has to match the repo name for the releasability check to work
-                projectName : 'SonarSource/sonarlint-omnisharp'
-                configFilePath: '$(Build.SourcesDirectory)/whitesource/wss-unified-agent.config'
                 mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
                 mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
 
