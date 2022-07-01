@@ -175,6 +175,65 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  void analyzeMixedSolutionWithOldOmnisharp(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "SolutionMixingCoreAndFramework");
+    ClientInputFile inputFileFramework = prepareInputFile(baseDir, "DotNetFramework4_8/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      false);
+    ClientInputFile inputFileCore = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFiles(inputFileFramework, inputFileCore)
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "false")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFileFramework.getPath(), "INFO"));
+  }
+
+  @Test
+  void analyzeMixedSolutionWithNet6Omnisharp(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "SolutionMixingCoreAndFramework");
+
+    ClientInputFile inputFileFramework = prepareInputFile(baseDir, "DotNetFramework4_8/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      false);
+    ClientInputFile inputFileCore = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFiles(inputFileFramework, inputFileCore)
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFileCore.getPath(), "INFO"));
+  }
+
+  @Test
   void analyzeFramework4_8Solution(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNetFramework4_8");
     ClientInputFile inputFile = prepareInputFile(baseDir, "DotNetFramework4_8/Program.cs",
