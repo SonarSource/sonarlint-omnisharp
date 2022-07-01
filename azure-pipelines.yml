@@ -148,6 +148,7 @@ stages:
                   --settings $(mavenSettings.secureFilePath)
                   -Prelease,sign
                   -Dsign.keyFile=$(pgpSignKey.secureFilePath)
+                  -DskipIts
                 publishJUnitResults: false
                 javaHomeOption: 'JDKVersion'
                 jdkVersionOption: '1.11'
@@ -163,6 +164,7 @@ stages:
                 options: >-
                   $(commonMavenArguments)
                   --settings $(mavenSettings.secureFilePath)
+                  -DskipIts
                 publishJUnitResults: false
                 javaHomeOption: 'JDKVersion'
                 jdkVersionOption: '1.11'
@@ -211,7 +213,7 @@ stages:
                 ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
               inputs:
                 goals: 'verify'
-                options: '-B --settings $(mavenSettings.secureFilePath)'
+                options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
                 publishJUnitResults: true
                 testResultsFiles: '**/surefire-reports/TEST-*.xml'
                 testRunTitle: 'UTs on Windows'
@@ -251,7 +253,7 @@ stages:
                 ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
               inputs:
                 goals: 'verify'
-                options: '-B --settings $(mavenSettings.secureFilePath)'
+                options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
                 publishJUnitResults: true
                 testResultsFiles: '**/surefire-reports/TEST-*.xml'
                 testRunTitle: 'UTs on Linux'
@@ -287,7 +289,7 @@ stages:
                 ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
               inputs:
                 goals: 'verify'
-                options: -B --settings $(mavenSettings.secureFilePath) -Pcoverage
+                options: -B --settings $(mavenSettings.secureFilePath) -Pcoverage -DskipIts
                 publishJUnitResults: false
                 javaHomeOption: 'JDKVersion'
                 jdkVersionOption: '1.11'

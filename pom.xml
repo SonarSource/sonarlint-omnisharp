@@ -31,7 +31,6 @@
 
   <modules>
     <module>omnisharp-plugin</module>
-    <module>its</module>
   </modules>
 
   <scm>
@@ -87,5 +86,19 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  
+  <profiles>
+    <profile>
+      <id>integration-tests</id>
+      <activation>
+        <property>
+          <name>!skipIts</name>
+        </property>
+      </activation>
+      <modules>
+        <module>its</module>
+      </modules>
+    </profile>
+  </profiles>
 
 </project>
