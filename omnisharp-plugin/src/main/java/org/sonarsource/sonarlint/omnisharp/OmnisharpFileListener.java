@@ -29,9 +29,9 @@ import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileListener;
 public class OmnisharpFileListener implements ModuleFileListener {
 
   private final OmnisharpEndpoints omnisharpEndpoints;
-  private final OmnisharpServer server;
+  private final OmnisharpServerController server;
 
-  public OmnisharpFileListener(OmnisharpServer server, OmnisharpEndpoints omnisharpEndpoints) {
+  public OmnisharpFileListener(OmnisharpServerController server, OmnisharpEndpoints omnisharpEndpoints) {
     this.server = server;
     this.omnisharpEndpoints = omnisharpEndpoints;
   }
@@ -47,7 +47,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
         if (file.getName().endsWith(".sln") || file.getName().endsWith(".csproj")) {
           // Stop the server so that it is restarted during the next analysis and take into account changes to the solution, or added
           // projects
-          server.stop();
+          server.stopServer();
         } else {
           omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.CREATE);
         }
@@ -58,7 +58,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
       case MODIFIED:
         if (file.getName().endsWith(".sln")) {
           // Stop the server so that it is restarted during the next analysis and take into account changes to the solution
-          server.stop();
+          server.stopServer();
         } else {
           omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.CHANGE);
         }

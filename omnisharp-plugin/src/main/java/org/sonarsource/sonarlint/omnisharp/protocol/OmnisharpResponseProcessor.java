@@ -21,14 +21,14 @@ package org.sonarsource.sonarlint.omnisharp.protocol;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 
-@ScannerSide
+
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpResponseProcessor {
 
@@ -36,7 +36,7 @@ public class OmnisharpResponseProcessor {
 
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
-  public void handleOmnisharpOutput(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line) {
+  public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line) {
     JsonObject jsonObject;
     try {
       jsonObject = JsonParser.parseString(line).getAsJsonObject();
@@ -44,10 +44,10 @@ public class OmnisharpResponseProcessor {
       LOG.debug(line);
       return;
     }
-    handleJsonMessage(startLatch, firstUpdateProjectLatch, line, jsonObject);
+    handleJsonMessage(startFuture, loadProjectsFuture, line, jsonObject);
   }
 
-  private void handleJsonMessage(CountDownLatch startLatch, CountDownLatch firstUpdateProjectLatch, String line, JsonObject jsonObject) {
+  private void handleJsonMessage(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line, JsonObject jsonObject) {
     String type = jsonObject.get("Type").getAsString();
     switch (type) {
       case "response":
@@ -65,15 +65,26 @@ public class OmnisharpResponseProcessor {
             handleLog(jsonObject.get("Body").getAsJsonObject());
             break;
           case "started":
-            startLatch.countDown();
+            LOG.debug(line);
+            startFuture.complete(null);
             break;
           case "ProjectAdded":
           case "ProjectChanged":
           case "ProjectRemoved":
-            firstUpdateProjectLatch.countDown();
+            LOG.debug(line);
+            loadProjectsFuture.complete(null);
             break;
           case "Diagnostic":
             // For now we ignore diagnostics "pushed" by Omnisharp
+            break;
+          case "MsBuildProjectDiagnostics":
+            var msbuildErrors = jsonObject.get("Body").getAsJsonObject().get("Errors").getAsJsonArray();
+            if (!msbuildErrors.isEmpty()) {
+              LOG.error("MSBuild failed to load the project");
+              // No need to wait for project loading, it might never happen
+              // firstUpdateProjectLatch.countDown();
+            }
+            LOG.debug(line);
             break;
           default:
             LOG.debug(line);

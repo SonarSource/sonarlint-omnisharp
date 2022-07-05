@@ -41,7 +41,7 @@ public class OmnisharpPlugin implements Plugin {
   public void define(Context context) {
     if (context.getRuntime().getProduct() == SonarProduct.SONARLINT) {
       context.addExtensions(
-        OmnisharpServer.class,
+        OmnisharpServerController.class,
         OmnisharpSensor.class,
         OmnisharpEndpoints.class,
         OmnisharpServicesExtractor.class,
