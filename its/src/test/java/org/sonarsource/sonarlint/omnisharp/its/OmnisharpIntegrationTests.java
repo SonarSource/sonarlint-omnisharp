@@ -44,6 +44,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.client.api.common.ClientModuleFileEvent;
@@ -175,6 +177,8 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  // FIXME
+  @DisabledOnOs(OS.WINDOWS)
   void analyzeMixedSolutionWithOldOmnisharp(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "SolutionMixingCoreAndFramework");
     ClientInputFile inputFileFramework = prepareInputFile(baseDir, "DotNetFramework4_8/Program.cs",
@@ -204,6 +208,8 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  // FIXME
+  @DisabledOnOs(OS.WINDOWS)
   void analyzeMixedSolutionWithNet6Omnisharp(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "SolutionMixingCoreAndFramework");
 
