@@ -41,7 +41,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
     }
 
     [Export(typeof(ISonarLintDiagnosticWorker)), Shared]
-    internal class SonarLintDiagnosticWorker : CopiedCSharpDiagnosticWorkerWithAnalyzers, ISonarLintDiagnosticWorker
+    internal class SonarLintDiagnosticWorker : CopiedCSharpDiagnosticWorker, ISonarLintDiagnosticWorker
     {
         private readonly ISonarLintAnalysisConfigProvider sonarLintAnalysisConfigProvider;
 

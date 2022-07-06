@@ -31,7 +31,7 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
     ///     2. Making needed members protected
     /// </summary>
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class CopiedCSharpDiagnosticWorkerWithAnalyzers: ICsDiagnosticWorker, IDisposable
+    public class CopiedCSharpDiagnosticWorker: ICsDiagnosticWorker, IDisposable
     {
         protected readonly ILogger _logger;
         protected readonly OmniSharpWorkspace _workspace;
@@ -40,11 +40,11 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
         private readonly IObserver<string> _openDocuments;
         private readonly IDisposable _disposable;
 
-        public CopiedCSharpDiagnosticWorkerWithAnalyzers(OmniSharpWorkspace workspace, DiagnosticEventForwarder forwarder, ILoggerFactory loggerFactory, OmniSharpOptions options)
+        public CopiedCSharpDiagnosticWorker(OmniSharpWorkspace workspace, DiagnosticEventForwarder forwarder, ILoggerFactory loggerFactory, OmniSharpOptions options)
         {
             _workspace = workspace;
             _forwarder = forwarder;
-            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorkerWithAnalyzers>();
+            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorker>();
             _options = options;
 
             var openDocumentsSubject = new Subject<string>();
