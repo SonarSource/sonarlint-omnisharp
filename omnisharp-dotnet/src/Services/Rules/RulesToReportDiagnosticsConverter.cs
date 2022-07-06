@@ -25,7 +25,7 @@ using System.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
+using OmniSharp.Roslyn.CSharp.Workers.Diagnostics;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
