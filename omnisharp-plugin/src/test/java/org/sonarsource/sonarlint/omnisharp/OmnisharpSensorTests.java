@@ -113,12 +113,35 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null);
 
     verify(mockProtocol).updateBuffer(filePath.toFile(), content);
     verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), any());
     verifyNoMoreInteractions(mockProtocol);
+  }
+
+  @Test
+  void passConfig() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getUseNet6(), "true");
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getLoadProjectsOnDemand(), "true");
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    underTest.execute(sensorContext);
+
+    verify(mockServer).lazyStart(baseDir, true, true, null, null, null, null);
   }
 
   @Test
@@ -168,7 +191,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null);
     verify(mockProtocol).config(any());
     verifyNoMoreInteractions(mockProtocol);
   }

@@ -54,6 +54,7 @@ import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -116,7 +117,7 @@ class OmnisharpServerControllerTests {
   void processTerminatesBeforeReachingStartState() throws Exception {
     mockOmnisharpRun("echo Foo");
 
-    var thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
+    var thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
 
     verify(endpoints).setServer(underTest);
     assertThat(processedOutput).containsExactly("Foo");
@@ -135,7 +136,7 @@ class OmnisharpServerControllerTests {
 
     assertThat(underTest.isOmnisharpStarted()).isFalse();
     for (int i = 0; i < 10; i++) {
-      underTest.lazyStart(solutionDir, false, null, null, null, null);
+      lazyStart();
       assertThat(underTest.isOmnisharpStarted()).isTrue();
       underTest.whenReady().get();
 
@@ -150,14 +151,14 @@ class OmnisharpServerControllerTests {
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     assertThat(underTest.whenReady()).isNotCompleted();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
+    lazyStart();
+    lazyStart();
+    lazyStart();
 
     assertThat(processedOutput).containsExactly("STARTED");
   }
@@ -165,49 +166,57 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentSolutionDir() throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
-      () -> underTest.lazyStart(anotherSolutionDir, false, null, null, null, null),
+      () -> lazyStart(),
+      () -> underTest.lazyStart(anotherSolutionDir, false, false, null, null, null, null),
       "Using a different project basedir, OmniSharp has to be restarted");
   }
 
   @Test
   void automaticallyRestartIfDifferentDotnetCliPath(@TempDir Path dotnetCliPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
-      () -> underTest.lazyStart(solutionDir, false, dotnetCliPath, null, null, null),
+      () -> lazyStart(),
+      () -> underTest.lazyStart(solutionDir, false, false, dotnetCliPath, null, null, null),
       "Using a different dotnet CLI path, OmniSharp has to be restarted");
   }
 
   @Test
   void automaticallyRestartIfDifferentMonoPath(@TempDir Path monoPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
-      () -> underTest.lazyStart(solutionDir, false, null, monoPath, null, null),
+      () -> lazyStart(),
+      () -> underTest.lazyStart(solutionDir, false, false, null, monoPath, null, null),
       "Using a different Mono location, OmniSharp has to be restarted");
   }
 
   @Test
   void automaticallyRestartIfDifferentMSBuildPath(@TempDir Path msBuildPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
-      () -> underTest.lazyStart(solutionDir, false, null, null, msBuildPath, null),
+      () -> lazyStart(),
+      () -> underTest.lazyStart(solutionDir, false, false, null, null, msBuildPath, null),
       "Using a different MSBuild path, OmniSharp has to be restarted");
   }
 
   @Test
   void automaticallyRestartIfDifferentSolutionPath(@TempDir Path solutionPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, solutionPath),
+      () -> lazyStart(),
+      () -> underTest.lazyStart(solutionDir, false, false, null, null, null, solutionPath),
       "Using a different solution path, OmniSharp has to be restarted");
   }
 
   @Test
-  void automaticallyRestartIfDifferentOmnisharpFlavorPath(@TempDir Path solutionPath) throws Exception {
+  void automaticallyRestartIfDifferentOmnisharpFlavor() throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
-      () -> underTest.lazyStart(solutionDir, true, null, null, null, null),
+      () -> lazyStart(),
+      () -> underTest.lazyStart(solutionDir, true, false, null, null, null, null),
       "Using a different flavor of OmniSharp, OmniSharp has to be restarted");
+  }
+
+  @Test
+  void automaticallyRestartIfDifferentLoadOnDemand() throws Exception {
+    automaticallyRestartIfDifferentConfig(
+      () -> lazyStart(),
+      () -> underTest.lazyStart(solutionDir, false, true, null, null, null, null),
+      "Using a different load projects on demand setting, OmniSharp has to be restarted");
   }
 
   private void automaticallyRestartIfDifferentConfig(ThrowingRunnable first, ThrowingRunnable second, String expectedMsg) throws Exception {
@@ -238,7 +247,7 @@ class OmnisharpServerControllerTests {
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
 
     assertThat(underTest.isOmnisharpStarted()).isTrue();
 
@@ -264,7 +273,7 @@ class OmnisharpServerControllerTests {
   void stopDontCallStopServerIfProcessDeadAlready() throws Exception {
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
 
     // Write something on stdin to resume program
     underTest.writeRequestOnStdIn("");
@@ -281,7 +290,7 @@ class OmnisharpServerControllerTests {
   void timeoutIfServerTakeTooLongToStart() throws Exception {
     mockOmnisharpRun(waitForKeyPress());
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
     assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
     assertThat(underTest.whenReady()).isCompletedExceptionally();
@@ -292,7 +301,20 @@ class OmnisharpServerControllerTests {
     mockOmnisharpRun(emulateStartEvent() + emulateProjectLoaded() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
+
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+
+    underTest.whenReady().get();
+    assertThat(underTest.whenReady()).isCompleted();
+  }
+
+  @Test
+  void dontWaitForProjectLoadedIfLoadOnDemand() throws Exception {
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
+    pressKeyWhenEndpointCallStopServer();
+
+    underTest.lazyStart(solutionDir, false, true, null, null, null, null);
 
     assertThat(underTest.isOmnisharpStarted()).isTrue();
 
@@ -303,10 +325,9 @@ class OmnisharpServerControllerTests {
   @Test
   void timeoutIfProjectsTakeTooLongToLoad() throws Exception {
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
-
     pressKeyWhenEndpointCallStopServer();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
 
     var thrown = assertThrows(ExecutionException.class, () -> underTest.whenReady().get());
     assertThat(thrown).hasCauseExactlyInstanceOf(TimeoutException.class);
@@ -323,7 +344,7 @@ class OmnisharpServerControllerTests {
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    lazyStart();
 
     // This thread will block forever, waiting for solution to load
     WaitForReady t = new WaitForReady();
@@ -357,26 +378,30 @@ class OmnisharpServerControllerTests {
 
   @Test
   void startFailed() throws Exception {
-    when(commandBuilder.build(any(), any(), any(), any())).thenReturn(new ProcessBuilder("not existing command"));
+    when(commandBuilder.build(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder("not existing command"));
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
     assertThat(thrown).hasMessageContainingAll("Unable to start the Omnisharp server", "not existing command");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
 
     assertThat(underTest.whenReady()).isCompletedExceptionally();
   }
 
+  private void lazyStart() throws InterruptedException {
+    underTest.lazyStart(solutionDir, false, false, null, null, null, null);
+  }
+
   private void mockOmnisharpRun(String script) throws IOException {
     if (System2.INSTANCE.isOsWindows()) {
       Path run = omnisharpDir.resolve("run.bat");
       writeBat("@echo off\n" + script, run);
-      when(commandBuilder.buildNet6(any(), any(), any(), any())).thenReturn(new ProcessBuilder("cmd", "/c", run.toString()));
-      when(commandBuilder.build(any(), any(), any(), any())).thenReturn(new ProcessBuilder("cmd", "/c", run.toString()));
+      when(commandBuilder.buildNet6(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder("cmd", "/c", run.toString()));
+      when(commandBuilder.build(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder("cmd", "/c", run.toString()));
     } else {
       Path run = omnisharpDir.resolve("run");
       writeBash(script, run);
-      when(commandBuilder.buildNet6(any(), any(), any(), any())).thenReturn(new ProcessBuilder(run.toString()));
-      when(commandBuilder.build(any(), any(), any(), any())).thenReturn(new ProcessBuilder(run.toString()));
+      when(commandBuilder.buildNet6(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder(run.toString()));
+      when(commandBuilder.build(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder(run.toString()));
     }
   }
 

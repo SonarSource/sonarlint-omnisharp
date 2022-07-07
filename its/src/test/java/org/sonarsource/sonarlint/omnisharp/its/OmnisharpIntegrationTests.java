@@ -266,6 +266,15 @@ class OmnisharpIntegrationTests {
 
   @Test
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
+    testAnalyzeNewFileAddedAfterOmnisharpStartup(tmpDir, false);
+  }
+
+  @Test
+  void testAnalyzeNewFileAddedAfterOmnisharpStartupWithLoadOnDemand(@TempDir Path tmpDir) throws Exception {
+    testAnalyzeNewFileAddedAfterOmnisharpStartup(tmpDir, true);
+  }
+
+  private void testAnalyzeNewFileAddedAfterOmnisharpStartup(Path tmpDir, boolean loadOnDemand) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
     ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
       "using System;\n"
@@ -289,9 +298,18 @@ class OmnisharpIntegrationTests {
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.loadProjectsOnDemand", String.valueOf(loadOnDemand))
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
+    List<String> logs = new ArrayList<>();
+    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), (m, l) -> logs.add(m), null);
+
+    String logLoadOnDemand = "Omnisharp: [INFORMATION] Skip loading projects listed in solution file or under target directory because MsBuild:LoadProjectsOnDemand is true.";
+    if (loadOnDemand) {
+      assertThat(logs).contains(logLoadOnDemand);
+    } else {
+      assertThat(logs).doesNotContain(logLoadOnDemand);
+    }
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
@@ -327,6 +345,7 @@ class OmnisharpIntegrationTests {
       .addInputFile(newInputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.loadProjectsOnDemand", String.valueOf(loadOnDemand))
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);

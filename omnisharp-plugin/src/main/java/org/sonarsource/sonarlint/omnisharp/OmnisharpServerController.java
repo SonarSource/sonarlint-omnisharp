@@ -97,9 +97,13 @@ public class OmnisharpServerController implements Startable {
             LOG.info("OmniSharp successfully started");
           }
         });
-      this.loadProjectsFuture = loadProjectsFuture
-        .orTimeout(loadProjectsMaxWait.getSeconds(), TimeUnit.SECONDS)
-        .thenRun(() -> LOG.info("Projects successfully loaded"));
+      if (cachedLoadProjectsOnDemand) {
+        this.loadProjectsFuture = this.startFuture;
+      } else {
+        this.loadProjectsFuture = loadProjectsFuture
+          .orTimeout(loadProjectsMaxWait.getSeconds(), TimeUnit.SECONDS)
+          .thenRun(() -> LOG.info("Projects successfully loaded"));
+      }
     }
 
     public synchronized void processStartFailed(IOException e) {
@@ -140,6 +144,7 @@ public class OmnisharpServerController implements Startable {
   private Path cachedMsBuildPath;
   private Path cachedSolutionPath;
   private boolean cachedUseNet6;
+  private boolean cachedLoadProjectsOnDemand;
 
   private final OmnisharpEndpoints omnisharpEndpoints;
 
@@ -166,7 +171,8 @@ public class OmnisharpServerController implements Startable {
     omnisharpEndpoints.setServer(this);
   }
 
-  public synchronized void lazyStart(Path projectBaseDir, boolean useNet6, @Nullable Path dotnetCliPath, @Nullable Path monoPath, @Nullable Path msBuildPath,
+  public synchronized void lazyStart(Path projectBaseDir, boolean useNet6, boolean loadProjectsOnDemand, @Nullable Path dotnetCliPath, @Nullable Path monoPath,
+    @Nullable Path msBuildPath,
     @Nullable Path solutionPath)
     throws InterruptedException {
     AtomicBoolean shouldRestart = new AtomicBoolean(false);
@@ -176,6 +182,7 @@ public class OmnisharpServerController implements Startable {
     this.cachedMsBuildPath = checkIfRestartRequired(cachedMsBuildPath, msBuildPath, "MSBuild path", shouldRestart);
     this.cachedSolutionPath = checkIfRestartRequired(cachedSolutionPath, solutionPath, "solution path", shouldRestart);
     this.cachedUseNet6 = checkIfRestartRequired(cachedUseNet6, useNet6, "flavor of OmniSharp", shouldRestart);
+    this.cachedLoadProjectsOnDemand = checkIfRestartRequired(cachedLoadProjectsOnDemand, loadProjectsOnDemand, "load projects on demand setting", shouldRestart);
     if (shouldRestart.get()) {
       stopServer();
     }
@@ -214,9 +221,9 @@ public class OmnisharpServerController implements Startable {
     var loadProjectsFuture = new CompletableFuture<Void>();
     ProcessBuilder processBuilder;
     if (cachedUseNet6) {
-      processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath);
+      processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath, cachedLoadProjectsOnDemand);
     } else {
-      processBuilder = omnisharpCommandBuilder.build(cachedProjectBaseDir, cachedMonoPath, cachedMsBuildPath, cachedSolutionPath);
+      processBuilder = omnisharpCommandBuilder.build(cachedProjectBaseDir, cachedMonoPath, cachedMsBuildPath, cachedSolutionPath, cachedLoadProjectsOnDemand);
     }
 
     LOG.info("Starting OmniSharp...");
