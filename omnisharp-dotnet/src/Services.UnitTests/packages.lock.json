@@ -386,6 +386,15 @@
         "resolved": "4.5.0",
         "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
       },
+      "System.Reactive": {
+        "type": "Transitive",
+        "resolved": "4.4.1",
+        "contentHash": "iSTPeWR9HJhGoNV4WhVlvofuiTjpok1i4E3LPgMdbMqf3jKhFlT9HAlO32lb52NLppWC/4dZQFfUzTytvyXBmw==",
+        "dependencies": {
+          "System.Threading.Tasks.Extensions": "4.5.4",
+          "System.ValueTuple": "4.5.0"
+        }
+      },
       "System.Reflection.Metadata": {
         "type": "Transitive",
         "resolved": "5.0.0",
@@ -420,8 +429,8 @@
       },
       "System.Text.Json": {
         "type": "Transitive",
-        "resolved": "6.0.5",
-        "contentHash": "SSH+YYrMpvLcy7Orzb5K1tSyffnFacWahyxCCjYH1PbSHdAF4dekmIetBurFKgtTHDmwEe/J2Csi/7niRH6d/g==",
+        "resolved": "6.0.0",
+        "contentHash": "zaJsHfESQvJ11vbXnNlkrR46IaMULk/gHxYsJphzSF+07kTjPHv+Oc14w6QEOfo3Q4hqLJgStUaYB9DBl0TmWg==",
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
           "System.Buffers": "4.5.1",
@@ -449,12 +458,13 @@
       "sonarlint.omnisharp.dotnet.services": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.CodeAnalysis.CSharp.Features": "4.3.0-1.final",
-          "Microsoft.CodeAnalysis.CSharp.Workspaces": "4.3.0-1.final",
-          "Microsoft.Extensions.Logging": "6.0.0",
-          "Newtonsoft.Json": "13.0.1",
-          "System.Collections.Immutable": "6.0.0",
-          "System.Composition.AttributedModel": "6.0.0"
+          "Microsoft.CodeAnalysis.CSharp.Features": "[4.3.0-1.final, )",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.3.0-1.final, )",
+          "Microsoft.Extensions.Logging": "[6.0.0, )",
+          "Newtonsoft.Json": "[13.0.1, )",
+          "System.Collections.Immutable": "[6.0.0, )",
+          "System.Composition.AttributedModel": "[6.0.0, )",
+          "System.Reactive": "[4.4.1, )"
         }
       }
     }

@@ -25,7 +25,7 @@ using System.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
+using OmniSharp.Roslyn.CSharp.Workers.Diagnostics;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules
 {
@@ -49,7 +49,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Rules
             // Note: creating a logger using the same category as the main diagnostic worker type/
             // If we use a differenty category the output is not logged and does not appear in the
             // SonarLint pane in Rider.
-            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorkerWithAnalyzers>();
+            _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorker>();
         }
 
         public Dictionary<string, ReportDiagnostic> Convert(ImmutableHashSet<string> activeRules, ImmutableHashSet<string> allRules)
