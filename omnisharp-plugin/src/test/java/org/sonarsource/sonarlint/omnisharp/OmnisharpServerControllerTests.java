@@ -26,8 +26,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -87,8 +85,7 @@ class OmnisharpServerControllerTests {
     anotherSolutionDir = tmpDir.resolve("anotherSolution");
     endpoints = mock(OmnisharpEndpoints.class);
     commandBuilder = mock(OmnisharpCommandBuilder.class);
-    underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder, Duration.of(1, ChronoUnit.SECONDS),
-      Duration.of(1, ChronoUnit.SECONDS));
+    underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder);
     // Does nothing, for coverage
     underTest.start();
   }
@@ -167,7 +164,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentSolutionDir() throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(anotherSolutionDir, false, false, null, null, null, null),
+      () -> underTest.lazyStart(anotherSolutionDir, false, false, null, null, null, null, 1, 1),
       "Using a different project basedir, OmniSharp has to be restarted");
   }
 
@@ -175,7 +172,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentDotnetCliPath(@TempDir Path dotnetCliPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(solutionDir, false, false, dotnetCliPath, null, null, null),
+      () -> underTest.lazyStart(solutionDir, false, false, dotnetCliPath, null, null, null, 1, 1),
       "Using a different dotnet CLI path, OmniSharp has to be restarted");
   }
 
@@ -183,7 +180,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentMonoPath(@TempDir Path monoPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(solutionDir, false, false, null, monoPath, null, null),
+      () -> underTest.lazyStart(solutionDir, false, false, null, monoPath, null, null, 1, 1),
       "Using a different Mono location, OmniSharp has to be restarted");
   }
 
@@ -191,7 +188,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentMSBuildPath(@TempDir Path msBuildPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(solutionDir, false, false, null, null, msBuildPath, null),
+      () -> underTest.lazyStart(solutionDir, false, false, null, null, msBuildPath, null, 1, 1),
       "Using a different MSBuild path, OmniSharp has to be restarted");
   }
 
@@ -199,7 +196,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentSolutionPath(@TempDir Path solutionPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(solutionDir, false, false, null, null, null, solutionPath),
+      () -> underTest.lazyStart(solutionDir, false, false, null, null, null, solutionPath, 1, 1),
       "Using a different solution path, OmniSharp has to be restarted");
   }
 
@@ -207,7 +204,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentOmnisharpFlavor() throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(solutionDir, true, false, null, null, null, null),
+      () -> underTest.lazyStart(solutionDir, true, false, null, null, null, null, 1, 1),
       "Using a different flavor of OmniSharp, OmniSharp has to be restarted");
   }
 
@@ -215,7 +212,7 @@ class OmnisharpServerControllerTests {
   void automaticallyRestartIfDifferentLoadOnDemand() throws Exception {
     automaticallyRestartIfDifferentConfig(
       () -> lazyStart(),
-      () -> underTest.lazyStart(solutionDir, false, true, null, null, null, null),
+      () -> underTest.lazyStart(solutionDir, false, true, null, null, null, null, 1, 1),
       "Using a different load projects on demand setting, OmniSharp has to be restarted");
   }
 
@@ -314,7 +311,7 @@ class OmnisharpServerControllerTests {
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
-    underTest.lazyStart(solutionDir, false, true, null, null, null, null);
+    underTest.lazyStart(solutionDir, false, true, null, null, null, null, 1, 9999);
 
     assertThat(underTest.isOmnisharpStarted()).isTrue();
 
@@ -338,13 +335,12 @@ class OmnisharpServerControllerTests {
 
   @Test
   void waitingForProjectToLoadDoesntPreventStopping() throws Exception {
-    underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder, Duration.of(1, ChronoUnit.SECONDS),
-      Duration.of(9999, ChronoUnit.SECONDS));
+    underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder);
 
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
-    lazyStart();
+    underTest.lazyStart(solutionDir, false, false, null, null, null, null, 1, 9999);
 
     // This thread will block forever, waiting for solution to load
     WaitForReady t = new WaitForReady();
@@ -388,7 +384,7 @@ class OmnisharpServerControllerTests {
   }
 
   private void lazyStart() throws InterruptedException {
-    underTest.lazyStart(solutionDir, false, false, null, null, null, null);
+    underTest.lazyStart(solutionDir, false, false, null, null, null, null, 1, 1);
   }
 
   private void mockOmnisharpRun(String script) throws IOException {

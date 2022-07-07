@@ -113,7 +113,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null, 60, 60);
 
     verify(mockProtocol).updateBuffer(filePath.toFile(), content);
     verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
@@ -127,6 +127,8 @@ class OmnisharpSensorTests {
 
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getUseNet6(), "true");
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getLoadProjectsOnDemand(), "true");
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getStartupTimeout(), "999");
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getLoadProjectsTimeout(), "123");
 
     Path filePath = baseDir.resolve("Foo.cs");
     String content = "Console.WriteLine(\"Hello World!\");";
@@ -141,7 +143,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, true, true, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, true, true, null, null, null, null, 999, 123);
   }
 
   @Test
@@ -191,7 +193,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null);
+    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null, 60, 60);
     verify(mockProtocol).config(any());
     verifyNoMoreInteractions(mockProtocol);
   }
