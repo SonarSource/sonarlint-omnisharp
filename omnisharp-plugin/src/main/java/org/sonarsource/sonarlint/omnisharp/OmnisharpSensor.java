@@ -81,7 +81,10 @@ public class OmnisharpSensor implements Sensor {
       Path solutionPath = context.config().get(CSharpPropertyDefinitions.getSolutionPath()).map(Paths::get).orElse(null);
       boolean useFramework = context.config().getBoolean(CSharpPropertyDefinitions.getUseNet6()).orElse(false);
       boolean loadProjectsOnDemand = context.config().getBoolean(CSharpPropertyDefinitions.getLoadProjectsOnDemand()).orElse(false);
-      server.lazyStart(context.fileSystem().baseDir().toPath(), useFramework, loadProjectsOnDemand, dotnetCliExePath, monoExePath, msBuildPath, solutionPath);
+      int startupTimeOutSec = context.config().getInt(CSharpPropertyDefinitions.getStartupTimeout()).orElse(60);
+      int loadProjectsTimeOutSec = context.config().getInt(CSharpPropertyDefinitions.getLoadProjectsTimeout()).orElse(60);
+      server.lazyStart(context.fileSystem().baseDir().toPath(), useFramework, loadProjectsOnDemand, dotnetCliExePath, monoExePath, msBuildPath, solutionPath, startupTimeOutSec,
+        loadProjectsTimeOutSec);
     } catch (InterruptedException e) {
       LOG.warn("Interrupted", e);
       Thread.currentThread().interrupt();

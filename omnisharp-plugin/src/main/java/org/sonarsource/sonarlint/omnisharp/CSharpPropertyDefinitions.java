@@ -73,6 +73,18 @@ public class CSharpPropertyDefinitions {
         .hidden()
         .build());
     result.add(
+      PropertyDefinition.builder(getLoadProjectsTimeout())
+        .type(PropertyType.INTEGER)
+        .defaultValue("60")
+        .hidden()
+        .build());
+    result.add(
+      PropertyDefinition.builder(getStartupTimeout())
+        .type(PropertyType.INTEGER)
+        .defaultValue("60")
+        .hidden()
+        .build());
+    result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
         .category(OmnisharpPlugin.LANGUAGE_NAME)
         .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
@@ -122,5 +134,13 @@ public class CSharpPropertyDefinitions {
 
   public static String getLoadProjectsOnDemand() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.loadProjectsOnDemand";
+  }
+
+  public static String getLoadProjectsTimeout() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.loadProjectsTimeout";
+  }
+
+  public static String getStartupTimeout() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.startupTimeout";
   }
 }

@@ -21,8 +21,6 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -44,9 +42,6 @@ import static java.util.stream.Collectors.joining;
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpServerController implements Startable {
 
-  private static final Duration SERVER_STARTUP_MAX_WAIT = Duration.of(1, ChronoUnit.MINUTES);
-  private static final Duration LOAD_PROJECTS_MAX_WAIT = Duration.of(1, ChronoUnit.MINUTES);
-
   private static final Logger LOG = Loggers.get(OmnisharpServerController.class);
 
   enum ServerState {
@@ -56,18 +51,18 @@ public class OmnisharpServerController implements Startable {
     STOPPED
   }
 
-  private class ServerStateMachine {
+  private static class ServerStateMachine {
     private volatile ServerState state = ServerState.STOPPED;
     private ProcessWrapper processWrapper;
     private CompletableFuture<Integer> terminationFuture = CompletableFuture.completedFuture(0);
     private CompletableFuture<Void> startFuture = failedNotStarted();
     private CompletableFuture<Void> loadProjectsFuture = failedNotStarted();
 
-    private CompletableFuture<Void> failedNotStarted() {
+    private static CompletableFuture<Void> failedNotStarted() {
       return CompletableFuture.failedFuture(new IllegalStateException("OmniSharp not started"));
     }
 
-    private CompletableFuture<Void> failedToStart(Exception e) {
+    private static CompletableFuture<Void> failedToStart(Exception e) {
       return CompletableFuture.failedFuture(e);
     }
 
@@ -79,7 +74,8 @@ public class OmnisharpServerController implements Startable {
       return state == ServerState.OMNISHARP_STARTED;
     }
 
-    public synchronized void processStarted(ProcessWrapper processWrapper, CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture) {
+    public synchronized void processStarted(ProcessWrapper processWrapper, CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture,
+      boolean loadProjectsOnDemand) {
       this.processWrapper = processWrapper;
       this.terminationFuture = processWrapper.getTerminationFuture().whenComplete((r, t) -> {
         LOG.info("Omnisharp process terminated");
@@ -87,7 +83,6 @@ public class OmnisharpServerController implements Startable {
       });
       this.state = ServerState.PROCESS_STARTED;
       this.startFuture = startFuture
-        .orTimeout(serverStartupMaxWait.getSeconds(), TimeUnit.SECONDS)
         .whenComplete((r, t) -> {
           if (t != null) {
             loadProjectsFuture.completeExceptionally(t);
@@ -97,11 +92,10 @@ public class OmnisharpServerController implements Startable {
             LOG.info("OmniSharp successfully started");
           }
         });
-      if (cachedLoadProjectsOnDemand) {
+      if (loadProjectsOnDemand) {
         this.loadProjectsFuture = this.startFuture;
       } else {
         this.loadProjectsFuture = loadProjectsFuture
-          .orTimeout(loadProjectsMaxWait.getSeconds(), TimeUnit.SECONDS)
           .thenRun(() -> LOG.info("Projects successfully loaded"));
       }
     }
@@ -150,30 +144,18 @@ public class OmnisharpServerController implements Startable {
 
   private final OmnisharpResponseProcessor omnisharpResponseProcessor;
 
-  private final Duration serverStartupMaxWait;
-  private final Duration loadProjectsMaxWait;
-
   private final OmnisharpCommandBuilder omnisharpCommandBuilder;
 
   public OmnisharpServerController(OmnisharpEndpoints omnisharpEndpoints, OmnisharpResponseProcessor omnisharpResponseProcessor, OmnisharpCommandBuilder omnisharpCommandBuilder) {
-    this(omnisharpEndpoints, omnisharpResponseProcessor, omnisharpCommandBuilder, SERVER_STARTUP_MAX_WAIT, LOAD_PROJECTS_MAX_WAIT);
-  }
-
-  // For testing
-  OmnisharpServerController(OmnisharpEndpoints omnisharpEndpoints,
-    OmnisharpResponseProcessor omnisharpResponseProcessor, OmnisharpCommandBuilder omnisharpCommandBuilder,
-    Duration serverStartupMaxWait, Duration loadProjectsMaxWait) {
     this.omnisharpEndpoints = omnisharpEndpoints;
     this.omnisharpResponseProcessor = omnisharpResponseProcessor;
     this.omnisharpCommandBuilder = omnisharpCommandBuilder;
-    this.serverStartupMaxWait = serverStartupMaxWait;
-    this.loadProjectsMaxWait = loadProjectsMaxWait;
     omnisharpEndpoints.setServer(this);
   }
 
   public synchronized void lazyStart(Path projectBaseDir, boolean useNet6, boolean loadProjectsOnDemand, @Nullable Path dotnetCliPath, @Nullable Path monoPath,
     @Nullable Path msBuildPath,
-    @Nullable Path solutionPath)
+    @Nullable Path solutionPath, int serverStartupTimeoutSec, int loadProjectsTimeoutSec)
     throws InterruptedException {
     AtomicBoolean shouldRestart = new AtomicBoolean(false);
     this.cachedProjectBaseDir = checkIfRestartRequired(cachedProjectBaseDir, projectBaseDir, "project basedir", shouldRestart);
@@ -187,7 +169,7 @@ public class OmnisharpServerController implements Startable {
       stopServer();
     }
     if (stateMachine.isStopped()) {
-      startServer();
+      startServer(serverStartupTimeoutSec, loadProjectsTimeoutSec);
     }
     try {
       stateMachine.startFuture.get();
@@ -216,9 +198,11 @@ public class OmnisharpServerController implements Startable {
     return stateMachine.isOmnisharpStarted();
   }
 
-  private void startServer() {
-    var startFuture = new CompletableFuture<Void>();
-    var loadProjectsFuture = new CompletableFuture<Void>();
+  private void startServer(int serverStartupTimeoutSec, int loadProjectsTimeoutSec) {
+    var startFuture = new CompletableFuture<Void>()
+      .orTimeout(serverStartupTimeoutSec, TimeUnit.SECONDS);
+    var loadProjectsFuture = new CompletableFuture<Void>()
+      .orTimeout(loadProjectsTimeoutSec, TimeUnit.SECONDS);
     ProcessBuilder processBuilder;
     if (cachedUseNet6) {
       processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath, cachedLoadProjectsOnDemand);
@@ -231,7 +215,7 @@ public class OmnisharpServerController implements Startable {
     try {
       var startedProcess = ProcessWrapper.start(processBuilder,
         s -> omnisharpResponseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, s), LOG::error);
-      stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture);
+      stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture, cachedLoadProjectsOnDemand);
     } catch (IOException e) {
       LOG.warn("Unable to start OmniSharp", e);
       stateMachine.processStartFailed(e);
