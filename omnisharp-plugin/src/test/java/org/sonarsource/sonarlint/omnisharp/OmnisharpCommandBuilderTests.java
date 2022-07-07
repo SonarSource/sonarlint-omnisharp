@@ -68,10 +68,11 @@ class OmnisharpCommandBuilderTests {
 
   @Test
   void buildCommandNet6_no_solution_provided_use_basedir(@TempDir Path projectBaseDir) {
-    var pb = underTest.buildNet6(projectBaseDir, null, null, null);
+    var pb = underTest.buildNet6(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -83,10 +84,11 @@ class OmnisharpCommandBuilderTests {
 
   @Test
   void buildCommandNet6_use_provide_dotnet_cli(@TempDir Path projectBaseDir, @TempDir Path dotnetCliPath) {
-    var pb = underTest.buildNet6(projectBaseDir, dotnetCliPath, null, null);
+    var pb = underTest.buildNet6(projectBaseDir, dotnetCliPath, null, null, false);
     assertThat(pb.command()).containsExactly(dotnetCliPath.toString(),
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -100,10 +102,11 @@ class OmnisharpCommandBuilderTests {
   void buildCommandNet6_use_dotnet_exe_on_windows(@TempDir Path projectBaseDir) {
     when(system2.isOsWindows()).thenReturn(true);
 
-    var pb = underTest.buildNet6(projectBaseDir, null, null, null);
+    var pb = underTest.buildNet6(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly("dotnet.exe",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -115,10 +118,11 @@ class OmnisharpCommandBuilderTests {
 
   @Test
   void buildCommandNet6_solution_provided(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
-    var pb = underTest.buildNet6(projectBaseDir, null, null, solutionFile);
+    var pb = underTest.buildNet6(projectBaseDir, null, null, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -132,12 +136,13 @@ class OmnisharpCommandBuilderTests {
   void buildCommand_pass_client_pid(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
     when(sonarLintRuntime.getClientPid()).thenReturn(12345L);
 
-    var pb = underTest.buildNet6(projectBaseDir, null, null, solutionFile);
+    var pb = underTest.buildNet6(projectBaseDir, null, null, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
       "--hostPID",
       "12345",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -149,11 +154,12 @@ class OmnisharpCommandBuilderTests {
 
   @Test
   void buildCommand_pass_msbuild_location(@TempDir Path projectBaseDir, @TempDir Path solutionFile, @TempDir Path msbuildPath) {
-    var pb = underTest.buildNet6(projectBaseDir, null, msbuildPath, solutionFile);
+    var pb = underTest.buildNet6(projectBaseDir, null, msbuildPath, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
       "MsBuild:MSBuildOverride:MSBuildPath=" + msbuildPath.toString(),
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -167,17 +173,18 @@ class OmnisharpCommandBuilderTests {
   void buildCommand_fail_if_missing_omnisharp_dir(@TempDir Path projectBaseDir) {
     mapSettings.removeProperty("sonar.cs.internal.omnisharpNet6Location");
 
-    assertThrows(IllegalStateException.class, () -> underTest.buildNet6(projectBaseDir, null, null, null));
+    assertThrows(IllegalStateException.class, () -> underTest.buildNet6(projectBaseDir, null, null, null, false));
   }
 
   @Test
   void buildCommand_use_mono_on_unix(@TempDir Path projectBaseDir) {
     when(system2.isOsWindows()).thenReturn(false);
 
-    var pb = underTest.build(projectBaseDir, null, null, null);
+    var pb = underTest.build(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly("mono",
       omnisharpMonoLocation.resolve("OmniSharp.exe").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -191,10 +198,11 @@ class OmnisharpCommandBuilderTests {
   void buildCommand_use_provide_mono(@TempDir Path projectBaseDir, @TempDir Path monoPath) {
     when(system2.isOsWindows()).thenReturn(false);
 
-    var pb = underTest.build(projectBaseDir, monoPath, null, null);
+    var pb = underTest.build(projectBaseDir, monoPath, null, null, false);
     assertThat(pb.command()).containsExactly(monoPath.toString(),
       omnisharpMonoLocation.resolve("OmniSharp.exe").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
@@ -208,9 +216,26 @@ class OmnisharpCommandBuilderTests {
   void buildCommand_use_win_exe_on_windows(@TempDir Path projectBaseDir) {
     when(system2.isOsWindows()).thenReturn(true);
 
-    var pb = underTest.build(projectBaseDir, null, null, null);
+    var pb = underTest.build(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly(omnisharpWinLocation.resolve("OmniSharp.exe").toString(),
       "-v",
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      projectBaseDir.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
+  void buildCommand_load_project_on_demand(@TempDir Path projectBaseDir) {
+    var pb = underTest.buildNet6(projectBaseDir, null, null, null, true);
+    assertThat(pb.command()).containsExactly("dotnet",
+      omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "MsBuild:loadProjectsOnDemand=true",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",

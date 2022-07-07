@@ -64,6 +64,12 @@ public class CSharpPropertyDefinitions {
     result.add(
       PropertyDefinition.builder(getUseNet6())
         .type(PropertyType.BOOLEAN)
+        .defaultValue("true")
+        .hidden()
+        .build());
+    result.add(
+      PropertyDefinition.builder(getLoadProjectsOnDemand())
+        .type(PropertyType.BOOLEAN)
         .hidden()
         .build());
     result.add(
@@ -112,5 +118,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getUseNet6() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.useNet6";
+  }
+
+  public static String getLoadProjectsOnDemand() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.loadProjectsOnDemand";
   }
 }
