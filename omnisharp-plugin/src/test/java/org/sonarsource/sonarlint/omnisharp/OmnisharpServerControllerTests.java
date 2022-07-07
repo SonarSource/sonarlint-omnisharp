@@ -112,7 +112,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void processTerminatesBeforeReachingStartState() throws Exception {
-    mockOmnisharpRun("echo Foo", "@echo off\necho Foo");
+    mockOmnisharpRun("echo Foo");
 
     underTest.lazyStart(solutionDir, false, null, null, null, null);
 
@@ -128,7 +128,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void startStopManyTimes() throws Exception {
-    mockOmnisharpRun("echo STARTED\nread -p \"Press enter to continue\"", "echo STARTED\npause");
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     assertThat(underTest.isOmnisharpStarted()).isFalse();
@@ -158,7 +158,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void multipleCallToStartOnlyStartsOnce() throws Exception {
-    mockOmnisharpRun("echo STARTED\nread -p \"Press enter to continue\"", "echo STARTED\npause");
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     underTest.lazyStart(solutionDir, false, null, null, null, null);
@@ -214,7 +214,7 @@ class OmnisharpServerControllerTests {
   }
 
   private void automaticallyRestartIfDifferentConfig(ThrowingRunnable first, ThrowingRunnable second, String expectedMsg) throws Exception {
-    mockOmnisharpRun("echo STARTED\nread -p \"Press enter to continue\"", "@echo off\necho STARTED\npause");
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     System.out.println("First run");
@@ -238,7 +238,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void stopCallStopServer() throws Exception {
-    mockOmnisharpRun("echo STARTED\nread -p \"Press enter to continue\"", "echo \"STARTED\"\npause");
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     underTest.lazyStart(solutionDir, false, null, null, null, null);
@@ -265,7 +265,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void stopDontCallStopServerIfProcessDeadAlready() throws Exception {
-    mockOmnisharpRun("echo STARTED\nread -p \"Press enter to continue\"", "echo STARTED\npause");
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
 
     underTest.lazyStart(solutionDir, false, null, null, null, null);
 
@@ -282,24 +282,37 @@ class OmnisharpServerControllerTests {
 
   @Test
   void timeoutIfServerTakeTooLongToStart() throws Exception {
-    mockOmnisharpRun("read -p \"Press enter to continue\"", "pause");
+    mockOmnisharpRun(waitForKeyPress());
 
     IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
     assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
   }
 
-  private void mockOmnisharpRun(String bashScript, String batScript) throws IOException {
+  private void mockOmnisharpRun(String script) throws IOException {
     if (System2.INSTANCE.isOsWindows()) {
       Path run = omnisharpDir.resolve("run.bat");
-      writeBat(batScript, run);
+      writeBat("@echo off\n" + script, run);
       when(commandBuilder.buildNet6(any(), any(), any(), any())).thenReturn(new ProcessBuilder("cmd", "/c", run.toString()));
       when(commandBuilder.build(any(), any(), any(), any())).thenReturn(new ProcessBuilder("cmd", "/c", run.toString()));
     } else {
       Path run = omnisharpDir.resolve("run");
-      writeBash(bashScript, run);
+      writeBash(script, run);
       when(commandBuilder.buildNet6(any(), any(), any(), any())).thenReturn(new ProcessBuilder(run.toString()));
       when(commandBuilder.build(any(), any(), any(), any())).thenReturn(new ProcessBuilder(run.toString()));
+    }
+  }
+
+  private String emulateStartEvent() {
+    return "echo STARTED\n";
+  }
+
+  private String waitForKeyPress() {
+    if (System2.INSTANCE.isOsWindows()) {
+      // Prevent pause to write "Press any key to continue..." to stdout
+      return "pause >nul";
+    } else {
+      return "read -p \"Press enter to continue\"\n";
     }
   }
 

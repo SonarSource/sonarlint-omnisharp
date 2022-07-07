@@ -29,16 +29,16 @@ import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileListener;
 public class OmnisharpFileListener implements ModuleFileListener {
 
   private final OmnisharpEndpoints omnisharpEndpoints;
-  private final OmnisharpServerController server;
+  private final OmnisharpServerController serverController;
 
-  public OmnisharpFileListener(OmnisharpServerController server, OmnisharpEndpoints omnisharpEndpoints) {
-    this.server = server;
+  public OmnisharpFileListener(OmnisharpServerController serverController, OmnisharpEndpoints omnisharpEndpoints) {
+    this.serverController = serverController;
     this.omnisharpEndpoints = omnisharpEndpoints;
   }
 
   @Override
   public void process(ModuleFileEvent event) {
-    if (!server.isOmnisharpStarted()) {
+    if (!serverController.isOmnisharpStarted()) {
       return;
     }
     File file = event.getTarget().file();
@@ -47,7 +47,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
         if (file.getName().endsWith(".sln") || file.getName().endsWith(".csproj")) {
           // Stop the server so that it is restarted during the next analysis and take into account changes to the solution, or added
           // projects
-          server.stopServer();
+          serverController.stopServer();
         } else {
           omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.CREATE);
         }
@@ -58,7 +58,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
       case MODIFIED:
         if (file.getName().endsWith(".sln")) {
           // Stop the server so that it is restarted during the next analysis and take into account changes to the solution
-          server.stopServer();
+          serverController.stopServer();
         } else {
           omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.CHANGE);
         }

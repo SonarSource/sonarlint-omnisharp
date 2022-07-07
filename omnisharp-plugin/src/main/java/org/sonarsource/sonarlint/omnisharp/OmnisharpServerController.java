@@ -50,7 +50,6 @@ public class OmnisharpServerController implements Startable {
   private static final Logger LOG = Loggers.get(OmnisharpServerController.class);
 
   enum ServerState {
-    STARTING,
     PROCESS_STARTED,
     OMNISHARP_STARTED,
     STOPPING,
@@ -63,14 +62,6 @@ public class OmnisharpServerController implements Startable {
     private CompletableFuture<Integer> terminationFuture = CompletableFuture.completedFuture(0);
     private CompletableFuture<Void> startFuture = CompletableFuture.failedFuture(new IllegalStateException("OmniSharp not started"));
     private CompletableFuture<Void> loadProjectsFuture = CompletableFuture.failedFuture(new IllegalStateException("OmniSharp not started"));
-
-    public synchronized void starting() {
-      this.state = ServerState.STARTING;
-      this.startFuture = null;
-      this.loadProjectsFuture = null;
-      this.terminationFuture = null;
-      this.processWrapper = null;
-    }
 
     public boolean isStopped() {
       return state == ServerState.STOPPED;
@@ -210,13 +201,6 @@ public class OmnisharpServerController implements Startable {
   private void startServer() {
     var startFuture = new CompletableFuture<Void>().orTimeout(serverStartupMaxWait.getSeconds(), TimeUnit.SECONDS);
     var loadProjectsFuture = new CompletableFuture<Void>().orTimeout(loadProjectsMaxWait.getSeconds(), TimeUnit.SECONDS);
-    if (!stateMachine.isStopped()) {
-      LOG.warn("Attempt to start OmniSharp server failed because another server instance is running.");
-      return;
-    }
-
-    stateMachine.starting();
-
     ProcessBuilder processBuilder;
     if (cachedUseNet6) {
       processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath);
