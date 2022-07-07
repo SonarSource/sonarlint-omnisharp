@@ -34,7 +34,7 @@ import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.api.sonarlint.SonarLintSide;
-import org.sonarsource.sonarlint.omnisharp.OmnisharpServer;
+import org.sonarsource.sonarlint.omnisharp.OmnisharpServerController;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor.OmnisharpResponseHandler;
 
 @ScannerSide
@@ -47,7 +47,7 @@ public class OmnisharpEndpoints {
 
   private final AtomicLong requestId = new AtomicLong(1L);
 
-  private OmnisharpServer server;
+  private OmnisharpServerController server;
 
   private final OmnisharpResponseProcessor responseProcessor;
 
@@ -55,7 +55,7 @@ public class OmnisharpEndpoints {
     this.responseProcessor = responseProcessor;
   }
 
-  public void setServer(OmnisharpServer server) {
+  public void setServer(OmnisharpServerController server) {
     this.server = server;
   }
 
@@ -157,7 +157,7 @@ public class OmnisharpEndpoints {
     server.writeRequestOnStdIn(req.getJsonPayload());
   }
 
-  private static OmnisharpRequest buildRequest(String command, JsonElement dataJson, long id) {
+  private static OmnisharpRequest buildRequest(String command, @Nullable JsonElement dataJson, long id) {
     JsonObject args = new JsonObject();
     args.addProperty("Type", "request");
     args.addProperty("Seq", id);

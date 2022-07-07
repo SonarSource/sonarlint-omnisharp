@@ -22,6 +22,7 @@ package org.sonarsource.sonarlint.omnisharp;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ import static org.mockito.Mockito.when;
 
 class OmnisharpSensorTests {
 
-  private final OmnisharpServer mockServer = mock(OmnisharpServer.class);
+  private final OmnisharpServerController mockServer = mock(OmnisharpServerController.class);
   private final OmnisharpEndpoints mockProtocol = mock(OmnisharpEndpoints.class);
   private OmnisharpSensor underTest;
   private Path baseDir;
@@ -62,6 +63,7 @@ class OmnisharpSensorTests {
   void prepare(@TempDir Path tmp) throws Exception {
     baseDir = tmp.toRealPath();
     underTest = new OmnisharpSensor(mockServer, mockProtocol);
+    when(mockServer.whenReady()).thenReturn(CompletableFuture.completedFuture(null));
   }
 
   @Test

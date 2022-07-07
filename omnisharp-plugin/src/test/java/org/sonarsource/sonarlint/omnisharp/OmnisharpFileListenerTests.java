@@ -37,12 +37,12 @@ import static org.mockito.Mockito.when;
 class OmnisharpFileListenerTests {
 
   private OmnisharpFileListener underTest;
-  private OmnisharpServer omnisharpServer;
+  private OmnisharpServerController omnisharpServer;
   private OmnisharpEndpoints omnisharpProtocol;
 
   @BeforeEach
   void prepare() throws IOException {
-    omnisharpServer = mock(OmnisharpServer.class);
+    omnisharpServer = mock(OmnisharpServerController.class);
     when(omnisharpServer.isOmnisharpStarted()).thenReturn(true);
     omnisharpProtocol = mock(OmnisharpEndpoints.class);
     underTest = new OmnisharpFileListener(omnisharpServer, omnisharpProtocol);
@@ -107,7 +107,7 @@ class OmnisharpFileListenerTests {
     underTest.process(event);
 
     verify(omnisharpServer).isOmnisharpStarted();
-    verify(omnisharpServer).stop();
+    verify(omnisharpServer).stopServer();
     verifyNoMoreInteractions(omnisharpServer);
     verifyNoInteractions(omnisharpProtocol);
   }
@@ -120,7 +120,7 @@ class OmnisharpFileListenerTests {
     underTest.process(event);
 
     verify(omnisharpServer).isOmnisharpStarted();
-    verify(omnisharpServer).stop();
+    verify(omnisharpServer).stopServer();
     verifyNoMoreInteractions(omnisharpServer);
     verifyNoInteractions(omnisharpProtocol);
   }
@@ -133,7 +133,7 @@ class OmnisharpFileListenerTests {
     underTest.process(event);
 
     verify(omnisharpServer).isOmnisharpStarted();
-    verify(omnisharpServer).stop();
+    verify(omnisharpServer).stopServer();
     verifyNoMoreInteractions(omnisharpServer);
     verifyNoInteractions(omnisharpProtocol);
   }

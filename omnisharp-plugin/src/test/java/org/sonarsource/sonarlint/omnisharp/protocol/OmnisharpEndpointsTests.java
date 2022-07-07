@@ -24,7 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
-import org.sonarsource.sonarlint.omnisharp.OmnisharpServer;
+import org.sonarsource.sonarlint.omnisharp.OmnisharpServerController;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChangeType;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -54,10 +54,10 @@ class OmnisharpEndpointsTests {
   LogTesterJUnit5 logTester = new LogTesterJUnit5();
 
   private OmnisharpEndpoints underTest;
-  private CountDownLatch startLatch;
-  private CountDownLatch firstUpdateLatch;
+  private CompletableFuture<Void> startFuture;
+  private CompletableFuture<Void> loadProjectsFuture;
 
-  private OmnisharpServer omnisharpServer;
+  private OmnisharpServerController omnisharpServer;
 
   private final List<String> requests = new ArrayList<>();
 
@@ -66,13 +66,13 @@ class OmnisharpEndpointsTests {
   @BeforeEach
   void prepare() throws IOException {
     requests.clear();
+    startFuture = new CompletableFuture<>();
+    loadProjectsFuture = new CompletableFuture<>();
     responseProcessor = new OmnisharpResponseProcessor();
+
     underTest = new OmnisharpEndpoints(responseProcessor);
 
-    startLatch = new CountDownLatch(1);
-    firstUpdateLatch = new CountDownLatch(1);
-
-    omnisharpServer = mock(OmnisharpServer.class);
+    omnisharpServer = mock(OmnisharpServerController.class);
     underTest.setServer(omnisharpServer);
 
     doAnswer(new Answer<Boolean>() {
@@ -87,24 +87,24 @@ class OmnisharpEndpointsTests {
 
   @ParameterizedTest
   @ValueSource(strings = {"ProjectAdded", "ProjectChanged", "ProjectRemoved"})
-  void testStartLatch(String firstConfigEvent) throws IOException {
-    assertThat(startLatch.getCount()).isEqualTo(1);
-    assertThat(firstUpdateLatch.getCount()).isEqualTo(1);
+  void testStartFuture(String firstConfigEvent) throws IOException {
+    assertThat(startFuture.isDone()).isFalse();
+    assertThat(loadProjectsFuture.isDone()).isFalse();
 
     emulateReceivedMessage("Random");
 
-    assertThat(startLatch.getCount()).isEqualTo(1);
-    assertThat(firstUpdateLatch.getCount()).isEqualTo(1);
+    assertThat(startFuture.isDone()).isFalse();
+    assertThat(loadProjectsFuture.isDone()).isFalse();
 
     emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"started\"}");
 
-    assertThat(startLatch.getCount()).isZero();
-    assertThat(firstUpdateLatch.getCount()).isEqualTo(1);
+    assertThat(startFuture.isDone()).isTrue();
+    assertThat(loadProjectsFuture.isDone()).isFalse();
 
     emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"" + firstConfigEvent + "\"}");
 
-    assertThat(startLatch.getCount()).isZero();
-    assertThat(firstUpdateLatch.getCount()).isZero();
+    assertThat(startFuture.isDone()).isTrue();
+    assertThat(loadProjectsFuture.isDone()).isTrue();
   }
 
   @Test
@@ -382,7 +382,7 @@ class OmnisharpEndpointsTests {
   }
 
   private void emulateReceivedMessage(String msg) throws IOException {
-    responseProcessor.handleOmnisharpOutput(startLatch, firstUpdateLatch, msg);
+    responseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, msg);
   }
 
 }

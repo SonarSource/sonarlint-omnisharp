@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -48,10 +49,10 @@ public class OmnisharpSensor implements Sensor {
 
   private static final Logger LOG = Loggers.get(OmnisharpSensor.class);
 
-  private final OmnisharpServer server;
+  private final OmnisharpServerController server;
   private final OmnisharpEndpoints omnisharpEndpoints;
 
-  public OmnisharpSensor(OmnisharpServer server, OmnisharpEndpoints omnisharpEndpoints) {
+  public OmnisharpSensor(OmnisharpServerController server, OmnisharpEndpoints omnisharpEndpoints) {
     this.server = server;
     this.omnisharpEndpoints = omnisharpEndpoints;
   }
@@ -88,6 +89,17 @@ public class OmnisharpSensor implements Sensor {
       throw new IllegalStateException("Unable to start OmniSharp", e);
     }
 
+    try {
+      server.whenReady().get();
+      analyze(context, predicate);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (ExecutionException e) {
+      throw new IllegalStateException("Analysis failed: " + e.getMessage(), e.getCause());
+    }
+  }
+
+  private void analyze(SensorContext context, FilePredicate predicate) {
     JsonObject config = buildRulesConfig(context);
     omnisharpEndpoints.config(config);
 
