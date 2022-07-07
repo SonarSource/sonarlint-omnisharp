@@ -30,9 +30,12 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.assertj.core.api.SoftAssertionsProvider.ThrowingRunnable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,7 +94,6 @@ class OmnisharpServerControllerTests {
 
   @AfterEach
   public void cleanup() {
-    System.out.println("CLEANUP");
     underTest.stop();
     assertThat(underTest.isOmnisharpStarted()).isFalse();
   }
@@ -114,13 +116,13 @@ class OmnisharpServerControllerTests {
   void processTerminatesBeforeReachingStartState() throws Exception {
     mockOmnisharpRun("echo Foo");
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
+    var thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
 
     verify(endpoints).setServer(underTest);
     assertThat(processedOutput).containsExactly("Foo");
     verifyNoMoreInteractions(endpoints);
 
-    assertThat(logTester.logs(LoggerLevel.ERROR)).contains("Unable to start the Omnisharp server: Process terminated unexpectedly");
+    assertThat(thrown).hasMessage("Unable to start the Omnisharp server: Process terminated unexpectedly");
 
     assertThat(underTest.isOmnisharpStarted()).isFalse();
     assertThat(underTest.whenReady()).isNotCompleted();
@@ -128,32 +130,19 @@ class OmnisharpServerControllerTests {
 
   @Test
   void startStopManyTimes() throws Exception {
-    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
+    mockOmnisharpRun(emulateStartEvent() + emulateProjectLoaded() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     assertThat(underTest.isOmnisharpStarted()).isFalse();
+    for (int i = 0; i < 10; i++) {
+      underTest.lazyStart(solutionDir, false, null, null, null, null);
+      assertThat(underTest.isOmnisharpStarted()).isTrue();
+      underTest.whenReady().get();
 
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
-
-    assertThat(underTest.isOmnisharpStarted()).isTrue();
-
-    underTest.stop();
-
-    assertThat(underTest.isOmnisharpStarted()).isFalse();
-
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
-
-    assertThat(underTest.isOmnisharpStarted()).isTrue();
-
-    underTest.stop();
-
-    assertThat(underTest.isOmnisharpStarted()).isFalse();
-
-    underTest.lazyStart(solutionDir, false, null, null, null, null);
-
-    assertThat(underTest.isOmnisharpStarted()).isTrue();
-
-    underTest.stop();
+      underTest.stop();
+      assertThat(underTest.isOmnisharpStarted()).isFalse();
+      assertThat(underTest.whenReady()).isCompletedExceptionally();
+    }
   }
 
   @Test
@@ -211,6 +200,14 @@ class OmnisharpServerControllerTests {
       () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
       () -> underTest.lazyStart(solutionDir, false, null, null, null, solutionPath),
       "Using a different solution path, OmniSharp has to be restarted");
+  }
+
+  @Test
+  void automaticallyRestartIfDifferentOmnisharpFlavorPath(@TempDir Path solutionPath) throws Exception {
+    automaticallyRestartIfDifferentConfig(
+      () -> underTest.lazyStart(solutionDir, false, null, null, null, null),
+      () -> underTest.lazyStart(solutionDir, true, null, null, null, null),
+      "Using a different flavor of OmniSharp, OmniSharp has to be restarted");
   }
 
   private void automaticallyRestartIfDifferentConfig(ThrowingRunnable first, ThrowingRunnable second, String expectedMsg) throws Exception {
@@ -287,6 +284,86 @@ class OmnisharpServerControllerTests {
     IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
     assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
+    assertThat(underTest.whenReady()).isCompletedExceptionally();
+  }
+
+  @Test
+  void waitForProjectLoaded() throws Exception {
+    mockOmnisharpRun(emulateStartEvent() + emulateProjectLoaded() + waitForKeyPress());
+    pressKeyWhenEndpointCallStopServer();
+
+    underTest.lazyStart(solutionDir, false, null, null, null, null);
+
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+
+    underTest.whenReady().get();
+    assertThat(underTest.whenReady()).isCompleted();
+  }
+
+  @Test
+  void timeoutIfProjectsTakeTooLongToLoad() throws Exception {
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
+
+    pressKeyWhenEndpointCallStopServer();
+
+    underTest.lazyStart(solutionDir, false, null, null, null, null);
+
+    var thrown = assertThrows(ExecutionException.class, () -> underTest.whenReady().get());
+    assertThat(thrown).hasCauseExactlyInstanceOf(TimeoutException.class);
+
+    assertThat(underTest.isOmnisharpStarted()).isTrue();
+    assertThat(underTest.whenReady()).isCompletedExceptionally();
+  }
+
+  @Test
+  void waitingForProjectToLoadDoesntPreventStopping() throws Exception {
+    underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder, Duration.of(1, ChronoUnit.SECONDS),
+      Duration.of(9999, ChronoUnit.SECONDS));
+
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
+    pressKeyWhenEndpointCallStopServer();
+
+    underTest.lazyStart(solutionDir, false, null, null, null, null);
+
+    // This thread will block forever, waiting for solution to load
+    WaitForReady t = new WaitForReady();
+    t.start();
+
+    // Give time for thread to be blocked on the future
+    Thread.sleep(100);
+    assertThat(t.isAlive()).isTrue();
+
+    underTest.stop();
+
+    assertThat(underTest.isOmnisharpStarted()).isFalse();
+    assertThat(underTest.whenReady()).isCompletedExceptionally();
+
+    t.join();
+    assertThat(t.thrown).isInstanceOf(CancellationException.class);
+  }
+
+  private class WaitForReady extends Thread {
+    private Exception thrown = null;
+
+    @Override
+    public void run() {
+      try {
+        underTest.whenReady().get();
+      } catch (Exception e) {
+        thrown = e;
+      }
+    }
+  }
+
+  @Test
+  void startFailed() throws Exception {
+    when(commandBuilder.build(any(), any(), any(), any())).thenReturn(new ProcessBuilder("not existing command"));
+
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> underTest.lazyStart(solutionDir, false, null, null, null, null));
+    assertThat(thrown).hasMessageContainingAll("Unable to start the Omnisharp server", "not existing command");
+    assertThat(underTest.isOmnisharpStarted()).isFalse();
+
+    assertThat(underTest.whenReady()).isCompletedExceptionally();
   }
 
   private void mockOmnisharpRun(String script) throws IOException {
@@ -304,7 +381,11 @@ class OmnisharpServerControllerTests {
   }
 
   private String emulateStartEvent() {
-    return "echo STARTED\n";
+    return "echo " + FakeOmnisharpResponseProcessor.STARTED_EVENT + "\n";
+  }
+
+  private String emulateProjectLoaded() {
+    return "echo " + FakeOmnisharpResponseProcessor.LOADED_EVENT + "\n";
   }
 
   private String waitForKeyPress() {
@@ -329,14 +410,17 @@ class OmnisharpServerControllerTests {
 
   private class FakeOmnisharpResponseProcessor extends OmnisharpResponseProcessor {
 
+    private static final String STARTED_EVENT = "STARTED";
+    private static final String LOADED_EVENT = "LOADED";
+
     @Override
     public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line) {
       processedOutput.add(line);
       switch (line) {
-        case "STARTED":
+        case STARTED_EVENT:
           startFuture.complete(null);
           break;
-        case "LOADED":
+        case LOADED_EVENT:
           loadProjectsFuture.complete(null);
           break;
       }

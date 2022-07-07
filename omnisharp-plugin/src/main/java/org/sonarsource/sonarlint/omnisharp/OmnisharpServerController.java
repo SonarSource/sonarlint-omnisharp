@@ -56,12 +56,20 @@ public class OmnisharpServerController implements Startable {
     STOPPED
   }
 
-  private static class ServerStateMachine {
+  private class ServerStateMachine {
     private volatile ServerState state = ServerState.STOPPED;
     private ProcessWrapper processWrapper;
     private CompletableFuture<Integer> terminationFuture = CompletableFuture.completedFuture(0);
-    private CompletableFuture<Void> startFuture = CompletableFuture.failedFuture(new IllegalStateException("OmniSharp not started"));
-    private CompletableFuture<Void> loadProjectsFuture = CompletableFuture.failedFuture(new IllegalStateException("OmniSharp not started"));
+    private CompletableFuture<Void> startFuture = failedNotStarted();
+    private CompletableFuture<Void> loadProjectsFuture = failedNotStarted();
+
+    private CompletableFuture<Void> failedNotStarted() {
+      return CompletableFuture.failedFuture(new IllegalStateException("OmniSharp not started"));
+    }
+
+    private CompletableFuture<Void> failedToStart(Exception e) {
+      return CompletableFuture.failedFuture(e);
+    }
 
     public boolean isStopped() {
       return state == ServerState.STOPPED;
@@ -79,28 +87,30 @@ public class OmnisharpServerController implements Startable {
       });
       this.state = ServerState.PROCESS_STARTED;
       this.startFuture = startFuture
+        .orTimeout(serverStartupMaxWait.getSeconds(), TimeUnit.SECONDS)
         .whenComplete((r, t) -> {
           if (t != null) {
+            loadProjectsFuture.completeExceptionally(t);
             processWrapper.destroyForcibly();
           } else {
             this.state = ServerState.OMNISHARP_STARTED;
             LOG.info("OmniSharp successfully started");
           }
         });
-      this.loadProjectsFuture = loadProjectsFuture.whenComplete((r, t) -> {
-        if (t != null) {
-          LOG.error("Unable to load projects: " + t.getMessage(), t);
-        } else {
-          LOG.info("Projects successfully loaded");
-        }
-      });
+      this.loadProjectsFuture = loadProjectsFuture
+        .orTimeout(loadProjectsMaxWait.getSeconds(), TimeUnit.SECONDS)
+        .thenRun(() -> LOG.info("Projects successfully loaded"));
+    }
+
+    public synchronized void processStartFailed(IOException e) {
+      startFuture = failedToStart(e);
+      loadProjectsFuture = failedToStart(e);
+      this.state = ServerState.STOPPED;
     }
 
     public synchronized void stopped() {
       boolean stoppedNormally = this.state == ServerState.STOPPING;
       this.state = ServerState.STOPPED;
-      this.processWrapper = null;
-      this.terminationFuture = null;
       if (stoppedNormally) {
         startFuture.cancel(true);
         loadProjectsFuture.cancel(true);
@@ -108,16 +118,17 @@ public class OmnisharpServerController implements Startable {
         startFuture.completeExceptionally(new IllegalStateException("Process terminated unexpectedly"));
         loadProjectsFuture.completeExceptionally(new IllegalStateException("Process terminated unexpectedly"));
       }
+      startFuture = failedNotStarted();
+      loadProjectsFuture = failedNotStarted();
     }
 
     public void stopping() {
       this.state = ServerState.STOPPING;
     }
 
-    public synchronized void startFailed(IOException e) {
-      startFuture.completeExceptionally(e);
-      loadProjectsFuture.completeExceptionally(e);
-      this.state = ServerState.STOPPED;
+    public void waitForStop() throws InterruptedException, ExecutionException {
+      this.processWrapper.waitForProcessToEndOrKill(1, TimeUnit.SECONDS);
+      terminationFuture.get();
     }
   }
 
@@ -177,7 +188,7 @@ public class OmnisharpServerController implements Startable {
       if (e.getCause() instanceof TimeoutException) {
         throw new IllegalStateException("Timeout waiting for Omnisharp server to start");
       }
-      LOG.error("Unable to start the Omnisharp server: {}", e.getCause().getMessage(), e.getCause());
+      throw new IllegalStateException("Unable to start the Omnisharp server: " + e.getCause().getMessage(), e.getCause());
     }
 
   }
@@ -199,8 +210,8 @@ public class OmnisharpServerController implements Startable {
   }
 
   private void startServer() {
-    var startFuture = new CompletableFuture<Void>().orTimeout(serverStartupMaxWait.getSeconds(), TimeUnit.SECONDS);
-    var loadProjectsFuture = new CompletableFuture<Void>().orTimeout(loadProjectsMaxWait.getSeconds(), TimeUnit.SECONDS);
+    var startFuture = new CompletableFuture<Void>();
+    var loadProjectsFuture = new CompletableFuture<Void>();
     ProcessBuilder processBuilder;
     if (cachedUseNet6) {
       processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath);
@@ -216,7 +227,7 @@ public class OmnisharpServerController implements Startable {
       stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture);
     } catch (IOException e) {
       LOG.warn("Unable to start OmniSharp", e);
-      stateMachine.startFailed(e);
+      stateMachine.processStartFailed(e);
     }
   }
 
@@ -234,13 +245,9 @@ public class OmnisharpServerController implements Startable {
     if (!stateMachine.isStopped()) {
       stateMachine.stopping();
       LOG.info("Stopping OmniSharp");
-      // Save old state as variable will be nullified/replaced when process stop/restart
-      ProcessWrapper oldProcess = stateMachine.processWrapper;
-      CompletableFuture<Integer> terminationFuture = stateMachine.terminationFuture;
       omnisharpEndpoints.stopServer();
-      oldProcess.waitForProcessToEndOrKill(1, TimeUnit.SECONDS);
       try {
-        terminationFuture.get();
+        stateMachine.waitForStop();
         LOG.info("OmniSharp stopped");
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();

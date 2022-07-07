@@ -119,22 +119,14 @@ public class ProcessWrapper {
     p.getOutputStream().flush();
   }
 
-  public boolean waitFor(int timeout, TimeUnit unit) throws InterruptedException {
-    return p.waitFor(timeout, unit);
-  }
-
   public void destroyForcibly() {
     p.destroyForcibly();
   }
 
-  public void waitForProcessToEndOrKill(int timeout, TimeUnit unit) {
-    try {
-      if (!p.waitFor(timeout, unit)) {
-        LOG.debug("Unable to terminate process, killing it");
-        p.destroyForcibly();
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+  public void waitForProcessToEndOrKill(int timeout, TimeUnit unit) throws InterruptedException {
+    if (!p.waitFor(timeout, unit)) {
+      LOG.debug("Unable to terminate process, killing it");
+      p.destroyForcibly();
     }
   }
 
