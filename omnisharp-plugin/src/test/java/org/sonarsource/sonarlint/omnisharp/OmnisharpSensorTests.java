@@ -23,9 +23,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.sonar.api.batch.fs.InputFile;
@@ -37,6 +39,8 @@ import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.batch.sensor.issue.Issue;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.rule.RuleKey;
+import org.sonar.api.utils.log.LogTesterJUnit5;
+import org.sonar.api.utils.log.LoggerLevel;
 import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
 import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
@@ -53,6 +57,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class OmnisharpSensorTests {
+
+  @RegisterExtension
+  LogTesterJUnit5 logTester = new LogTesterJUnit5();
 
   private final OmnisharpServerController mockServer = mock(OmnisharpServerController.class);
   private final OmnisharpEndpoints mockProtocol = mock(OmnisharpEndpoints.class);
@@ -119,6 +126,33 @@ class OmnisharpSensorTests {
     verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
     verify(mockProtocol).codeCheck(eq(filePath.toFile()), any());
     verifyNoMoreInteractions(mockProtocol);
+  }
+
+  @Test
+  void logIfProjectLoadTimeout() throws Exception {
+    when(mockServer.whenReady()).thenReturn(CompletableFuture.failedFuture(new TimeoutException()));
+
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    underTest.execute(sensorContext);
+
+    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null, 60, 60);
+
+    verifyNoInteractions(mockProtocol);
+
+    assertThat(logTester.logs(LoggerLevel.ERROR))
+      .contains("Timeout waiting for the solution to be loaded. You can find help on https://github.com/SonarSource/sonarlint-intellij/wiki/Rider");
   }
 
   @Test
