@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.sonar.api.batch.fs.FilePredicate;
@@ -99,6 +100,10 @@ public class OmnisharpSensor implements Sensor {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     } catch (ExecutionException e) {
+      if (e.getCause() instanceof TimeoutException) {
+        LOG.error("Timeout waiting for the solution to be loaded. You can find help on https://github.com/SonarSource/sonarlint-intellij/wiki/Rider");
+        return;
+      }
       throw new IllegalStateException("Analysis failed: " + e.getMessage(), e.getCause());
     }
   }
