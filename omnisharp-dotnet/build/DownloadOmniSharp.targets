@@ -17,7 +17,7 @@
     <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-osx.zip</OmniSharpZipUrl>
     <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-win-x64.zip</OmniSharpZipUrl>
     -->
-    <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-linux-x64.zip</OmniSharpZipUrl>
+    <OmniSharpZipUrl>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/$(OmniSharpVersion)/omnisharp-roslyn-$(OmniSharpVersion)-net472.zip</OmniSharpZipUrl>
     
   </PropertyGroup>
   
@@ -31,8 +31,9 @@
     
     <DownloadFile
       SourceUrl="$(OmniSharpZipUrl)"
-      DestinationFolder="$(OmniSharpLocalDownloadDir)">
-      <Output TaskParameter="DownloadedFile" PropertyName="OmniSharpZipPath" />
+      DestinationFolder="$(OmniSharpLocalDownloadDir)"
+      DestinationFileName="omnisharp-roslyn-$(OmniSharpVersion)-net472.zip">
+    <Output TaskParameter="DownloadedFile" PropertyName="OmniSharpZipPath" />
     </DownloadFile>
     
     <Message Importance="high" Text="XXX Downloaded OmniSharp zip: $(OmniSharpZipPath)" />
