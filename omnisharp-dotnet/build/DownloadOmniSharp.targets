@@ -31,8 +31,9 @@
     
     <DownloadFile
       SourceUrl="$(OmniSharpZipUrl)"
-      DestinationFolder="$(OmniSharpLocalDownloadDir)">
-      <Output TaskParameter="DownloadedFile" PropertyName="OmniSharpZipPath" />
+      DestinationFolder="$(OmniSharpLocalDownloadDir)"
+      DestinationFileName="omnisharp-roslyn-$(OmniSharpVersion)-net472.zip">
+    <Output TaskParameter="DownloadedFile" PropertyName="OmniSharpZipPath" />
     </DownloadFile>
     
     <Message Importance="high" Text="XXX Downloaded OmniSharp zip: $(OmniSharpZipPath)" />
