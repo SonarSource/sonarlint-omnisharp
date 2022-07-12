@@ -12,7 +12,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref:  refs/tags/v1.0.16
+      ref:  refs/tags/v1.0.17
 
 
 stages:
@@ -43,7 +43,7 @@ stages:
 
             # Read the version from the file
             [xml]$versionProps = Get-Content "$versionFilePath"
-            $sonarProjectVersion = $versionProps.project.version
+            $sonarProjectVersion = $versionProps.project.version.Replace("-SNAPSHOT", "")
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
 
             # Set the variable to it can be used by other tasks
@@ -89,6 +89,17 @@ stages:
             artifact: DotNetJarContentFiles
               
         - task: SonarQubeAnalyze@5
+        
+        - template: whitesource.yml@commonTemplates
+          parameters:
+            productName : 'SonarLint/OmniSharp'
+            # We're running two WhiteSource scans in this pipeline, one for .NET and one for Java.
+            # They can't both have the same projectName. We'll use the default projectName for the Java
+            # project so it works with the releasability check.
+            projectName : 'SonarSource/sonarlint-omnisharp/dotnet'
+            releaseVersion: '$(SONAR_PROJECT_VERSION)'
+            # Using a different agent config file for the .NET scan
+            configFilePath: '$(Build.SourcesDirectory)/omnisharp-dotnet/build/whitesource/wss-unified-agent.config'
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
@@ -261,7 +272,7 @@ stages:
                 jdkVersionOption: '1.11'
                 mavenOptions: $(MAVEN_OPTS)        
         - job: sonarqube
-          displayName: SonarQube analysis on Next
+          displayName: SonarQube analysis on Next and WhiteSource analysis
           variables:
             MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
             MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
@@ -296,6 +307,14 @@ stages:
                 mavenOptions: $(MAVEN_OPTS)
                 sonarQubeRunAnalysis: true
                 sqMavenPluginVersionChoice: 'latest'
+            - template: whitesource-with-maven-repox.yml@commonTemplates
+              parameters:
+                # NB using the default projectName for this scan so it works with the releasability check.
+                # The .NET WhiteSource scan (above) uses a custom projectName.
+                productName : 'SonarLint/OmniSharp'
+                mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
+                mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
+
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
       burgrName: 'qa'
