@@ -16,9 +16,10 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>8.41.0.50478</analyzer.version>
-    <sonar.analyzer.commons>1.25.0.1003</sonar.analyzer.commons>
-    <sonar.version>9.3.0.51899</sonar.version>
+    <analyzer.version>8.45.0.54064</analyzer.version>
+    <sonar.analyzer.commons>1.28.0.1058</sonar.analyzer.commons>
+    <sonar.version>9.10.0.269</sonar.version>
+    <sonar.api.impl.version>9.6.1.59531</sonar.api.impl.version>
     <sonarLTS.version>7.9</sonarLTS.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <sonarAnalyzer.directory>${project.build.directory}/analyzer</sonarAnalyzer.directory>
@@ -28,7 +29,7 @@
   <dependencies>
     <!-- provided at runtime -->
     <dependency>
-      <groupId>org.sonarsource.sonarqube</groupId>
+      <groupId>org.sonarsource.api.plugin</groupId>
       <artifactId>sonar-plugin-api</artifactId>
       <version>${sonar.version}</version>
       <scope>provided</scope>
@@ -67,7 +68,7 @@
     <dependency>
       <groupId>org.sonarsource.sonarqube</groupId>
       <artifactId>sonar-plugin-api-impl</artifactId>
-      <version>${sonar.version}</version>
+      <version>${sonar.api.impl.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -236,42 +237,8 @@
                   <overWrite>true</overWrite>
                 </artifactItem>
               </artifactItems>
-              <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.xml,**/org/sonar/plugins/csharp/*.json</includes>
+              <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.json,**/org/sonar/plugins/csharp/*.html</includes>
               <outputDirectory>${sonarAnalyzer.directory}</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>groovy-maven-plugin</artifactId>
-        <version>2.1.1</version>
-        <executions>
-          <execution>
-            <id>strip-bom</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <source><![CDATA[
-                import java.nio.ByteBuffer
-                import java.nio.file.Files
-                import java.nio.file.Path
-                import java.nio.file.Paths
-
-                Path path = Paths.get(properties['sonarAnalyzer.directory'] + '/org/sonar/plugins/csharp/rules.xml')
-                byte[] bytes = Files.readAllBytes(path);
-                ByteBuffer bb = ByteBuffer.wrap(bytes);
-                byte[] bom = new byte[3];
-                // get the first 3 bytes
-                bb.get(bom, 0, bom.length);
-                // remaining
-                byte[] contentAfterFirst3Bytes = new byte[bytes.length - 3];
-                bb.get(contentAfterFirst3Bytes, 0, contentAfterFirst3Bytes.length);
-                Files.write(path, contentAfterFirst3Bytes);
-                ]]>
-              </source>
             </configuration>
           </execution>
         </executions>
