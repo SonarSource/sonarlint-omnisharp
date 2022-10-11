@@ -44,7 +44,7 @@ class OmnisharpServicesExtractorTests {
   private Path slTmpDir;
 
   @BeforeEach
-  void prepare(@TempDir Path tmpDir) throws IOException {
+  void prepare(@TempDir Path tmpDir) {
     slTmpDir = tmpDir.resolve("tmp");
     underTest = new OmnisharpServicesExtractor(new DefaultTempFolder(slTmpDir.toFile()));
   }
