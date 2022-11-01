@@ -35,6 +35,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 {
     internal static class OmniSharpWorkspaceHelper
     {
+        public static Diagnostic CreateDiagnostic() => Diagnostic.Create(Descriptor, null);
+
+        public static readonly DiagnosticDescriptor Descriptor = new(
+            "SonarLintTest",
+            "Title",
+            "Message",
+            "Category",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "Description",
+            helpLinkUri: "HelpLink",
+            customTags: new[] { "CustomTag" });
+
         public static OmniSharpWorkspace CreateOmnisharpWorkspaceWithDocument(string documentFileName, string documentContent)
         {
             var projectInfo = CreateProjectInfo();

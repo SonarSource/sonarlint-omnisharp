@@ -30,6 +30,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
+using static SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.OmniSharpWorkspaceHelper;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFixes
 {
@@ -119,23 +120,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             return result;
         }
 
-        private Diagnostic CreateDiagnostic() => Diagnostic.Create(Descriptor, null);
-
         private Document CreateDocument()
         {
-            var workspace = OmniSharpWorkspaceHelper.CreateOmnisharpWorkspaceWithDocument("test.cs", "");
+            var workspace = CreateOmnisharpWorkspaceWithDocument("test.cs", "");
             return workspace.GetDocument("test.cs");
         }
-
-        public static readonly DiagnosticDescriptor Descriptor = new(
-            "SonarLintTest",
-            "Title",
-            "Message",
-            "Category",
-            defaultSeverity: DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "Description",
-            helpLinkUri: "HelpLink",
-            customTags: new[] { "CustomTag" });
     }
 }
