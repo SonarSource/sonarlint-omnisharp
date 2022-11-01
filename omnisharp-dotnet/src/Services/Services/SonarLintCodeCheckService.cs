@@ -46,12 +46,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
         private readonly IDiagnosticsToCodeLocationsConverter diagnosticsToCodeLocationsConverter;
 
         [ImportingConstructor]
-        public SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker)
-            : this(diagnosticWorker, new DiagnosticsToCodeLocationsConverter())
-        {
-        }
-
-        internal SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker,
+        public SonarLintCodeCheckService(ISonarLintDiagnosticWorker diagnosticWorker, 
             IDiagnosticsToCodeLocationsConverter diagnosticsToCodeLocationsConverter)
         {
             this.diagnosticWorker = diagnosticWorker;
@@ -60,21 +55,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
 
         public async Task<QuickFixResponse> Handle(SonarLintCodeCheckRequest request)
         {
-            if (string.IsNullOrEmpty(request.FileName))
-            {
-                var allDiagnostics = await diagnosticWorker.GetAllDiagnosticsAsync();
+            var diagnostics = string.IsNullOrEmpty(request.FileName)
+                ? await diagnosticWorker.GetAllDiagnosticsAsync()
+                : await diagnosticWorker.GetDiagnostics(ImmutableArray.Create(request.FileName));
 
-                return GetResponseFromDiagnostics(allDiagnostics, fileName: null);
-            }
-
-            var diagnostics = await diagnosticWorker.GetDiagnostics(ImmutableArray.Create(request.FileName));
-
-            return GetResponseFromDiagnostics(diagnostics, request.FileName);
-        }
-
-        private QuickFixResponse GetResponseFromDiagnostics(ImmutableArray<DocumentDiagnostics> diagnostics, string fileName)
-        {
-            var diagnosticLocations = diagnosticsToCodeLocationsConverter.Convert(diagnostics, fileName);
+            // todo: does it matter if the file name is null or empty?
+            var diagnosticLocations = await diagnosticsToCodeLocationsConverter.Convert(diagnostics, request.FileName);
 
             return new QuickFixResponse(diagnosticLocations);
         }

@@ -36,6 +36,7 @@ using OmniSharp.Eventing;
 using OmniSharp.Options;
 using OmniSharp.Roslyn;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 using SonarLint.OmniSharp.DotNet.Services.Rules;
 using static SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure.MefTestHelpers;
 using static SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.OmniSharpWorkspaceHelper;
@@ -53,7 +54,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
                 CreateExport<OmniSharpWorkspace>(CreateOmniSharpWorkspace()),
                 CreateExport<ILoggerFactory>(),
                 CreateExport<DiagnosticEventForwarder>(new DiagnosticEventForwarder(Mock.Of<IEventEmitter>())),
-                CreateExport<IOptionsMonitor<OmniSharpOptions>>(CreateOptionsMonitor()));
+                CreateExport<IOptionsMonitor<OmniSharpOptions>>(CreateOptionsMonitor()),
+                CreateExport<IDiagnosticQuickFixesProvider>());
         }
 
         [TestMethod]
@@ -206,7 +208,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
                 workspace,
                 Mock.Of<ILoggerFactory>(),
                 new DiagnosticEventForwarder(Mock.Of<IEventEmitter>()),
-                CreateOptionsMonitor());
+                CreateOptionsMonitor(),
+                null);
 
         #region Helper Classes
 
