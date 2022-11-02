@@ -48,7 +48,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         }
 
         [TestMethod]
-        public async Task Convert_NoFileNameFilter_ConvertsAllDiagnostics()
+        [DataRow("")]
+        [DataRow(null)]
+        public async Task Convert_NoFileNameFilter_ConvertsAllDiagnostics(string fileNameFilter)
         {
             var location1 = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
             var location2 = CreateLocationSpan("file2.cs", 1, 2, 3, 4);
@@ -61,8 +63,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             var testSubject = CreateTestSubject();
 
             var result = await testSubject.Convert(
-                new[] { documentDiagnostics1, documentDiagnostics2, documentDiagnostics3 }.ToImmutableArray(),
-                fileNameFilter: null);
+                new[] {documentDiagnostics1, documentDiagnostics2, documentDiagnostics3}.ToImmutableArray(),
+                fileNameFilter);
 
             result.Should().NotBeNull();
             result.Length.Should().Be(3);
@@ -138,13 +140,67 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         [TestMethod]
         [DataRow(null)]
         [DataRow("file1.cs")]
+        public async Task Convert_HasQuickFixes_ReturnsWithQuickFixes(string fileName)
+        {
+            var mainLocation = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
+
+            var diagnostic1 = CreateDiagnostic(mainLocation);
+            var diagnostic2 = CreateDiagnostic(mainLocation);
+            var diagnostic3 = CreateDiagnostic(mainLocation);
+
+            var quickFix1 = Mock.Of<IQuickFix>();
+            var quickFix2 = Mock.Of<IQuickFix>();
+
+            var quickFixesProvider = new Mock<IDiagnosticQuickFixesProvider>();
+            quickFixesProvider
+                .Setup(x => x.GetDiagnosticQuickFixes(diagnostic1, fileName))
+                .ReturnsAsync(new[] { quickFix1 });
+
+            quickFixesProvider
+                .Setup(x => x.GetDiagnosticQuickFixes(diagnostic2, fileName))
+                .ReturnsAsync((IQuickFix[]) null);
+
+            quickFixesProvider
+                .Setup(x => x.GetDiagnosticQuickFixes(diagnostic3, fileName))
+                .ReturnsAsync(new[] { quickFix2 });
+
+            var documentDiagnostics = CreateDocumentDiagnostics(fileName, diagnostic1, diagnostic2, diagnostic3);
+            var testSubject = CreateTestSubject(quickFixesProvider.Object);
+
+            var result = await testSubject.Convert(
+                new[] { documentDiagnostics }.ToImmutableArray(),
+                fileName);
+
+            result.Should().NotBeNull();
+            result.Length.Should().Be(3);
+
+            var convertedLocation1 = result[0];
+            convertedLocation1.QuickFixes.Should().NotBeNull();
+            convertedLocation1.QuickFixes.Length.Should().Be(1);
+            convertedLocation1.QuickFixes[0].Should().Be(quickFix1);
+
+            var convertedLocation2 = result[1];
+            convertedLocation2.QuickFixes.Should().BeNull();
+
+            var convertedLocation3 = result[2];
+            convertedLocation3.QuickFixes.Should().NotBeNull();
+            convertedLocation3.QuickFixes.Length.Should().Be(1);
+            convertedLocation3.QuickFixes[0].Should().Be(quickFix2);
+        }
+
+        [TestMethod]
+        [DataRow(null)]
+        [DataRow("file1.cs")]
         public async Task Convert_HasDuplicatedDiagnostics_ReturnsDistinctLocations(string fileName)
         {
             var location1 = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
             var location2 = CreateLocationSpan("file2.cs", 1, 2, 3, 4);
-            var location3 = location1;
 
-            var documentDiagnostics = CreateDocumentDiagnostics(fileName, location1, location2, location3);
+            var diagnostic1 = CreateDiagnostic(location1);
+            var diagnostic2 = CreateDiagnostic(location2);
+            var diagnostic3 = diagnostic1;
+
+            var documentDiagnostics = CreateDocumentDiagnostics(fileName, diagnostic1, diagnostic2, diagnostic3);
 
             var testSubject = CreateTestSubject();
 
@@ -232,6 +288,11 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             return documentDiagnostics;
         }
 
-        private static DiagnosticsToCodeLocationsConverter CreateTestSubject() => new(Mock.Of<IDiagnosticQuickFixesProvider>());
+        private static DiagnosticsToCodeLocationsConverter CreateTestSubject(IDiagnosticQuickFixesProvider quickFixesProvider = null)
+        {
+            quickFixesProvider ??= Mock.Of<IDiagnosticQuickFixesProvider>();
+
+            return new DiagnosticsToCodeLocationsConverter(quickFixesProvider);
+        }
     }
 }
