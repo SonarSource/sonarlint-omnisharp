@@ -34,7 +34,7 @@ using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFixes
 {
     [TestClass]
-    public class DiagnosticCodeActionsProviderTests
+    public class SonarLintDiagnosticCodeActionsProviderTests
     {
         [TestMethod]
         public async Task GetCodeActions_NoCodeActionProviders_EmptyList()
@@ -49,10 +49,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
         [TestMethod]
         public async Task GetCodeActions_NoCodeFixProviders_EmptyList()
         {
-            var codeFixProviders = new CodeFixProvider[] { }.ToImmutableArray();
-
             var codeActionProvider = new Mock<ISonarAnalyzerCodeActionProvider>();
-            codeActionProvider.Setup(x => x.CodeFixProviders).Returns(codeFixProviders);
+            codeActionProvider
+                .Setup(x => x.CodeFixProviders)
+                .Returns(new CodeFixProvider[] { }.ToImmutableArray);
 
             var result = await GetCodeActions(codeActionProvider.Object);
 
@@ -63,36 +63,42 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
         public async Task GetCodeActions_NoApplicableCodeFixProviders_EmptyList()
         {
             var codeFixProvider = new Mock<CodeFixProvider>();
-            codeFixProvider.Setup(x => x.FixableDiagnosticIds).Returns(ImmutableArray<string>.Empty);
-
-            var codeFixProviders = new[] {codeFixProvider.Object}.ToImmutableArray();
+            codeFixProvider
+                .Setup(x => x.FixableDiagnosticIds)
+                .Returns(new[] {"some other diagnostic id"}.ToImmutableArray);
 
             var codeActionProvider = new Mock<ISonarAnalyzerCodeActionProvider>();
-            codeActionProvider.Setup(x => x.CodeFixProviders).Returns(codeFixProviders);
+            codeActionProvider
+                .Setup(x => x.CodeFixProviders)
+                .Returns(new[] {codeFixProvider.Object}.ToImmutableArray);
 
             var result = await GetCodeActions(codeActionProvider.Object);
 
             result.Should().BeEmpty();
+
+            codeFixProvider.Verify(x=> x.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()), Times.Never);
         }
 
         [TestMethod]
         public async Task GetCodeActions_HasApplicableCodeFixProvider_ActionsRegistered()
         {
+            var applicableDiagnosticId = WellKnownDescriptor.Id;
+
             var codeFixProvider = new Mock<CodeFixProvider>();
             codeFixProvider
                 .Setup(x => x.FixableDiagnosticIds)
-                .Returns(new[] {Descriptor.Id}.ToImmutableArray);
+                .Returns(new[] {applicableDiagnosticId}.ToImmutableArray);
 
             CodeFixContext passedContext = default;
             codeFixProvider
                 .Setup(x => x.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()))
-                .Callback((CodeFixContext content) => passedContext = content) 
+                .Callback((CodeFixContext context) => passedContext = context) 
                 .Returns(Task.CompletedTask);
 
-            var codeFixProviders = new[] { codeFixProvider.Object }.ToImmutableArray();
-
             var codeActionProvider = new Mock<ISonarAnalyzerCodeActionProvider>();
-            codeActionProvider.Setup(x => x.CodeFixProviders).Returns(codeFixProviders);
+            codeActionProvider
+                .Setup(x => x.CodeFixProviders)
+                .Returns(new[] {codeFixProvider.Object}.ToImmutableArray);
 
             var result = await GetCodeActions(codeActionProvider.Object);
 
@@ -109,7 +115,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
 
         private async Task<List<CodeAction>> GetCodeActions(params ISonarAnalyzerCodeActionProvider[] actionProviders)
         {
-            var testSubject = new DiagnosticCodeActionsProvider(actionProviders);
+            var testSubject = new SonarLintDiagnosticCodeActionsProvider(actionProviders);
 
             var diagnostic = CreateDiagnostic();
             var document = CreateDocument();
@@ -119,7 +125,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             return result;
         }
 
-        private Diagnostic CreateDiagnostic() => Diagnostic.Create(Descriptor, null);
+        private Diagnostic CreateDiagnostic() => Diagnostic.Create(WellKnownDescriptor, null);
 
         private Document CreateDocument()
         {
@@ -127,7 +133,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             return workspace.GetDocument("test.cs");
         }
 
-        public static readonly DiagnosticDescriptor Descriptor = new(
+        public static readonly DiagnosticDescriptor WellKnownDescriptor = new(
             "SonarLintTest",
             "Title",
             "Message",

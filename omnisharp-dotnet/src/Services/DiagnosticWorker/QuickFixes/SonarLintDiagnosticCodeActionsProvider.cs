@@ -25,11 +25,10 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
-using OmniSharp.Roslyn.CSharp.Services.Refactoring.V2;
 
 namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
 {
-    internal interface IDiagnosticCodeActionsProvider
+    internal interface ISonarLintDiagnosticCodeActionsProvider
     {
         /// <summary>
         /// Returns a list of available code fixes for a diagnostic in a given document
@@ -37,14 +36,14 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         Task<List<CodeAction>> GetCodeActions(Diagnostic diagnostic, Document document);
     }
 
-    [Export(typeof(IDiagnosticCodeActionsProvider))]
+    [Export(typeof(ISonarLintDiagnosticCodeActionsProvider))]
     [Shared]
-    internal class DiagnosticCodeActionsProvider : IDiagnosticCodeActionsProvider
+    internal class SonarLintDiagnosticCodeActionsProvider : ISonarLintDiagnosticCodeActionsProvider
     {
         private readonly CodeFixProvider[] codeFixProviders;
 
         [ImportingConstructor]
-        public DiagnosticCodeActionsProvider([ImportMany] IEnumerable<ISonarAnalyzerCodeActionProvider> codeActionProviders)
+        public SonarLintDiagnosticCodeActionsProvider([ImportMany] IEnumerable<ISonarAnalyzerCodeActionProvider> codeActionProviders)
         {
             codeFixProviders = codeActionProviders.SelectMany(x => x.CodeFixProviders).ToArray();
         }
