@@ -199,12 +199,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
                 DiagnosticSeverity.Info,
                 additionalLocations,
                 additionalLocationsMessages);
-            // diagnostic.SetupGet(x => x.Id).Returns(locationSpan.GetHashCode().ToString);
-            // diagnostic.SetupGet(x => x.Location).Returns(location.Object);
-            // diagnostic.SetupGet(x => x.Severity).Returns(DiagnosticSeverity.Info);
-            // diagnostic.SetupGet(x => x.Descriptor).Returns(descriptor);
-            // diagnostic.SetupGet(x => x.AdditionalLocations).Returns(additionalLocations);
-            // diagnostic.SetupGet(x => x.Properties).Returns(additionalLocationsMessages);
 
             return diagnostic;
         }
