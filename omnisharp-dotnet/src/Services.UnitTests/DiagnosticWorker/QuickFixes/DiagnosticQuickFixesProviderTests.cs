@@ -52,7 +52,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
         {
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmniSharpWorkspace();
-            var diagnosticCodeActionsProvider = new Mock<IDiagnosticCodeActionsProvider>();
+            var diagnosticCodeActionsProvider = new Mock<ISonarLintDiagnosticCodeActionsProvider>();
 
             var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object);
 
@@ -70,7 +70,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             var workspace = CreateOmnisharpWorkspaceWithDocument("test.cs", "content");
             var document = workspace.GetDocument("test.cs");
 
-            var diagnosticCodeActionsProvider = new Mock<IDiagnosticCodeActionsProvider>();
+            var diagnosticCodeActionsProvider = new Mock<ISonarLintDiagnosticCodeActionsProvider>();
             diagnosticCodeActionsProvider
                 .Setup(x => x.GetCodeActions(diagnostic, document))
                 .ReturnsAsync(new List<CodeAction>());
@@ -87,7 +87,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
 
         private DiagnosticQuickFixesProvider CreateTestSubject(
             OmniSharpWorkspace workspace = null,
-            IDiagnosticCodeActionsProvider diagnosticCodeActionsProvider = null
+            ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider = null
         )
         {
             workspace ??= CreateOmniSharpWorkspace();

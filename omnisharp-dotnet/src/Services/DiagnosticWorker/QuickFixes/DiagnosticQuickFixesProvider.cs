@@ -48,7 +48,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
     [Export(typeof(IDiagnosticQuickFixesProvider)), Shared]
     internal class DiagnosticQuickFixesProvider : BaseCodeActionService<IRequest, IAggregateResponse>, IDiagnosticQuickFixesProvider
     {
-        private readonly IDiagnosticCodeActionsProvider diagnosticCodeActionsProvider;
+        private readonly ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider;
         private readonly OmniSharpWorkspace workspace;
 
         [ImportingConstructor]
@@ -57,7 +57,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             [ImportMany] IEnumerable<ISonarAnalyzerCodeActionProvider> codeActionProviders,
             ILoggerFactory loggerFactory,
             OmniSharpOptions options,
-            IDiagnosticCodeActionsProvider diagnosticCodeActionsProvider)
+            ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider)
             : base(workspace,
                 codeActionProviders,
                 loggerFactory.CreateLogger<SonarLintCodeCheckService>(),
