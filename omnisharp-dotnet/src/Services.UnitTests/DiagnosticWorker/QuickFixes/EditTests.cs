@@ -18,20 +18,34 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using OmniSharp.Models.Diagnostics;
+using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 
-namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations
+namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFixes
 {
-    /// <summary>
-    /// Extends <see cref="DiagnosticLocation"/> and provides additional diagnostic locations.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="AdditionalLocations"/> and <see cref="QuickFixes"/> are excluded from <see cref="DiagnosticLocation.Equals"/>
-    /// </remarks>
-    internal class SonarLintDiagnosticLocation : DiagnosticLocation, ICodeLocation
+    [TestClass]
+    public class EditTests
     {
-        public ICodeLocation[] AdditionalLocations { get; set; }
-        public IQuickFix[] QuickFixes { get; set; }
+        [TestMethod]
+        [DataRow(null)]
+        [DataRow("")]
+        [DataRow("some new text")]
+        public void Ctor_ValidArgs_PopulatedCorrectly(string newText)
+        {
+            var testSubject = new Edit(
+                startLine: 1,
+                startColumn: 2,
+                endLine: 3,
+                endColumn: 4,
+                newText: newText
+            );
+
+            testSubject.StartLine.Should().Be(1);
+            testSubject.StartColumn.Should().Be(2);
+            testSubject.EndLine.Should().Be(3);
+            testSubject.EndColumn.Should().Be(4);
+            testSubject.NewText.Should().Be(newText);
+        }
     }
 }
