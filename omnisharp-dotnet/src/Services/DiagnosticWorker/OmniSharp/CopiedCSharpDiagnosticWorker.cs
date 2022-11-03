@@ -30,7 +30,7 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
     /// Changes:
     ///     1. Making <see cref="GetDiagnosticsForDocument"/> protected-virtual
     ///     2. Making needed members protected
-    ///     3. Adding quick fixes support in <see cref="ProcessNextItem"/>
+    ///     3. Passing empty quick fixes in <see cref="ProcessNextItem"/>
     /// </summary>
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class CopiedCSharpDiagnosticWorker: ICsDiagnosticWorker, IDisposable
@@ -39,17 +39,15 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
         protected readonly OmniSharpWorkspace _workspace;
         private readonly DiagnosticEventForwarder _forwarder;
         protected readonly OmniSharpOptions _options;
-        private readonly IDiagnosticQuickFixesProvider _diagnosticQuickFixesProvider;
         private readonly IObserver<string> _openDocuments;
         private readonly IDisposable _disposable;
 
-        public CopiedCSharpDiagnosticWorker(OmniSharpWorkspace workspace, DiagnosticEventForwarder forwarder, ILoggerFactory loggerFactory, OmniSharpOptions options, IDiagnosticQuickFixesProvider diagnosticQuickFixesProvider)
+        public CopiedCSharpDiagnosticWorker(OmniSharpWorkspace workspace, DiagnosticEventForwarder forwarder, ILoggerFactory loggerFactory, OmniSharpOptions options)
         {
             _workspace = workspace;
             _forwarder = forwarder;
             _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorker>();
             _options = options;
-            _diagnosticQuickFixesProvider = diagnosticQuickFixesProvider;
 
             var openDocumentsSubject = new Subject<string>();
             _openDocuments = openDocumentsSubject;
@@ -138,21 +136,12 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
             var documents = _workspace.GetDocuments(filePath);
             var semanticModels = await Task.WhenAll(documents.Select(doc => doc.GetSemanticModelAsync()));
 
-            var items = semanticModels
-                .SelectMany(sm => sm.GetDiagnostics());
+            var items = semanticModels.SelectMany(sm => sm.GetDiagnostics());
 
-            var codeLocations = new List<DiagnosticLocation>();
-
-            foreach (var diagnostic in items)
-            {
-                var quickFixes = await _diagnosticQuickFixesProvider.GetDiagnosticQuickFixes(diagnostic, filePath);
-                codeLocations.Add(diagnostic.ToDiagnosticLocation(quickFixes));
-            }
-
-            return new DiagnosticResult()
+            return new DiagnosticResult
             {
                 FileName = filePath,
-                QuickFixes = codeLocations.Distinct().ToArray()
+                QuickFixes = items.Select(x => x.ToDiagnosticLocation(Array.Empty<IQuickFix>())).Distinct().ToArray()
             };
         }
 

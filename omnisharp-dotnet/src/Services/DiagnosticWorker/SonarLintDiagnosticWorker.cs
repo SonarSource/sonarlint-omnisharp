@@ -33,7 +33,6 @@ using OmniSharp;
 using OmniSharp.Options;
 using OmniSharp.Roslyn;
 using OmniSharp.Roslyn.CSharp.Workers.Diagnostics;
-using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 
 namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
 {
@@ -51,9 +50,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker
             OmniSharpWorkspace workspace,
             ILoggerFactory loggerFactory,
             DiagnosticEventForwarder forwarder,
-            IOptionsMonitor<OmniSharpOptions> options,
-            IDiagnosticQuickFixesProvider quickFixesProvider)
-            : base(workspace, forwarder, loggerFactory, options.CurrentValue, quickFixesProvider)
+            IOptionsMonitor<OmniSharpOptions> options)
+            : base(workspace, forwarder, loggerFactory, options.CurrentValue)
         {
             this.sonarLintAnalysisConfigProvider = sonarLintAnalysisConfigProvider;
         }
