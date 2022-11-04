@@ -48,27 +48,32 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
-import org.sonarsource.sonarlint.core.client.api.common.ClientModuleFileEvent;
-import org.sonarsource.sonarlint.core.client.api.common.Language;
-import org.sonarsource.sonarlint.core.client.api.common.ModuleInfo;
-import org.sonarsource.sonarlint.core.client.api.common.RuleKey;
-import org.sonarsource.sonarlint.core.client.api.common.analysis.ClientInputFile;
+import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
+import org.sonarsource.sonarlint.core.analysis.api.ClientModuleFileEvent;
+import org.sonarsource.sonarlint.core.analysis.api.ClientModuleInfo;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.Issue;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisConfiguration;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneGlobalConfiguration;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintEngine;
+import org.sonarsource.sonarlint.core.commons.IssueSeverity;
+import org.sonarsource.sonarlint.core.commons.Language;
+import org.sonarsource.sonarlint.core.commons.RuleKey;
 import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.sonarsource.sonarlint.core.commons.IssueSeverity.BLOCKER;
+import static org.sonarsource.sonarlint.core.commons.IssueSeverity.CRITICAL;
+import static org.sonarsource.sonarlint.core.commons.IssueSeverity.INFO;
+import static org.sonarsource.sonarlint.core.commons.IssueSeverity.MAJOR;
 
 class OmnisharpIntegrationTests {
 
   private static final String SOLUTION1_MODULE_KEY = "solution1";
-  private static final ModuleInfo MODULE_INFO_1 = new ModuleInfo(SOLUTION1_MODULE_KEY, null);
+  private static final ClientModuleInfo MODULE_INFO_1 = new ClientModuleInfo(SOLUTION1_MODULE_KEY, null);
   private static final String SOLUTION2_MODULE_KEY = "solution2";
-  private static final ModuleInfo MODULE_INFO_2 = new ModuleInfo(SOLUTION2_MODULE_KEY, null);
+  private static final ClientModuleInfo MODULE_INFO_2 = new ClientModuleInfo(SOLUTION2_MODULE_KEY, null);
   private static StandaloneSonarLintEngine sonarlintEngine;
 
   @BeforeAll
@@ -84,7 +89,7 @@ class OmnisharpIntegrationTests {
     String omnisharpWinPath = new File("target/omnisharp-win").getAbsolutePath();
     String omnisharpNet6Path = new File("target/omnisharp-net6").getAbsolutePath();
     StandaloneGlobalConfiguration config = StandaloneGlobalConfiguration.builder()
-      .addPlugin(pluginJar.toURI().toURL())
+      .addPlugin(pluginJar.toPath())
       .addEnabledLanguage(Language.CS)
       .setSonarLintUserHome(slHome)
       .setLogOutput((msg, level) -> System.out.println(msg))
@@ -141,14 +146,14 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
   }
 
   @Test
@@ -167,13 +172,50 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), INFO));
+  }
+
+  @Test
+  void provideQuickFixes(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
+    ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        private void Foo(string a)\n"
+        + "        {\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .contains(
+        tuple("csharpsquid:S1172", "Remove this unused method parameter 'a'.", 7, 25, 7, 33, inputFile.getPath(), MAJOR));
+
+    assertThat(issues.stream().filter(i -> i.getRuleKey().equals("csharpsquid:S1172")).findFirst().get().quickFixes()).hasSize(1);
   }
 
   @Test
@@ -198,13 +240,13 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "false")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFileFramework.getPath(), "INFO"));
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFileFramework.getPath(), INFO));
   }
 
   @Test
@@ -230,13 +272,13 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFileCore.getPath(), "INFO"));
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFileCore.getPath(), INFO));
   }
 
   @Test
@@ -255,13 +297,13 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "false")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNetFramework4_8.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), INFO));
   }
 
   @Test
@@ -302,7 +344,7 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
     List<String> logs = new ArrayList<>();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), (m, l) -> logs.add(m), null);
+    sonarlintEngine.analyze(analysisConfiguration1, issues::add, (m, l) -> logs.add(m), null);
 
     String logLoadOnDemand = "Omnisharp: [INFORMATION] Skip loading projects listed in solution file or under target directory because MsBuild:LoadProjectsOnDemand is true.";
     if (loadOnDemand) {
@@ -315,8 +357,8 @@ class OmnisharpIntegrationTests {
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
 
     ClientInputFile newInputFile = prepareInputFile(baseDir, "ConsoleApp1/Program2.cs",
       "using System;\n"
@@ -348,14 +390,14 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.loadProjectsOnDemand", String.valueOf(loadOnDemand))
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration2, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, newInputFile.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 10, 15, 10, 19, newInputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, newInputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 10, 15, 10, 19, newInputFile.getPath(), INFO));
   }
 
   @Test
@@ -394,13 +436,13 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration1, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 19, 13, 19, 17, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 19, 13, 19, 17, inputFile.getPath(), INFO));
 
     issues.clear();
 
@@ -413,14 +455,14 @@ class OmnisharpIntegrationTests {
       .addExcludedRules(RuleKey.parse("csharpsquid:S1135"))
       .addIncludedRules(RuleKey.parse("csharpsquid:S126"))
       .build();
-    sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration2, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
         tuple("csharpsquid:S126", "Add the missing 'else' clause with either the appropriate action or a suitable comment as to why no action is taken.", 13, 10, 13, 17,
-          inputFile.getPath(), "CRITICAL"));
+          inputFile.getPath(), CRITICAL));
   }
 
   @Test
@@ -467,13 +509,13 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration1, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .contains(
-        tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed.", 7, 20, 7, 24, inputFile.getPath(), "CRITICAL"));
+        tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed.", 7, 20, 7, 24, inputFile.getPath(), CRITICAL));
 
     issues.clear();
 
@@ -485,13 +527,13 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .addRuleParameter(RuleKey.parse("csharpsquid:S3776"), "threshold", "20")
       .build();
-    sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration2, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .contains(
-        tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 20 allowed.", 7, 20, 7, 24, inputFile.getPath(), "CRITICAL"));
+        tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 20 allowed.", 7, 20, 7, 24, inputFile.getPath(), CRITICAL));
   }
 
   @Test
@@ -541,14 +583,14 @@ class OmnisharpIntegrationTests {
       .setBaseDir(solution1BaseDir)
       .addInputFile(inputFile1)
       .build();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issuesConsole1.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration1, issuesConsole1::add, null, null);
 
     assertThat(issuesConsole1)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile1.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile1.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), INFO));
 
     final List<Issue> issuesConsole2 = new ArrayList<>();
     StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
@@ -558,14 +600,14 @@ class OmnisharpIntegrationTests {
       .setBaseDir(solution2BaseDir)
       .addInputFile(inputFile2)
       .build();
-    sonarlintEngine.analyze(analysisConfiguration2, i -> issuesConsole2.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration2, issuesConsole2::add, null, null);
 
     assertThat(issuesConsole2)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile2.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile2.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), INFO));
   }
 
   @Test
@@ -617,14 +659,14 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", solution1Sln.toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issuesConsole1.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration1, issuesConsole1::add, null, null);
 
     assertThat(issuesConsole1)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile1.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile1.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), INFO));
     // No issues in ConsoleApp2/Program2.cs because it is not part of Solution
 
     final List<Issue> issuesConsole2 = new ArrayList<>();
@@ -637,14 +679,14 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", solution2Sln.toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration2, i -> issuesConsole2.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration2, issuesConsole2::add, null, null);
 
     assertThat(issuesConsole2)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile2.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile2.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), INFO));
     // No issues in ConsoleApp1/Program1.cs because it is not part of Solution
   }
 
@@ -676,7 +718,7 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration1, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration1, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine,
@@ -684,8 +726,8 @@ class OmnisharpIntegrationTests {
         Issue::getSeverity)
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17,
-          inputFile.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+          inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
 
     // Emulate project creation
     FileUtils.copyDirectory(new File("src/test/projects/ConsoleApp1WithTestProject"), baseDir.toFile());
@@ -735,16 +777,16 @@ class OmnisharpIntegrationTests {
       .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
       .build();
-    sonarlintEngine.analyze(analysisConfiguration2, i -> issues.add(i), null, null);
+    sonarlintEngine.analyze(analysisConfiguration2, issues::add, null, null);
 
     assertThat(issues)
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
         tuple("csharpsquid:S1186", "Add a nested comment explaining why this method is empty, throw a 'NotSupportedException' or complete the implementation.", 8, 20, 8, 25,
-          testInputFile.getPath(), "CRITICAL"),
-        tuple("csharpsquid:S3433", "Make this test method 'public'.", 13, 13, 13, 18, testInputFile.getPath(), "BLOCKER"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 15, 15, 15, 19, testInputFile.getPath(), "INFO"));
+          testInputFile.getPath(), CRITICAL),
+        tuple("csharpsquid:S3433", "Make this test method 'public'.", 13, 13, 13, 18, testInputFile.getPath(), BLOCKER),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 15, 15, 15, 19, testInputFile.getPath(), INFO));
   }
 
   @Test
@@ -779,7 +821,7 @@ class OmnisharpIntegrationTests {
     for (int i = 0; i < 5; i++) {
       ArrayList<Issue> issues = new ArrayList<>();
       issuesPerThread.add(issues);
-      threadPool.execute(() -> sonarlintEngine.analyze(analysisConfiguration, issue -> issues.add(issue), null, null));
+      threadPool.execute(() -> sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null));
     }
     threadPool.shutdown();
     assertThat(threadPool.awaitTermination(1, TimeUnit.MINUTES)).isTrue();
@@ -790,8 +832,8 @@ class OmnisharpIntegrationTests {
           issue -> issue.getInputFile().getPath(),
           Issue::getSeverity)
         .containsOnly(
-          tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
-          tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+          tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
+          tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
     }
   }
 
@@ -826,7 +868,7 @@ class OmnisharpIntegrationTests {
     Thread thread1 = new Thread("Analysis 1") {
       @Override
       public void run() {
-        sonarlintEngine.analyze(analysisConfiguration, issue -> issuesThread1.add(issue), null, null);
+        sonarlintEngine.analyze(analysisConfiguration, issuesThread1::add, null, null);
       }
     };
     thread1.start();
@@ -839,8 +881,8 @@ class OmnisharpIntegrationTests {
         issue -> issue.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
 
     // At some point we had a bug that only appeared when waiting enough after the first thread died (unable to write to stdin, "read end
     // dead"
@@ -850,7 +892,7 @@ class OmnisharpIntegrationTests {
     Thread thread2 = new Thread("Analysis 2") {
       @Override
       public void run() {
-        sonarlintEngine.analyze(analysisConfiguration, issue -> issuesThread2.add(issue), null, null);
+        sonarlintEngine.analyze(analysisConfiguration, issuesThread2::add, null, null);
       }
     };
     thread2.start();
@@ -861,8 +903,8 @@ class OmnisharpIntegrationTests {
         issue -> issue.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), "MAJOR"),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), "INFO"));
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
 
   }
 

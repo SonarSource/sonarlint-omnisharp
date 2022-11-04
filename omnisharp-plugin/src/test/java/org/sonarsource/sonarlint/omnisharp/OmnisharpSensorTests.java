@@ -43,7 +43,10 @@ import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
 import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
 import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
+import org.sonarsource.sonarlint.omnisharp.protocol.Fix;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.QuickFix;
+import org.sonarsource.sonarlint.omnisharp.protocol.QuickFixEdit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -58,13 +61,36 @@ import static org.mockito.Mockito.when;
 
 class OmnisharpSensorTests {
 
-  @RegisterExtension
-  LogTesterJUnit5 logTester = new LogTesterJUnit5();
-
   private final OmnisharpServerController mockServer = mock(OmnisharpServerController.class);
   private final OmnisharpEndpoints mockProtocol = mock(OmnisharpEndpoints.class);
+  @RegisterExtension
+  LogTesterJUnit5 logTester = new LogTesterJUnit5();
   private OmnisharpSensor underTest;
   private Path baseDir;
+
+  private static QuickFix mockQuickFix(String message, Fix... fixes) {
+    QuickFix qf = mock(QuickFix.class);
+    when(qf.getMessage()).thenReturn(message);
+    when(qf.getFixes()).thenReturn(fixes);
+    return qf;
+  }
+
+  private static Fix mockFix(Path filePath, QuickFixEdit... edits) {
+    Fix fix = mock(Fix.class);
+    when(fix.getFilename()).thenReturn(filePath.toString());
+    when(fix.getEdits()).thenReturn(edits);
+    return fix;
+  }
+
+  private static QuickFixEdit mockEdit(int startLine, int startColumn, int endLine, int endColumn, String newText) {
+    QuickFixEdit edit = mock(QuickFixEdit.class);
+    when(edit.getStartLine()).thenReturn(startLine);
+    when(edit.getStartColumn()).thenReturn(startColumn);
+    when(edit.getEndLine()).thenReturn(endLine);
+    when(edit.getEndColumn()).thenReturn(endColumn);
+    when(edit.getNewText()).thenReturn(newText);
+    return edit;
+  }
 
   @BeforeEach
   void prepare(@TempDir Path tmp) throws Exception {
@@ -302,10 +328,10 @@ class OmnisharpSensorTests {
     issueConsummer.accept(diag);
 
     assertThat(sensorContext.allIssues()).extracting(Issue::ruleKey, i -> i.primaryLocation().inputComponent(), i -> i.primaryLocation().message(),
-      i -> i.primaryLocation().textRange().start().line(),
-      i -> i.primaryLocation().textRange().start().lineOffset(),
-      i -> i.primaryLocation().textRange().end().line(),
-      i -> i.primaryLocation().textRange().end().lineOffset())
+        i -> i.primaryLocation().textRange().start().line(),
+        i -> i.primaryLocation().textRange().start().lineOffset(),
+        i -> i.primaryLocation().textRange().end().line(),
+        i -> i.primaryLocation().textRange().end().lineOffset())
       .containsOnly(tuple(ruleKey, file, "Don't do this", 1, 0, 1, 4));
   }
 
@@ -412,26 +438,81 @@ class OmnisharpSensorTests {
     when(secondaryOnAnotherFile.getEndColumn()).thenReturn(10);
     when(secondaryOnAnotherFile.getText()).thenReturn("Another file");
 
-    when(diag.getAdditionalLocations()).thenReturn(new DiagnosticLocation[] {secondary1, secondary2, secondaryOnAnotherFile});
+    when(diag.getAdditionalLocations()).thenReturn(new DiagnosticLocation[]{secondary1, secondary2, secondaryOnAnotherFile});
 
     issueConsummer.accept(diag);
-
-    assertThat(sensorContext.allIssues()).extracting(Issue::ruleKey, i -> i.primaryLocation().inputComponent(), i -> i.primaryLocation().message(),
-      i -> i.primaryLocation().textRange().start().line(),
-      i -> i.primaryLocation().textRange().start().lineOffset(),
-      i -> i.primaryLocation().textRange().end().line(),
-      i -> i.primaryLocation().textRange().end().lineOffset())
-      .containsOnly(tuple(ruleKey, file, "Don't do this", 1, 0, 1, 4));
 
     Issue issue = sensorContext.allIssues().iterator().next();
     assertThat(issue.flows()).hasSize(2);
     assertThat(issue.flows()).allMatch(f -> f.locations().size() == 1);
     assertThat(issue.flows().get(0).locations()).extracting(l -> l.inputComponent(), l -> l.message(),
-      l -> l.textRange().start().line(),
-      l -> l.textRange().start().lineOffset(),
-      l -> l.textRange().end().line(),
-      l -> l.textRange().end().lineOffset())
+        l -> l.textRange().start().line(),
+        l -> l.textRange().start().lineOffset(),
+        l -> l.textRange().end().line(),
+        l -> l.textRange().end().lineOffset())
       .containsOnly(tuple(file, "Secondary 1", 2, 2, 2, 4));
+  }
+
+  @Test
+  void processQuickFixes() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+
+    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    String content = "Console.WriteLine(\"Hello \n Woooooooooooooooooooooooooooorld!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+    Path anotherFilePath = baseDir.resolve("Bar.cs");
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<Diagnostic> issueConsummer = captor.getValue();
+
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
+
+
+    QuickFix qfWithOneFixAndOneEditSameFile = mockQuickFix("Quick Fix With One Edit Same File",
+      mockFix(filePath,
+        mockEdit(1, 2, 3, 4, "")));
+
+    QuickFix qfWithTwoFixesAndTwoEditsSameFile = mockQuickFix("Quick Fix With Multiple Edits",
+      mockFix(filePath,
+        mockEdit(1, 2, 3, 4, ""),
+        mockEdit(5, 6, 7, 8, "another")),
+      mockFix(filePath,
+        mockEdit(11, 12, 13, 14, ""),
+        mockEdit(15, 16, 17, 18, "another")));
+
+    QuickFix qfDifferentFile = mockQuickFix("Quick Fix Different File",
+      mockFix(anotherFilePath,
+        mockEdit(1, 2, 3, 4, "")));
+
+    when(diag.getQuickFixes()).thenReturn(new QuickFix[]{qfWithOneFixAndOneEditSameFile, qfWithTwoFixesAndTwoEditsSameFile, qfDifferentFile});
+
+    issueConsummer.accept(diag);
+
+    Issue issue = sensorContext.allIssues().iterator().next();
+    /*assertThat(issue.getQuickFixes).hasSize(3);*/
   }
 
 }
