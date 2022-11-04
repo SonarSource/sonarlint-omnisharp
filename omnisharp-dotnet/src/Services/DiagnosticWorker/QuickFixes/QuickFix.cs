@@ -25,24 +25,24 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
 {
     internal class QuickFix : IQuickFix
     {
-        public QuickFix(string message, IReadOnlyList<IFix> fixes)
+        public QuickFix(string message, IList<IFix> fixes)
         {
             if (fixes == null || fixes.Count == 0)
             {
                 throw new ArgumentNullException(nameof(fixes), "A quick fix should have at least one fix.");
             }
-            
+
             Message = message;
             Fixes = fixes;
         }
 
         public string Message { get; }
-        public IReadOnlyList<IFix> Fixes { get; }
+        public IList<IFix> Fixes { get; }
     }
 
     internal class Fix : IFix
     {
-        public Fix(string fileName, IReadOnlyList<IEdit> edits)
+        public Fix(string fileName, IList<IEdit> edits)
         {
             if (edits == null || edits.Count == 0)
             {
@@ -52,9 +52,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             FileName = fileName;
             Edits = edits;
         }
-        
+
         public string FileName { get; }
-        public IReadOnlyList<IEdit> Edits { get; }
+        public IList<IEdit> Edits { get; }
     }
 
     internal class Edit : IEdit
@@ -67,7 +67,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             EndColumn = endColumn;
             NewText = newText;
         }
-        
+
         public int StartLine { get; }
         public int StartColumn { get; }
         public int EndLine { get; }
