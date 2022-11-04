@@ -25,13 +25,13 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
     public interface IQuickFix
     {
         string Message { get; }
-        IList<IFix> Fixes { get; }
+        IReadOnlyList<IFix> Fixes { get; }
     }
 
     public interface IFix
     {
         string FileName { get; }
-        IList<IEdit> Edits { get; }
+        IReadOnlyList<IEdit> Edits { get; }
     }
 
     public interface IEdit

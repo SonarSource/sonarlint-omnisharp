@@ -226,15 +226,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             params LinePositionSpanTextChange[] changes)
         {
             var fileResponse = new ModifiedFileResponse("test.cs");
-            var textChange = new LinePositionSpanTextChange
-            {
-                NewText = "New text",
-                StartColumn = 1,
-                EndColumn = 2,
-                StartLine = 3,
-                EndLine = 4
-            };
-
             fileResponse.Changes = changes;
             return fileResponse;
         }
