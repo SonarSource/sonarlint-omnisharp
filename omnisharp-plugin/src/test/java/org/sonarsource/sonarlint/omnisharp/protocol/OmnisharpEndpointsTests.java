@@ -336,7 +336,7 @@ class OmnisharpEndpointsTests {
     assertThat(issues.get(0).getQuickFixes()[0].getMessage()).isEqualTo("Remove unused parameter");
     assertThat(issues.get(0).getQuickFixes()[0].getFixes()).hasSize(1);
 
-    assertThat(issues.get(0).getQuickFixes()[0].getFixes()[0].getFilename()).isEqualTo(toJsonAbsolutePath(f));
+    assertThat(issues.get(0).getQuickFixes()[0].getFixes()[0].getFilename()).isEqualTo(f.getAbsolutePath());
 
     assertThat(issues.get(0).getQuickFixes()[0].getFixes()[0].getEdits())
       .extracting(QuickFixEdit::getStartLine, QuickFixEdit::getStartColumn, QuickFixEdit::getEndLine, QuickFixEdit::getEndColumn, QuickFixEdit::getNewText)
