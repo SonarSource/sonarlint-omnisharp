@@ -21,7 +21,6 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import org.sonar.api.Plugin;
 import org.sonar.api.SonarProduct;
-import org.sonarsource.dotnet.shared.plugins.AbstractPropertyDefinitions;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 
@@ -34,7 +33,8 @@ public class OmnisharpPlugin implements Plugin {
   static final String REPOSITORY_NAME = "SonarAnalyzer";
   static final String PLUGIN_KEY = "csharp";
 
-  static final String FILE_SUFFIXES_KEY = AbstractPropertyDefinitions.getFileSuffixProperty(LANGUAGE_KEY);
+  private static final String PROP_PREFIX = "sonar.";
+  static final String FILE_SUFFIXES_KEY = PROP_PREFIX + LANGUAGE_KEY + ".file.suffixes";
   static final String FILE_SUFFIXES_DEFVALUE = ".cs";
 
   @Override
