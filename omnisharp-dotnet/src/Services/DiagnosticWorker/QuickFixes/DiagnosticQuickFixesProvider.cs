@@ -48,13 +48,14 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
     [Export(typeof(IDiagnosticQuickFixesProvider)), Shared]
     internal class DiagnosticQuickFixesProvider : BaseCodeActionService<IRequest, IAggregateResponse>, IDiagnosticQuickFixesProvider
     {
+        //To be able to mock the behaviour of the "GetFileChangesAsync" method in the base class we needed to add this delegate and pass mock method in tests
         internal delegate Task<(Solution Solution, IEnumerable<FileOperationResponse> FileChanges)>
-            GetFileChangesAsyncFnc(Solution newSolution, Solution oldSolution, string directory, bool wantTextChanges,
+            GetFileChangesAsyncFunc(Solution newSolution, Solution oldSolution, string directory, bool wantTextChanges,
                 bool wantsAllCodeActionOperations);
 
         private readonly ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider;
         private readonly OmniSharpWorkspace workspace;
-        private readonly GetFileChangesAsyncFnc getFileChangesAsyncFnc;
+        private readonly GetFileChangesAsyncFunc getFileChangesAsyncFunc;
 
         [ImportingConstructor]
         public DiagnosticQuickFixesProvider(
@@ -79,7 +80,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             ILoggerFactory loggerFactory,
             OmniSharpOptions options,
             ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider,
-            GetFileChangesAsyncFnc getFileChangesAsyncFnc)
+            GetFileChangesAsyncFunc getFileChangesAsyncFunc)
             : base(workspace,
                 codeActionProviders,
                 loggerFactory.CreateLogger<SonarLintCodeCheckService>(),
@@ -89,7 +90,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         {
             this.workspace = workspace;
             this.diagnosticCodeActionsProvider = diagnosticCodeActionsProvider;
-            this.getFileChangesAsyncFnc = getFileChangesAsyncFnc ?? GetFileChangesAsyncFncImpl();
+            this.getFileChangesAsyncFunc = getFileChangesAsyncFunc ?? GetFileChangesAsync;
         }
 
         /// <summary>
@@ -128,7 +129,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
                 foreach (var operation in operations.OfType<ApplyChangesOperation>())
                 {
                     var solutionAfterOperation = operation.ChangedSolution;
-                    var fileChangesResult = await getFileChangesAsyncFnc(solutionAfterOperation, solution, directory, true, false);
+                    var fileChangesResult = await getFileChangesAsyncFunc(solutionAfterOperation, solution, directory, wantTextChanges: true, wantsAllCodeActionOperations: false);
 
                     Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
 
@@ -156,14 +157,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
                     startColumn: textChange.StartColumn,
                     endColumn: textChange.EndColumn);
             }
-        }
-        private GetFileChangesAsyncFnc GetFileChangesAsyncFncImpl()
-        {
-            return async (newSolution, oldSolution, directory, wantTextChanges, wantsAllCodeActionOperations) =>
-            {
-                return await GetFileChangesAsync(newSolution, oldSolution, directory, wantTextChanges,
-                    wantsAllCodeActionOperations);
-            };
         }
     }
 }
