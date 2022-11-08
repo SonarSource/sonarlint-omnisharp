@@ -215,7 +215,17 @@ class OmnisharpIntegrationTests {
       .contains(
         tuple("csharpsquid:S1172", "Remove this unused method parameter 'a'.", 7, 25, 7, 33, inputFile.getPath(), MAJOR));
 
-    assertThat(issues.stream().filter(i -> i.getRuleKey().equals("csharpsquid:S1172")).findFirst().get().quickFixes()).hasSize(1);
+    var issue = issues.stream().filter(i -> i.getRuleKey().equals("csharpsquid:S1172")).findFirst().get();
+    assertThat(issue.quickFixes()).hasSize(1);
+    assertThat(issue.quickFixes().get(0).message()).isEqualTo("Remove unused parameter");
+    assertThat(issue.quickFixes().get(0).inputFileEdits()).hasSize(1);
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).target().uri()).isEqualTo(inputFile.uri());
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).textEdits()).hasSize(1);
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).textEdits().get(0).range().getStartLine()).isEqualTo(7);
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).textEdits().get(0).range().getStartLineOffset()).isEqualTo(25);
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).textEdits().get(0).range().getEndLine()).isEqualTo(7);
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).textEdits().get(0).range().getEndLineOffset()).isEqualTo(33);
+    assertThat(issue.quickFixes().get(0).inputFileEdits().get(0).textEdits().get(0).newText()).isEmpty();
   }
 
   @Test
