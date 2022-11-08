@@ -126,10 +126,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes[0].FileName.Should().Be(filePath);
             result[0].Fixes[0].Edits.Count.Should().Be(1);
             result[0].Fixes[0].Edits[0].NewText.Should().Be("New Text");
-            result[0].Fixes[0].Edits[0].StartColumn.Should().Be(1);
-            result[0].Fixes[0].Edits[0].EndColumn.Should().Be(2);
-            result[0].Fixes[0].Edits[0].StartLine.Should().Be(3);
-            result[0].Fixes[0].Edits[0].EndLine.Should().Be(4);
+            result[0].Fixes[0].Edits[0].StartColumn.Should().Be(2);
+            result[0].Fixes[0].Edits[0].EndColumn.Should().Be(3);
+            result[0].Fixes[0].Edits[0].StartLine.Should().Be(4);
+            result[0].Fixes[0].Edits[0].EndLine.Should().Be(5);
             mockFunction.Verify(x=> x(workspace.CurrentSolution, workspace.CurrentSolution, "C:\\Folder", true, false), Times.Once);
             mockFunction.VerifyNoOtherCalls();
         }
@@ -170,15 +170,15 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes[0].FileName.Should().Be(filePath);
             result[0].Fixes[0].Edits.Count.Should().Be(2);
             result[0].Fixes[0].Edits[0].NewText.Should().Be("New Text 1");
-            result[0].Fixes[0].Edits[0].StartColumn.Should().Be(1);
-            result[0].Fixes[0].Edits[0].EndColumn.Should().Be(2);
-            result[0].Fixes[0].Edits[0].StartLine.Should().Be(3);
-            result[0].Fixes[0].Edits[0].EndLine.Should().Be(4);
+            result[0].Fixes[0].Edits[0].StartColumn.Should().Be(2);
+            result[0].Fixes[0].Edits[0].EndColumn.Should().Be(3);
+            result[0].Fixes[0].Edits[0].StartLine.Should().Be(4);
+            result[0].Fixes[0].Edits[0].EndLine.Should().Be(5);
             result[0].Fixes[0].Edits[1].NewText.Should().Be("New Text 2");
-            result[0].Fixes[0].Edits[1].StartColumn.Should().Be(5);
-            result[0].Fixes[0].Edits[1].EndColumn.Should().Be(6);
-            result[0].Fixes[0].Edits[1].StartLine.Should().Be(7);
-            result[0].Fixes[0].Edits[1].EndLine.Should().Be(8);
+            result[0].Fixes[0].Edits[1].StartColumn.Should().Be(6);
+            result[0].Fixes[0].Edits[1].EndColumn.Should().Be(7);
+            result[0].Fixes[0].Edits[1].StartLine.Should().Be(8);
+            result[0].Fixes[0].Edits[1].EndLine.Should().Be(9);
             mockFunction.Verify(x => x(workspace.CurrentSolution, workspace.CurrentSolution, "C:\\Folder", true, false), Times.Once);
             mockFunction.VerifyNoOtherCalls();
         }
