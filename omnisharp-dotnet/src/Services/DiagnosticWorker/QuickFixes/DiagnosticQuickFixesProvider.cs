@@ -152,10 +152,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             Edit ToEdit(LinePositionSpanTextChange textChange)
             {
                 return new Edit(newText: textChange.NewText,
-                    startLine: textChange.StartLine,
-                    endLine: textChange.EndLine,
-                    startColumn: textChange.StartColumn,
-                    endColumn: textChange.EndColumn);
+                    startLine: textChange.StartLine + 1,
+                    endLine: textChange.EndLine + 1,
+                    startColumn: textChange.StartColumn + 1,
+                    endColumn: textChange.EndColumn + 1);
             }
         }
     }

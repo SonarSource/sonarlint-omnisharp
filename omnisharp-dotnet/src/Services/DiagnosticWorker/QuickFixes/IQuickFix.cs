@@ -47,12 +47,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         int EndLine { get; }
         
         /// <summary>
-        /// 0-based column
+        /// 1-based column
         /// </summary>
         int StartColumn { get; }
 
-        /// <summary>
-        /// 0-based column
+        /// <summary>   
+        /// 1-based column
         /// </summary>
         int EndColumn { get; }
         
