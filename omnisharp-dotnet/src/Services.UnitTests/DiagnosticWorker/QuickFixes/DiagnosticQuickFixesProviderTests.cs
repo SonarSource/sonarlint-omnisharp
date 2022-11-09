@@ -123,7 +123,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
         [TestMethod]
         public async Task GetDiagnosticQuickFixes_DiagnosticHasSingleCodeAction_ReturnsQuickFixes()
         {
-            string filePath = "C:\\Folder\\test.cs";
+            string filePath = "./test.cs";
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument(filePath, "content");
             var document = workspace.GetDocument(filePath);
@@ -156,14 +156,14 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes[0].Edits[0].EndColumn.Should().Be(3);
             result[0].Fixes[0].Edits[0].StartLine.Should().Be(4);
             result[0].Fixes[0].Edits[0].EndLine.Should().Be(5);
-            mockFunction.Verify(x=> x(workspace.CurrentSolution, workspace.CurrentSolution, "C:\\Folder", true, false), Times.Once);
+            mockFunction.Verify(x=> x(workspace.CurrentSolution, workspace.CurrentSolution, ".", true, false), Times.Once);
             mockFunction.VerifyNoOtherCalls();
         }
 
         [TestMethod]
         public async Task GetDiagnosticQuickFixes_DiagnosticHasSingleCodeActionWithMultipleEdits_ReturnsQuickFixes()
         {
-            string filePath = "C:\\Folder\\test.cs";
+            string filePath = "./test.cs";
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument(filePath, "content");
             var document = workspace.GetDocument(filePath);
@@ -202,14 +202,14 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes[0].Edits[1].EndColumn.Should().Be(7);
             result[0].Fixes[0].Edits[1].StartLine.Should().Be(8);
             result[0].Fixes[0].Edits[1].EndLine.Should().Be(9);
-            mockFunction.Verify(x => x(workspace.CurrentSolution, workspace.CurrentSolution, "C:\\Folder", true, false), Times.Once);
+            mockFunction.Verify(x => x(workspace.CurrentSolution, workspace.CurrentSolution, ".", true, false), Times.Once);
             mockFunction.VerifyNoOtherCalls();
         }
 
         [TestMethod]
         public async Task GetDiagnosticQuickFixes_DiagnosticHasMultipleCodeActions_ReturnsQuickFixes()
         {
-            string filePath = "C:\\Folder\\test.cs";
+            string filePath = "./test.cs";
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument(filePath, "content");
             var document = workspace.GetDocument(filePath);
@@ -250,7 +250,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes[0].Edits[0].EndColumn.Should().Be(12);
             result[0].Fixes[0].Edits[0].StartLine.Should().Be(13);
             result[0].Fixes[0].Edits[0].EndLine.Should().Be(14);
-            mockFunction.Verify(x => x(solution1, workspace.CurrentSolution, "C:\\Folder", true, false), Times.Once);
+            mockFunction.Verify(x => x(solution1, workspace.CurrentSolution, ".", true, false), Times.Once);
 
             result[1].Message.Should().Be("fix message 2");
             result[1].Fixes.Count.Should().Be(1);
@@ -261,7 +261,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[1].Fixes[0].Edits[0].EndColumn.Should().Be(22);
             result[1].Fixes[0].Edits[0].StartLine.Should().Be(23);
             result[1].Fixes[0].Edits[0].EndLine.Should().Be(24);
-            mockFunction.Verify(x => x(solution2, workspace.CurrentSolution, "C:\\Folder", true, false), Times.Once);
+            mockFunction.Verify(x => x(solution2, workspace.CurrentSolution, ".", true, false), Times.Once);
             
             mockFunction.VerifyNoOtherCalls();
         }
