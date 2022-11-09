@@ -121,17 +121,18 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             foreach (var action in codeFixActions)
             {
                 var fixes = new List<IFix>();
-                var solution = workspace.CurrentSolution;
                 var directory = Path.GetDirectoryName(filePath);
                 var operations = await action.GetOperationsAsync(CancellationToken.None);
-                var operation = operations.OfType<ApplyChangesOperation>().SingleOrDefault();
 
-                if (operations.Length > 1 || operation == null)
+                var applyChangesOperations = operations.OfType<ApplyChangesOperation>().ToList();
+                
+                Debug.Assert(applyChangesOperations.Count <= 1);
+
+                if (applyChangesOperations.Count == 0)
                 {
                     continue;
                 }
-                var solutionAfterOperation = operation.ChangedSolution;
-                var fileChangesResult = await getFileChangesAsyncFunc(solutionAfterOperation, solution, directory, true, false);
+                var fileChangesResult = await getFileChangesAsyncFunc(applyChangesOperations.Single().ChangedSolution, workspace.CurrentSolution, directory, true, false);
 
                 Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
 
