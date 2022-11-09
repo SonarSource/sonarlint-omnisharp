@@ -108,7 +108,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         /// </summary>
         public async Task<IQuickFix[]> GetDiagnosticQuickFixes(Diagnostic diagnostic, string filePath)
         {
-            // todo: should use GetDocuments?
             var document = workspace.GetDocument(filePath);
 
             if (document == null)
@@ -125,19 +124,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
                 var solution = workspace.CurrentSolution;
                 var directory = Path.GetDirectoryName(filePath);
                 var operations = await action.GetOperationsAsync(CancellationToken.None);
+                var operation = operations.OfType<ApplyChangesOperation>().SingleOrDefault();
 
-                foreach (var operation in operations.OfType<ApplyChangesOperation>())
+                if (operations.Length > 1 || operation == null)
                 {
-                    var solutionAfterOperation = operation.ChangedSolution;
-                    var fileChangesResult = await getFileChangesAsyncFunc(solutionAfterOperation, solution, directory, wantTextChanges: true, wantsAllCodeActionOperations: false);
-
-                    Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
-
-                    var fileFixes = fileChangesResult.FileChanges.Select(c => ToFix((ModifiedFileResponse)c));
-                    fixes.AddRange(fileFixes);
-
-                    solution = solutionAfterOperation;
+                    continue;
                 }
+                var solutionAfterOperation = operation.ChangedSolution;
+                var fileChangesResult = await getFileChangesAsyncFunc(solutionAfterOperation, solution, directory, true, false);
+
+                Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
+
+                var fileFixes = fileChangesResult.FileChanges.Select(c => ToFix((ModifiedFileResponse) c));
+                fixes.AddRange(fileFixes);
 
                 quickFixes.Add(new QuickFix(action.Title, fixes));
             }
