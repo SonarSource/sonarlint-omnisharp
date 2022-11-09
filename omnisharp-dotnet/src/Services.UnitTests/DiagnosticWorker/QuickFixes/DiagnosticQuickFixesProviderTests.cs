@@ -330,9 +330,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
                 .ReturnsAsync((solution,  fileResponses ));
             return mockFunction;
         }
-
-
-
+        
         private Solution CreateSolution()
         {
             //this is a hacky way to create solution. We don't care about its content but just that they're different instances. 
@@ -357,6 +355,5 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
                 return operations;
             }
         }
-
     }
 }
