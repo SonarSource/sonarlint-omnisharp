@@ -34,6 +34,7 @@ using OmniSharp.Models;
 using OmniSharp.Options;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
+using static System.String;
 using static SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes.DiagnosticQuickFixesProvider;
 using static SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.OmniSharpWorkspaceHelper;
 
@@ -68,7 +69,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result.Should().BeEmpty();
 
             diagnosticCodeActionsProvider.Invocations.Count.Should().Be(0);
-            mockFunction.VerifyNoOtherCalls();
+            mockFunction.Invocations.Count.Should().Be(0);
         }
 
         [TestMethod]
@@ -93,19 +94,42 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
 
             diagnosticCodeActionsProvider.Verify(x=> x.GetCodeActions(diagnostic, document), Times.Once);
             diagnosticCodeActionsProvider.VerifyNoOtherCalls();
-            mockFunction.VerifyNoOtherCalls();
+            mockFunction.Invocations.Count.Should().Be(0);
         }
 
         [TestMethod]
-        public async Task GetDiagnosticQuickFixes_CodeActionHasNoApplyChangesOperation_EmptyList()
+        public async Task GetDiagnosticQuickFixes_DiagnosticHasOneCodeAction_WithMultipleOperations_ArgumentOutOfRangeException()
         {
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument("test.cs", "content");
             var document = workspace.GetDocument("test.cs");
 
-            var openDocumentOperation = new OpenDocumentOperation(document.Id);
-            var codeAction = CreateCodeAction("open message", openDocumentOperation);
+            var operation1 = new OpenDocumentOperation(document.Id);
+            var operation2 = new ApplyChangesOperation(workspace.CurrentSolution);
+            var codeAction = CreateCodeAction("open message", operation1, operation2);
+            var diagnosticCodeActionsProvider = CreateDiagnosticCodeActionsProvider(diagnostic, document, codeAction);
+            var mockFunction = new Mock<GetFileChangesAsyncFunc>();
 
+            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, mockFunction.Object);
+
+            Func<Task> act = async () => await testSubject.GetDiagnosticQuickFixes(diagnostic, "test.cs");
+
+            await act.Should().ThrowExactlyAsync<ArgumentOutOfRangeException>();
+
+            diagnosticCodeActionsProvider.Verify(x => x.GetCodeActions(diagnostic, document), Times.Once);
+            diagnosticCodeActionsProvider.VerifyNoOtherCalls();
+            mockFunction.Invocations.Count.Should().Be(0);
+        }
+
+        [TestMethod]
+        public async Task GetDiagnosticQuickFixes_DiagnosticHasOneCodeAction_NoApplyChangesOperation_EmptyList()
+        {
+            var diagnostic = CreateDiagnostic();
+            var workspace = CreateOmnisharpWorkspaceWithDocument("test.cs", "content");
+            var document = workspace.GetDocument("test.cs");
+
+            var operation = new OpenDocumentOperation(document.Id);
+            var codeAction = CreateCodeAction("open message", operation);
             var diagnosticCodeActionsProvider = CreateDiagnosticCodeActionsProvider(diagnostic, document, codeAction);
             var mockFunction = new Mock<GetFileChangesAsyncFunc>();
 
@@ -117,32 +141,28 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
 
             diagnosticCodeActionsProvider.Verify(x => x.GetCodeActions(diagnostic, document), Times.Once);
             diagnosticCodeActionsProvider.VerifyNoOtherCalls();
-            mockFunction.VerifyNoOtherCalls();
+            mockFunction.Invocations.Count.Should().Be(0);
         }
 
         [TestMethod]
-        public async Task GetDiagnosticQuickFixes_DiagnosticHasSingleCodeAction_ReturnsQuickFixes()
+        public async Task GetDiagnosticQuickFixes_DiagnosticHasOneCodeAction_ApplyChangesOperation_ReturnsQuickFixes()
         {
-            string filePath = "./test.cs";
+            const string filePath = "./test.cs";
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument(filePath, "content");
             var document = workspace.GetDocument(filePath);
 
             var applyChangesOperation = new ApplyChangesOperation(workspace.CurrentSolution);
-            //To test the ignoring of other operations with a apply changes operation. It didn't make sense to create a duplicate test for just that.
-            var openDocumentOperation = new OpenDocumentOperation(document.Id);
-
-            var codeAction = CreateCodeAction("fix message", applyChangesOperation, openDocumentOperation);
-
+            var codeAction = CreateCodeAction("fix message", applyChangesOperation);
             var diagnosticCodeActionsProvider = CreateDiagnosticCodeActionsProvider(diagnostic, document,  codeAction);
 
             var textChange = CreateTextChange(newText: "New Text", startColumn: 1, endColumn: 2, startLine: 3, endLine: 4);
-
             var fileResponse = CreateFileResponse(filePath, textChange);
 
-            var mockFunction = MockFunctionWithSetup(CreateSolution(), fileResponse);
+            var getFileChangesFunc = new Mock<GetFileChangesAsyncFunc>();
+            SetupGetFileChangesFunc(getFileChangesFunc, workspace.CurrentSolution, fileResponse);
 
-            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, mockFunction.Object);
+            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, getFileChangesFunc.Object);
 
             var result = await testSubject.GetDiagnosticQuickFixes(diagnostic, filePath);
 
@@ -151,39 +171,37 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes.Count.Should().Be(1);
             result[0].Fixes[0].FileName.Should().Be(filePath);
             result[0].Fixes[0].Edits.Count.Should().Be(1);
+
             result[0].Fixes[0].Edits[0].NewText.Should().Be("New Text");
             result[0].Fixes[0].Edits[0].StartColumn.Should().Be(2);
             result[0].Fixes[0].Edits[0].EndColumn.Should().Be(3);
             result[0].Fixes[0].Edits[0].StartLine.Should().Be(4);
             result[0].Fixes[0].Edits[0].EndLine.Should().Be(5);
-            mockFunction.Verify(x=> x(workspace.CurrentSolution, workspace.CurrentSolution, ".", true, false), Times.Once);
-            mockFunction.VerifyNoOtherCalls();
+            
+            getFileChangesFunc.Verify(x=> x(workspace.CurrentSolution, workspace.CurrentSolution, ".", true, false), Times.Once);
+            getFileChangesFunc.VerifyNoOtherCalls();
         }
 
         [TestMethod]
-        public async Task GetDiagnosticQuickFixes_DiagnosticHasSingleCodeActionWithMultipleEdits_ReturnsQuickFixes()
+        public async Task GetDiagnosticQuickFixes_DiagnosticHasOneCodeAction_ApplyChangesOperationWithMultipleEdits_ReturnsQuickFixes()
         {
-            string filePath = "./test.cs";
+            const string filePath = "./test.cs";
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument(filePath, "content");
             var document = workspace.GetDocument(filePath);
 
             var operation = new ApplyChangesOperation(workspace.CurrentSolution);
-
             var codeAction = CreateCodeAction("fix message", operation);
-
-            var diagnosticCodeActionsProvider =
-                CreateDiagnosticCodeActionsProvider(diagnostic, document, codeAction);
+            var diagnosticCodeActionsProvider = CreateDiagnosticCodeActionsProvider(diagnostic, document, codeAction);
 
             var textChange1 = CreateTextChange(newText: "New Text 1", startColumn: 1, endColumn: 2, startLine: 3, endLine: 4);
             var textChange2 = CreateTextChange(newText: "New Text 2", startColumn: 5, endColumn: 6, startLine: 7, endLine: 8);
-
             var fileResponse = CreateFileResponse(filePath, textChange1, textChange2);
 
-            var mockFunction = MockFunctionWithSetup(CreateSolution(), fileResponse);
+            var getFileChangesFunc = new Mock<GetFileChangesAsyncFunc>();
+            SetupGetFileChangesFunc(getFileChangesFunc, workspace.CurrentSolution, fileResponse);
 
-
-            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, mockFunction.Object);
+            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, getFileChangesFunc.Object);
 
             var result = await testSubject.GetDiagnosticQuickFixes(diagnostic, filePath);
 
@@ -192,50 +210,51 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes.Count.Should().Be(1);
             result[0].Fixes[0].FileName.Should().Be(filePath);
             result[0].Fixes[0].Edits.Count.Should().Be(2);
+
             result[0].Fixes[0].Edits[0].NewText.Should().Be("New Text 1");
             result[0].Fixes[0].Edits[0].StartColumn.Should().Be(2);
             result[0].Fixes[0].Edits[0].EndColumn.Should().Be(3);
             result[0].Fixes[0].Edits[0].StartLine.Should().Be(4);
             result[0].Fixes[0].Edits[0].EndLine.Should().Be(5);
+
             result[0].Fixes[0].Edits[1].NewText.Should().Be("New Text 2");
             result[0].Fixes[0].Edits[1].StartColumn.Should().Be(6);
             result[0].Fixes[0].Edits[1].EndColumn.Should().Be(7);
             result[0].Fixes[0].Edits[1].StartLine.Should().Be(8);
             result[0].Fixes[0].Edits[1].EndLine.Should().Be(9);
-            mockFunction.Verify(x => x(workspace.CurrentSolution, workspace.CurrentSolution, ".", true, false), Times.Once);
-            mockFunction.VerifyNoOtherCalls();
+
+            getFileChangesFunc.Verify(x => x(workspace.CurrentSolution, workspace.CurrentSolution, ".", true, false), Times.Once);
+            getFileChangesFunc.VerifyNoOtherCalls();
         }
 
         [TestMethod]
         public async Task GetDiagnosticQuickFixes_DiagnosticHasMultipleCodeActions_ReturnsQuickFixes()
         {
-            string filePath = "./test.cs";
+            const string filePath = "./test.cs";
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument(filePath, "content");
             var document = workspace.GetDocument(filePath);
-            var mockFunction = new Mock<GetFileChangesAsyncFunc>();
+            var getFileChangesFunc = new Mock<GetFileChangesAsyncFunc>();
 
             var solution1 = CreateSolution();
             var applyChangesOperation1 = new ApplyChangesOperation(solution1);
             var codeAction1 = CreateCodeAction("fix message 1", applyChangesOperation1);
             var textChange1 = CreateTextChange(newText: "New Text 1", startColumn: 10, endColumn: 11, startLine: 12, endLine: 13);
             var fileResponse1 = CreateFileResponse(filePath, textChange1);
-            mockFunction
-                .Setup(x => x(solution1, It.IsAny<Solution>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
-                .ReturnsAsync((CreateSolution(), new []{fileResponse1}));
+
+            SetupGetFileChangesFunc(getFileChangesFunc, solution1, fileResponse1);
 
             var solution2 = CreateSolution();
             var applyChangesOperation2 = new ApplyChangesOperation(solution2);
             var codeAction2 = CreateCodeAction("fix message 2", applyChangesOperation2);
             var textChange2 = CreateTextChange(newText: "New Text 2", startColumn: 20, endColumn: 21, startLine: 22, endLine: 23);
             var fileResponse2 = CreateFileResponse(filePath, textChange2);
-            mockFunction
-                .Setup(x => x(solution2, It.IsAny<Solution>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
-                .ReturnsAsync((CreateSolution(), new[] { fileResponse2 }));
+
+            SetupGetFileChangesFunc(getFileChangesFunc, solution2, fileResponse2);
 
             var diagnosticCodeActionsProvider = CreateDiagnosticCodeActionsProvider(diagnostic, document, codeAction1, codeAction2);
 
-            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, mockFunction.Object);
+            var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, getFileChangesFunc.Object);
 
             var result = await testSubject.GetDiagnosticQuickFixes(diagnostic, filePath);
 
@@ -250,7 +269,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[0].Fixes[0].Edits[0].EndColumn.Should().Be(12);
             result[0].Fixes[0].Edits[0].StartLine.Should().Be(13);
             result[0].Fixes[0].Edits[0].EndLine.Should().Be(14);
-            mockFunction.Verify(x => x(solution1, workspace.CurrentSolution, ".", true, false), Times.Once);
+            getFileChangesFunc.Verify(x => x(solution1, workspace.CurrentSolution, ".", true, false), Times.Once);
 
             result[1].Message.Should().Be("fix message 2");
             result[1].Fixes.Count.Should().Be(1);
@@ -261,9 +280,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             result[1].Fixes[0].Edits[0].EndColumn.Should().Be(22);
             result[1].Fixes[0].Edits[0].StartLine.Should().Be(23);
             result[1].Fixes[0].Edits[0].EndLine.Should().Be(24);
-            mockFunction.Verify(x => x(solution2, workspace.CurrentSolution, ".", true, false), Times.Once);
-            
-            mockFunction.VerifyNoOtherCalls();
+            getFileChangesFunc.Verify(x => x(solution2, workspace.CurrentSolution, ".", true, false), Times.Once);
+
+            getFileChangesFunc.VerifyNoOtherCalls();
         }
 
         private DiagnosticQuickFixesProvider CreateTestSubject(
@@ -306,6 +325,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             var diagnosticCodeActionsProvider = new Mock<ISonarLintDiagnosticCodeActionsProvider>();
             diagnosticCodeActionsProvider.Setup(dap => dap.GetCodeActions(diagnostic, document))
                 .ReturnsAsync(codeActions.ToList());
+
             return diagnosticCodeActionsProvider;
         }
 
@@ -321,21 +341,22 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
             fileResponse.Changes = changes;
             return fileResponse;
         }
-        
-        private Mock<GetFileChangesAsyncFunc> MockFunctionWithSetup(Solution solution, params FileOperationResponse[] fileResponses)
+
+        private void SetupGetFileChangesFunc(Mock<GetFileChangesAsyncFunc> mockFunction,
+            Solution solution,
+            params FileOperationResponse[] fileResponses)
         {
-            var mockFunction = new Mock<GetFileChangesAsyncFunc>();
             mockFunction
-                .Setup(x => x(It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
-                .ReturnsAsync((solution,  fileResponses ));
-            return mockFunction;
+                .Setup(x => x(solution, It.IsAny<Solution>(), It.IsAny<string>(), It.IsAny<bool>(),
+                    It.IsAny<bool>()))
+                .ReturnsAsync((solution, fileResponses));
         }
         
         private Solution CreateSolution()
         {
             //this is a hacky way to create solution. We don't care about its content but just that they're different instances. 
             //We can't mock Solution due to not having a parameterless constructor.
-            return CreateOmnisharpWorkspaceWithDocument(String.Empty, string.Empty).CurrentSolution;
+            return CreateOmnisharpWorkspaceWithDocument(Empty, Empty).CurrentSolution;
         }
 
         private class TestableCodeAction : CodeAction

@@ -48,7 +48,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
     [Export(typeof(IDiagnosticQuickFixesProvider)), Shared]
     internal class DiagnosticQuickFixesProvider : BaseCodeActionService<IRequest, IAggregateResponse>, IDiagnosticQuickFixesProvider
     {
-        //To be able to mock the behaviour of the "GetFileChangesAsync" method in the base class we needed to add this delegate and pass mock method in tests
+        /// <summary>
+        /// To be able to mock the behaviour of the "GetFileChangesAsync" method in the base class we needed to add this delegate and pass mock method in tests
+        /// </summary>
+        /// <returns></returns>
         internal delegate Task<(Solution Solution, IEnumerable<FileOperationResponse> FileChanges)>
             GetFileChangesAsyncFunc(Solution newSolution, Solution oldSolution, string directory, bool wantTextChanges,
                 bool wantsAllCodeActionOperations);
@@ -100,7 +103,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         /// </summary>
         public override Task<IAggregateResponse> Handle(IRequest request)
         {
-            throw new System.NotSupportedException("This is a fake endpoint");
+            throw new NotSupportedException("This is a fake endpoint");
         }
 
         /// <summary>
@@ -124,15 +127,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
                 var directory = Path.GetDirectoryName(filePath);
                 var operations = await action.GetOperationsAsync(CancellationToken.None);
 
-                var applyChangesOperations = operations.OfType<ApplyChangesOperation>().ToList();
-                
-                Debug.Assert(applyChangesOperations.Count <= 1);
+                if (operations.Length > 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(operations), "Expecting quick fixes to contain one or zero operations.");
+                }
 
-                if (applyChangesOperations.Count == 0)
+                var applyChangesOperations = operations.OfType<ApplyChangesOperation>().SingleOrDefault();
+                
+                if (applyChangesOperations == null)
                 {
                     continue;
                 }
-                var fileChangesResult = await getFileChangesAsyncFunc(applyChangesOperations.Single().ChangedSolution, workspace.CurrentSolution, directory, true, false);
+
+                var fileChangesResult = await getFileChangesAsyncFunc(applyChangesOperations.ChangedSolution, workspace.CurrentSolution, directory, true, false);
 
                 Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
 
