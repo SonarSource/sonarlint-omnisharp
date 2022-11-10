@@ -57,14 +57,14 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
         public async Task GetDiagnosticQuickFixes_DocumentDoesNotExist_EmptyList()
         {
             var diagnostic = CreateDiagnostic();
-            var workspace = CreateOmniSharpWorkspace();
+            var workspace = CreateOmnisharpWorkspaceWithDocument("some file", "");
             var diagnosticCodeActionsProvider = new Mock<ISonarLintDiagnosticCodeActionsProvider>();
 
             var mockFunction = new Mock<GetFileChangesAsyncFunc>();
 
             var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, mockFunction.Object);
 
-            var result = await testSubject.GetDiagnosticQuickFixes(diagnostic, "some file");
+            var result = await testSubject.GetDiagnosticQuickFixes(diagnostic, "some other file");
 
             result.Should().BeEmpty();
 
