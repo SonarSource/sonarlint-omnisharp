@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
@@ -28,6 +29,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 using SonarLint.OmniSharp.DotNet.Services.Services;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
@@ -36,17 +38,19 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
     public class DiagnosticsToCodeLocationsConverterTests
     {
         [TestMethod]
-        public void Convert_NoDiagnostics_ReturnsEmptyArray()
+        public async Task Convert_NoDiagnostics_ReturnsEmptyArray()
         {
             var testSubject = CreateTestSubject();
 
-            var result = testSubject.Convert(ImmutableArray<DocumentDiagnostics>.Empty, null);
+            var result = await testSubject.Convert(ImmutableArray<DocumentDiagnostics>.Empty, null);
 
             result.Should().BeEmpty();
         }
 
         [TestMethod]
-        public void Convert_NoFileNameFilter_ConvertsAllDiagnostics()
+        [DataRow("")]
+        [DataRow(null)]
+        public async Task Convert_NoFileNameFilter_ConvertsAllDiagnostics(string fileNameFilter)
         {
             var location1 = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
             var location2 = CreateLocationSpan("file2.cs", 1, 2, 3, 4);
@@ -58,9 +62,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
             var testSubject = CreateTestSubject();
 
-            var result = testSubject.Convert(
+            var result = await testSubject.Convert(
                 new[] {documentDiagnostics1, documentDiagnostics2, documentDiagnostics3}.ToImmutableArray(),
-                fileNameFilter: null);
+                fileNameFilter);
 
             result.Should().NotBeNull();
             result.Length.Should().Be(3);
@@ -71,7 +75,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         }
 
         [TestMethod]
-        public void Convert_HasFileNameFilter_ConvertsDiagnosticsWithSpecifiedName()
+        public async Task Convert_HasFileNameFilter_ConvertsDiagnosticsWithSpecifiedName()
         {
             var location1 = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
             var location2 = CreateLocationSpan("file2.cs", 1, 2, 3, 4);
@@ -83,8 +87,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
             var testSubject = CreateTestSubject();
 
-            var result = testSubject.Convert(
-                new[] {documentDiagnostics1, documentDiagnostics2, documentDiagnostics3}.ToImmutableArray(),
+            var result = await testSubject.Convert(
+                new[] { documentDiagnostics1, documentDiagnostics2, documentDiagnostics3 }.ToImmutableArray(),
                 fileNameFilter: "file2.cs");
 
             result.Should().NotBeNull();
@@ -96,7 +100,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         [TestMethod]
         [DataRow(null)]
         [DataRow("file1.cs")]
-        public void Convert_HasAdditionalLocations_ReturnsWithAdditionalLocations(string fileName)
+        public async Task Convert_HasAdditionalLocations_ReturnsWithAdditionalLocations(string fileName)
         {
             var mainLocation = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
             var additionalLocation1 = CreateAdditionalLocation("file1.cs", CreateLinePositionSpan(1, 2, 3, 4));
@@ -113,8 +117,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
             var testSubject = CreateTestSubject();
 
-            var result = testSubject.Convert(
-                new[] {documentDiagnostics}.ToImmutableArray(),
+            var result = await testSubject.Convert(
+                new[] { documentDiagnostics }.ToImmutableArray(),
                 fileName);
 
             result.Should().NotBeNull();
@@ -136,18 +140,72 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         [TestMethod]
         [DataRow(null)]
         [DataRow("file1.cs")]
-        public void Convert_HasDuplicatedDiagnostics_ReturnsDistinctLocations(string fileName)
+        public async Task Convert_HasQuickFixes_ReturnsWithQuickFixes(string fileName)
+        {
+            var mainLocation = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
+
+            var diagnostic1 = CreateDiagnostic(mainLocation);
+            var diagnostic2 = CreateDiagnostic(mainLocation);
+            var diagnostic3 = CreateDiagnostic(mainLocation);
+
+            var quickFix1 = Mock.Of<IQuickFix>();
+            var quickFix2 = Mock.Of<IQuickFix>();
+
+            var quickFixesProvider = new Mock<IDiagnosticQuickFixesProvider>();
+            quickFixesProvider
+                .Setup(x => x.GetDiagnosticQuickFixes(diagnostic1, fileName))
+                .ReturnsAsync(new[] { quickFix1 });
+
+            quickFixesProvider
+                .Setup(x => x.GetDiagnosticQuickFixes(diagnostic2, fileName))
+                .ReturnsAsync((IQuickFix[]) null);
+
+            quickFixesProvider
+                .Setup(x => x.GetDiagnosticQuickFixes(diagnostic3, fileName))
+                .ReturnsAsync(new[] { quickFix2 });
+
+            var documentDiagnostics = CreateDocumentDiagnostics(fileName, diagnostic1, diagnostic2, diagnostic3);
+            var testSubject = CreateTestSubject(quickFixesProvider.Object);
+
+            var result = await testSubject.Convert(
+                new[] { documentDiagnostics }.ToImmutableArray(),
+                fileName);
+
+            result.Should().NotBeNull();
+            result.Length.Should().Be(3);
+
+            var convertedLocation1 = result[0];
+            convertedLocation1.QuickFixes.Should().NotBeNull();
+            convertedLocation1.QuickFixes.Length.Should().Be(1);
+            convertedLocation1.QuickFixes[0].Should().Be(quickFix1);
+
+            var convertedLocation2 = result[1];
+            convertedLocation2.QuickFixes.Should().BeNull();
+
+            var convertedLocation3 = result[2];
+            convertedLocation3.QuickFixes.Should().NotBeNull();
+            convertedLocation3.QuickFixes.Length.Should().Be(1);
+            convertedLocation3.QuickFixes[0].Should().Be(quickFix2);
+        }
+
+        [TestMethod]
+        [DataRow(null)]
+        [DataRow("file1.cs")]
+        public async Task Convert_HasDuplicatedDiagnostics_ReturnsDistinctLocations(string fileName)
         {
             var location1 = CreateLocationSpan("file1.cs", 1, 2, 3, 4);
             var location2 = CreateLocationSpan("file2.cs", 1, 2, 3, 4);
-            var location3 = location1;
 
-            var documentDiagnostics = CreateDocumentDiagnostics(fileName, location1, location2, location3);
+            var diagnostic1 = CreateDiagnostic(location1);
+            var diagnostic2 = CreateDiagnostic(location2);
+            var diagnostic3 = diagnostic1;
+
+            var documentDiagnostics = CreateDocumentDiagnostics(fileName, diagnostic1, diagnostic2, diagnostic3);
 
             var testSubject = CreateTestSubject();
 
-            var result = testSubject.Convert(
-                new[] {documentDiagnostics}.ToImmutableArray(),
+            var result = await testSubject.Convert(
+                new[] { documentDiagnostics }.ToImmutableArray(),
                 fileName);
 
             result.Should().NotBeNull();
@@ -177,8 +235,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
         private static Diagnostic CreateDiagnostic(FileLinePositionSpan locationSpan, params (Location, string)[] additionalLocationsWithMessages)
         {
-            var location = new Mock<Location>();
-            location.Setup(x => x.GetMappedLineSpan()).Returns(locationSpan);
+            var location = Location.Create(locationSpan.Path,
+                new TextSpan(1, 1),
+                locationSpan.Span);
 
             var descriptor = new DiagnosticDescriptor(
                 id: Guid.NewGuid().ToString(),
@@ -191,15 +250,13 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             var additionalLocations = additionalLocationsWithMessages.Select(x => x.Item1).ToArray();
             var additionalLocationsMessages = GetLocationMessages(additionalLocationsWithMessages);
 
-            var diagnostic = new Mock<Diagnostic>();
-            diagnostic.SetupGet(x => x.Id).Returns(locationSpan.GetHashCode().ToString);
-            diagnostic.SetupGet(x => x.Location).Returns(location.Object);
-            diagnostic.SetupGet(x => x.Severity).Returns(DiagnosticSeverity.Info);
-            diagnostic.SetupGet(x => x.Descriptor).Returns(descriptor);
-            diagnostic.SetupGet(x => x.AdditionalLocations).Returns(additionalLocations);
-            diagnostic.SetupGet(x => x.Properties).Returns(additionalLocationsMessages);
+            var diagnostic = Diagnostic.Create(descriptor,
+                location,
+                DiagnosticSeverity.Info,
+                additionalLocations,
+                additionalLocationsMessages);
 
-            return diagnostic.Object;
+            return diagnostic;
         }
 
         /// <summary>
@@ -208,7 +265,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         private static ImmutableDictionary<string, string> GetLocationMessages((Location, string)[] additionalLocationWithMessages)
         {
             var locationMessages = additionalLocationWithMessages
-                .Select((item, index) => new {Message = item.Item2, Index = index.ToString()})
+                .Select((item, index) => new { Message = item.Item2, Index = index.ToString() })
                 .ToDictionary(i => i.Index, i => i.Message)
                 .ToImmutableDictionary();
 
@@ -216,7 +273,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         }
 
         private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName, params FileLinePositionSpan[] locationSpans) =>
-            CreateDocumentDiagnostics(fileName, locationSpans.Select(x=> CreateDiagnostic(x)).ToArray());
+            CreateDocumentDiagnostics(fileName, locationSpans.Select(x => CreateDiagnostic(x)).ToArray());
 
         private static DocumentDiagnostics CreateDocumentDiagnostics(string fileName, params Diagnostic[] diagnostics)
         {
@@ -231,6 +288,11 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             return documentDiagnostics;
         }
 
-        private static DiagnosticsToCodeLocationsConverter CreateTestSubject() => new();
+        private static DiagnosticsToCodeLocationsConverter CreateTestSubject(IDiagnosticQuickFixesProvider quickFixesProvider = null)
+        {
+            quickFixesProvider ??= Mock.Of<IDiagnosticQuickFixesProvider>();
+
+            return new DiagnosticsToCodeLocationsConverter(quickFixesProvider);
+        }
     }
 }

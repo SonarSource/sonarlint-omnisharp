@@ -34,6 +34,7 @@ using OmniSharp.Models;
 using OmniSharp.Options;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
+using SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure;
 using static System.String;
 using static SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes.DiagnosticQuickFixesProvider;
 using static SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.OmniSharpWorkspaceHelper;
@@ -98,7 +99,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
         }
 
         [TestMethod]
-        public async Task GetDiagnosticQuickFixes_DiagnosticHasOneCodeAction_WithMultipleOperations_ArgumentOutOfRangeException()
+        public async Task GetDiagnosticQuickFixes_DiagnosticHasOneCodeAction_WithMultipleOperations_EmptyList()
         {
             var diagnostic = CreateDiagnostic();
             var workspace = CreateOmnisharpWorkspaceWithDocument("test.cs", "content");
@@ -112,9 +113,12 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker.QuickFi
 
             var testSubject = CreateTestSubject(workspace, diagnosticCodeActionsProvider.Object, mockFunction.Object);
 
-            Func<Task> act = async () => await testSubject.GetDiagnosticQuickFixes(diagnostic, "test.cs");
+            using (new AssertIgnoreScope())
+            {
+                var result = await testSubject.GetDiagnosticQuickFixes(diagnostic, "test.cs");
 
-            await act.Should().ThrowExactlyAsync<ArgumentOutOfRangeException>();
+                result.Should().BeEmpty();
+            }
 
             diagnosticCodeActionsProvider.Verify(x => x.GetCodeActions(diagnostic, document), Times.Once);
             diagnosticCodeActionsProvider.VerifyNoOtherCalls();
