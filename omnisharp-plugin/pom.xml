@@ -50,11 +50,6 @@
 
     <!-- compiled -->
     <dependency>
-      <groupId>org.sonarsource.dotnet</groupId>
-      <artifactId>sonar-dotnet-shared-library</artifactId>
-      <version>${analyzer.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.sonarsource.analyzer-commons</groupId>
       <artifactId>sonar-analyzer-commons</artifactId>
       <version>${sonar.analyzer.commons}</version>

@@ -50,17 +50,13 @@ import static org.mockito.Mockito.when;
 
 class OmnisharpEndpointsTests {
 
+  private final List<String> requests = new ArrayList<>();
   @RegisterExtension
   LogTesterJUnit5 logTester = new LogTesterJUnit5();
-
   private OmnisharpEndpoints underTest;
   private CompletableFuture<Void> startFuture;
   private CompletableFuture<Void> loadProjectsFuture;
-
   private OmnisharpServerController omnisharpServer;
-
-  private final List<String> requests = new ArrayList<>();
-
   private OmnisharpResponseProcessor responseProcessor;
 
   @BeforeEach
@@ -278,6 +274,76 @@ class OmnisharpEndpointsTests {
         tuple(16, 25, 16, 30, "+4 (incl 3 for nesting)"),
         tuple(18, 29, 18, 34, null),
         tuple(20, 33, 20, 38, null));
+
+    assertThat(issues.get(1).getQuickFixes()).isNull();
+  }
+
+  @Test
+  void codeCheckWithQuickFixes() throws Exception {
+    List<Diagnostic> issues = new ArrayList<>();
+    File f = new File("Foo.cs");
+
+    doCodeCheck(f, issues, "\"Body\": {\n"
+      + "    \"QuickFixes\": [\n"
+      + "      {\n"
+      + "        \"AdditionalLocations\": [],\n"
+      + "        \"QuickFixes\": [\n"
+      + "          {\n"
+      + "            \"Message\": \"Remove unused parameter\",\n"
+      + "            \"Fixes\": [\n"
+      + "              {\n"
+      + "                \"FileName\": \"" + toJsonAbsolutePath(f) + "\",\n"
+      + "                \"Edits\": [\n"
+      + "                  {\n"
+      + "                    \"StartLine\": 6,\n"
+      + "                    \"StartColumn\": 25,\n"
+      + "                    \"EndLine\": 6,\n"
+      + "                    \"EndColumn\": 33,\n"
+      + "                    \"NewText\": \"\"\n"
+      + "                  },\n"
+      + "                  {\n"
+      + "                    \"StartLine\": 6,\n"
+      + "                    \"StartColumn\": 25,\n"
+      + "                    \"EndLine\": 6,\n"
+      + "                    \"EndColumn\": 33,\n"
+      + "                    \"NewText\": \"another\"\n"
+      + "                  }\n"
+      + "                ]\n"
+      + "              }\n"
+      + "            ]\n"
+      + "          }\n"
+      + "        ],\n"
+      + "        \"LogLevel\": \"Warning\",\n"
+      + "        \"Id\": \"S1172\",\n"
+      + "        \"Tags\": [],\n"
+      + "        \"FileName\": \"" + toJsonAbsolutePath(f) + "\",\n"
+      + "        \"Line\": 7,\n"
+      + "        \"Column\": 26,\n"
+      + "        \"EndLine\": 7,\n"
+      + "        \"EndColumn\": 34,\n"
+      + "        \"Text\": \"Remove this unused method parameter 'a'.\",\n"
+      + "        \"Projects\": [\n"
+      + "          \"DotNet6Project\"\n"
+      + "        ]\n"
+      + "      }\n" 
+      + "    ]\n" 
+      + "  }");
+
+    assertThat(issues).hasSize(1);
+
+    assertThat(issues.get(0).getQuickFixes()).hasSize(1);
+
+    assertThat(issues.get(0).getQuickFixes()[0].getMessage()).isEqualTo("Remove unused parameter");
+    assertThat(issues.get(0).getQuickFixes()[0].getFixes()).hasSize(1);
+
+    assertThat(issues.get(0).getQuickFixes()[0].getFixes()[0].getFilename()).isEqualTo(f.getAbsolutePath());
+
+    assertThat(issues.get(0).getQuickFixes()[0].getFixes()[0].getEdits())
+      .extracting(QuickFixEdit::getStartLine, QuickFixEdit::getStartColumn, QuickFixEdit::getEndLine, QuickFixEdit::getEndColumn, QuickFixEdit::getNewText)
+      .containsExactly(
+        tuple(6, 25, 6, 33, ""),
+        tuple(6, 25, 6, 33, "another"));
+
   }
 
   @Test

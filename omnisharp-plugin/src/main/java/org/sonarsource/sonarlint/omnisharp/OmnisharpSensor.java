@@ -44,7 +44,11 @@ import org.sonar.api.utils.log.Loggers;
 import org.sonarsource.analyzer.commons.ProgressReport;
 import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
 import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
+import org.sonarsource.sonarlint.omnisharp.protocol.Fix;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
+import org.sonarsource.sonarlint.omnisharp.protocol.QuickFix;
+import org.sonarsource.sonarlint.omnisharp.protocol.QuickFixEdit;
+import org.sonarsource.sonarlint.plugin.api.issue.NewSonarLintIssue;
 
 public class OmnisharpSensor implements Sensor {
 
@@ -166,28 +170,68 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static void handle(SensorContext context, Diagnostic diag) {
-    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, diag.getId());
+    var ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, diag.getId());
     if (context.activeRules().find(ruleKey) != null) {
-      Path diagFilePath = Paths.get(diag.getFilename());
-      InputFile diagInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(diagFilePath.toFile()));
+      var diagFilePath = Paths.get(diag.getFilename());
+      var diagInputFile = findInputFile(context, diagFilePath);
       if (diagInputFile != null) {
-        NewIssue newIssue = context.newIssue();
+        var newIssue = context.newIssue();
         newIssue
           .forRule(ruleKey)
           .at(createLocation(newIssue, diag, diagInputFile));
-        DiagnosticLocation[] additionalLocations = diag.getAdditionalLocations();
-        if (additionalLocations != null) {
-          for (DiagnosticLocation additionalLocation : additionalLocations) {
-            Path additionalFilePath = Paths.get(additionalLocation.getFilename());
-            InputFile additionalFilePathInputFile = context.fileSystem().inputFile(context.fileSystem().predicates().is(additionalFilePath.toFile()));
-            if (additionalFilePathInputFile != null) {
-              newIssue.addLocation(createLocation(newIssue, additionalLocation, additionalFilePathInputFile));
-            }
-          }
-        }
+        handleSecondaryLocations(context, diag, newIssue);
+        handleQuickFixes(context, diag, newIssue);
         newIssue.save();
       }
     }
+  }
+
+  private static void handleQuickFixes(SensorContext context, Diagnostic diag, NewIssue newIssue) {
+    var quickFixes = diag.getQuickFixes();
+    if (quickFixes != null && quickFixes.length > 0) {
+      newIssue.setQuickFixAvailable(true);
+      for (var quickFix : quickFixes) {
+        var newIssueSL = (NewSonarLintIssue) newIssue;
+        handleQuickFix(context, quickFix, newIssueSL);
+      }
+    }
+  }
+
+  static void handleQuickFix(SensorContext context, QuickFix quickFix, NewSonarLintIssue newIssueSL) {
+    var newQuickFix = newIssueSL.newQuickFix();
+    newQuickFix.message(quickFix.getMessage());
+    for (Fix fix : quickFix.getFixes()) {
+      var fixInputFile = findInputFile(context, Paths.get(fix.getFilename()));
+      if (fixInputFile != null) {
+        var newInputFileEdit = newQuickFix.newInputFileEdit()
+          .on(fixInputFile);
+        for (QuickFixEdit edit : fix.getEdits()) {
+          var newTextEdit = newInputFileEdit.newTextEdit()
+            .at(fixInputFile.newRange(edit.getStartLine(), edit.getStartColumn() - 1, edit.getEndLine(), edit.getEndColumn() - 1))
+            .withNewText(edit.getNewText());
+          newInputFileEdit.addTextEdit(newTextEdit);
+        }
+        newQuickFix.addInputFileEdit(newInputFileEdit);
+      }
+    }
+    newIssueSL.addQuickFix(newQuickFix);
+  }
+
+  private static void handleSecondaryLocations(SensorContext context, Diagnostic diag, NewIssue newIssue) {
+    var additionalLocations = diag.getAdditionalLocations();
+    if (additionalLocations != null) {
+      for (var additionalLocation : additionalLocations) {
+        var additionalFilePath = Paths.get(additionalLocation.getFilename());
+        var additionalFilePathInputFile = findInputFile(context, additionalFilePath);
+        if (additionalFilePathInputFile != null) {
+          newIssue.addLocation(createLocation(newIssue, additionalLocation, additionalFilePathInputFile));
+        }
+      }
+    }
+  }
+
+  private static InputFile findInputFile(SensorContext context, Path filePath) {
+    return context.fileSystem().inputFile(context.fileSystem().predicates().is(filePath.toFile()));
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {

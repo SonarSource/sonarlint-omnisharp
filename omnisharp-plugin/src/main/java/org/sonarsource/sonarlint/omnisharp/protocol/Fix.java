@@ -20,57 +20,20 @@
 package org.sonarsource.sonarlint.omnisharp.protocol;
 
 import com.google.gson.annotations.SerializedName;
-import javax.annotation.Nullable;
 
-public class DiagnosticLocation {
+public class Fix {
 
   @SerializedName("FileName")
   private String filename;
 
-  @SerializedName("Line")
-  private int line;
-
-  @SerializedName("Column")
-  private int column;
-
-  @SerializedName("EndLine")
-  private int endLine;
-
-  @SerializedName("EndColumn")
-  private int endColumn;
-
-  @SerializedName("Text")
-  @Nullable
-  private String text;
-
-  @SerializedName("QuickFixes")
-  private QuickFix[] quickFixes;
+  @SerializedName("Edits")
+  private QuickFixEdit[] edits;
 
   public String getFilename() {
     return filename;
   }
 
-  public int getLine() {
-    return line;
-  }
-
-  public int getEndLine() {
-    return endLine;
-  }
-
-  public int getColumn() {
-    return column;
-  }
-
-  public int getEndColumn() {
-    return endColumn;
-  }
-
-  public String getText() {
-    return text;
-  }
-
-  public QuickFix[] getQuickFixes() {
-    return quickFixes;
+  public QuickFixEdit[] getEdits() {
+    return edits;
   }
 }

@@ -21,7 +21,7 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-
+import com.google.gson.reflect.TypeToken;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,12 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import com.google.gson.reflect.TypeToken;
 import org.sonar.api.SonarRuntime;
 import org.sonar.api.rule.RuleStatus;
 import org.sonar.api.rules.RuleType;
@@ -44,10 +40,8 @@ import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.server.debt.DebtRemediationFunction;
 import org.sonar.api.server.rule.RuleParamType;
 import org.sonar.api.server.rule.RulesDefinition;
-import org.sonar.api.server.rule.RulesDefinitionXmlLoader;
 import org.sonar.api.utils.Version;
 import org.sonarsource.analyzer.commons.BuiltInQualityProfileJsonLoader;
-import org.sonarsource.dotnet.shared.plugins.AbstractRulesDefinition;
 
 import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.LANGUAGE_KEY;
 import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.PLUGIN_KEY;
@@ -64,14 +58,19 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   private final boolean isAddPciDssSupported;
   private final boolean isASVSSupported;
 
-  private static String getSonarWayJsonPath() {
-    return "org/sonar/plugins/" + PLUGIN_KEY + "/Sonar_way_profile.json";
-  }
-
   public CSharpSonarRulesDefinition(SonarRuntime sonarRuntime) {
     this.isOwaspByVersionSupported = sonarRuntime.getApiVersion().isGreaterThanOrEqual(Version.create(9, 3));
     this.isAddPciDssSupported = sonarRuntime.getApiVersion().isGreaterThanOrEqual(Version.create(9, 5));
     this.isASVSSupported = sonarRuntime.getApiVersion().isGreaterThanOrEqual(Version.create(9, 9));
+  }
+
+  private static String getSonarWayJsonPath() {
+    return "org/sonar/plugins/" + PLUGIN_KEY + "/Sonar_way_profile.json";
+  }
+
+  private static void activeDefaultRules(Collection<NewRule> rules) {
+    Set<String> activeKeys = BuiltInQualityProfileJsonLoader.loadActiveKeysFromJsonProfile(getSonarWayJsonPath());
+    rules.forEach(rule -> rule.setActivatedByDefault(activeKeys.contains(rule.key())));
   }
 
   @Override
@@ -96,11 +95,11 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
 
   private void configureRule(NewRule rule, RuleMetadata metadata, RuleParameter[] parameters) {
     rule
-            .setName(metadata.title)
-            .setType(RuleType.valueOf(metadata.type))
-            .setStatus(RuleStatus.valueOf(metadata.status.toUpperCase(Locale.ROOT)))
-            .setSeverity(metadata.defaultSeverity.toUpperCase(Locale.ROOT))
-            .setTags(metadata.tags);
+      .setName(metadata.title)
+      .setType(RuleType.valueOf(metadata.type))
+      .setStatus(RuleStatus.valueOf(metadata.status.toUpperCase(Locale.ROOT)))
+      .setSeverity(metadata.defaultSeverity.toUpperCase(Locale.ROOT))
+      .setTags(metadata.tags);
     if (metadata.remediation != null) { // Hotspots do not have remediation
       rule.setDebtRemediationFunction(metadata.remediation.remediationFunction(rule));
       rule.setGapDescription(metadata.remediation.linearDesc);
@@ -108,9 +107,9 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
 
     for (RuleParameter param : parameters) {
       rule.createParam(param.key)
-              .setType(RuleParamType.parse(param.type))
-              .setDescription(param.description)
-              .setDefaultValue(param.defaultValue);
+        .setType(RuleParamType.parse(param.type))
+        .setDescription(param.description)
+        .setDefaultValue(param.defaultValue);
     }
 
     addSecurityStandards(rule, metadata.securityStandards);
@@ -123,12 +122,12 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
     addPciDss(rule, securityStandards);
   }
 
-  private void addASVS(NewRule rule, SecurityStandards securityStandards){
+  private void addASVS(NewRule rule, SecurityStandards securityStandards) {
     if (!isASVSSupported) {
       return;
     }
 
-    if (securityStandards.asvs4_0.length > 0){
+    if (securityStandards.asvs4_0.length > 0) {
       rule.addOwaspAsvs(OwaspAsvsVersion.V4_0, securityStandards.asvs4_0);
     }
   }
@@ -154,11 +153,11 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
       return;
     }
 
-    if (securityStandards.pciDss3_2.length > 0){
+    if (securityStandards.pciDss3_2.length > 0) {
       rule.addPciDss(PciDssVersion.V3_2, securityStandards.pciDss3_2);
     }
 
-    if (securityStandards.pciDss4_0.length > 0){
+    if (securityStandards.pciDss4_0.length > 0) {
       rule.addPciDss(PciDssVersion.V4_0, securityStandards.pciDss4_0);
     }
   }
@@ -242,12 +241,6 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
 
     @SerializedName("ASVS 4.0")
     String[] asvs4_0 = {};
-  }
-
-
-  private static void activeDefaultRules(Collection<NewRule> rules) {
-    Set<String> activeKeys = BuiltInQualityProfileJsonLoader.loadActiveKeysFromJsonProfile(getSonarWayJsonPath());
-    rules.forEach(rule -> rule.setActivatedByDefault(activeKeys.contains(rule.key())));
   }
 
 }
