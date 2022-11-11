@@ -126,9 +126,11 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
                 var directory = Path.GetDirectoryName(filePath);
                 var operations = await action.GetOperationsAsync(CancellationToken.None);
 
+                Debug.Assert(operations.Length <= 1, "Expecting quick fixes to contain one or zero operations.");
+
                 if (operations.Length > 1)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(operations), "Expecting quick fixes to contain one or zero operations.");
+                    continue;
                 }
 
                 var applyChangesOperations = operations.OfType<ApplyChangesOperation>().SingleOrDefault();
