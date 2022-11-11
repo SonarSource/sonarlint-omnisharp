@@ -31,7 +31,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             {
                 throw new ArgumentNullException(nameof(fixes), "A quick fix should have at least one fix.");
             }
-            
+
             Message = message;
             Fixes = fixes;
         }
@@ -52,7 +52,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             FileName = fileName;
             Edits = edits;
         }
-        
+
         public string FileName { get; }
         public IReadOnlyList<IEdit> Edits { get; }
     }
@@ -67,7 +67,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             EndColumn = endColumn;
             NewText = newText;
         }
-        
+
         public int StartLine { get; }
         public int StartColumn { get; }
         public int EndLine { get; }
