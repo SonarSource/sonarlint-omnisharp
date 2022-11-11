@@ -48,8 +48,17 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
     [Export(typeof(IDiagnosticQuickFixesProvider)), Shared]
     internal class DiagnosticQuickFixesProvider : BaseCodeActionService<IRequest, IAggregateResponse>, IDiagnosticQuickFixesProvider
     {
+        /// <summary>
+        /// To be able to mock the behaviour of the "GetFileChangesAsync" method in the base class we needed to add this delegate and pass mock method in tests
+        /// </summary>
+        /// <returns></returns>
+        internal delegate Task<(Solution Solution, IEnumerable<FileOperationResponse> FileChanges)>
+            GetFileChangesAsyncFunc(Solution newSolution, Solution oldSolution, string directory, bool wantTextChanges,
+                bool wantsAllCodeActionOperations);
+
         private readonly ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider;
         private readonly OmniSharpWorkspace workspace;
+        private readonly GetFileChangesAsyncFunc getFileChangesAsyncFunc;
 
         [ImportingConstructor]
         public DiagnosticQuickFixesProvider(
@@ -57,7 +66,24 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             [ImportMany] IEnumerable<ISonarAnalyzerCodeActionProvider> codeActionProviders,
             ILoggerFactory loggerFactory,
             OmniSharpOptions options,
-            ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider)
+            ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider) : this(
+            workspace,
+            codeActionProviders,
+            loggerFactory,
+            options,
+            diagnosticCodeActionsProvider,
+            null
+        )
+        {
+        }
+
+        internal DiagnosticQuickFixesProvider(
+            OmniSharpWorkspace workspace,
+            [ImportMany] IEnumerable<ISonarAnalyzerCodeActionProvider> codeActionProviders,
+            ILoggerFactory loggerFactory,
+            OmniSharpOptions options,
+            ISonarLintDiagnosticCodeActionsProvider diagnosticCodeActionsProvider,
+            GetFileChangesAsyncFunc getFileChangesAsyncFunc)
             : base(workspace,
                 codeActionProviders,
                 loggerFactory.CreateLogger<SonarLintCodeCheckService>(),
@@ -67,6 +93,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         {
             this.workspace = workspace;
             this.diagnosticCodeActionsProvider = diagnosticCodeActionsProvider;
+            this.getFileChangesAsyncFunc = getFileChangesAsyncFunc ?? GetFileChangesAsync;
         }
 
         /// <summary>
@@ -76,7 +103,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         /// </summary>
         public override Task<IAggregateResponse> Handle(IRequest request)
         {
-            throw new System.NotSupportedException("This is a fake endpoint");
+            throw new NotSupportedException("This is a fake endpoint");
         }
 
         /// <summary>
@@ -84,7 +111,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         /// </summary>
         public async Task<IQuickFix[]> GetDiagnosticQuickFixes(Diagnostic diagnostic, string filePath)
         {
-            // todo: should use GetDocuments?
             var document = workspace.GetDocument(filePath);
 
             if (document == null)
@@ -97,23 +123,28 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
 
             foreach (var action in codeFixActions)
             {
-                var fixes = new List<Fix>();
-                var solution = workspace.CurrentSolution;
+                var fixes = new List<IFix>();
                 var directory = Path.GetDirectoryName(filePath);
                 var operations = await action.GetOperationsAsync(CancellationToken.None);
 
-                foreach (var operation in operations.OfType<ApplyChangesOperation>())
+                if (operations.Length > 1)
                 {
-                    var solutionAfterOperation = operation.ChangedSolution;
-                    var fileChangesResult = await GetFileChangesAsync(solutionAfterOperation, solution, directory, true, false);
-
-                    Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
-
-                    var fileFixes = fileChangesResult.FileChanges.Select(c => ToFix((ModifiedFileResponse)c));
-                    fixes.AddRange(fileFixes);
-
-                    solution = solutionAfterOperation;
+                    throw new ArgumentOutOfRangeException(nameof(operations), "Expecting quick fixes to contain one or zero operations.");
                 }
+
+                var applyChangesOperations = operations.OfType<ApplyChangesOperation>().SingleOrDefault();
+                
+                if (applyChangesOperations == null)
+                {
+                    continue;
+                }
+
+                var fileChangesResult = await getFileChangesAsyncFunc(applyChangesOperations.ChangedSolution, workspace.CurrentSolution, directory, true, false);
+
+                Debug.Assert(fileChangesResult.FileChanges.All(c => c is ModifiedFileResponse));
+
+                var fileFixes = fileChangesResult.FileChanges.Select(c => ToFix((ModifiedFileResponse) c));
+                fixes.AddRange(fileFixes);
 
                 quickFixes.Add(new QuickFix(action.Title, fixes));
             }
@@ -128,10 +159,10 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
             Edit ToEdit(LinePositionSpanTextChange textChange)
             {
                 return new Edit(newText: textChange.NewText,
-                    startLine: textChange.StartLine,
-                    endLine: textChange.EndLine,
-                    startColumn: textChange.StartColumn,
-                    endColumn: textChange.EndColumn);
+                    startLine: textChange.StartLine + 1,
+                    endLine: textChange.EndLine + 1,
+                    startColumn: textChange.StartColumn + 1,
+                    endColumn: textChange.EndColumn + 1);
             }
         }
     }
