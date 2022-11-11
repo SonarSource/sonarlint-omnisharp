@@ -51,7 +51,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
         /// <summary>
         /// To be able to mock the behaviour of the "GetFileChangesAsync" method in the base class we needed to add this delegate and pass mock method in tests
         /// </summary>
-        /// <returns></returns>
         internal delegate Task<(Solution Solution, IEnumerable<FileOperationResponse> FileChanges)>
             GetFileChangesAsyncFunc(Solution newSolution, Solution oldSolution, string directory, bool wantTextChanges,
                 bool wantsAllCodeActionOperations);
