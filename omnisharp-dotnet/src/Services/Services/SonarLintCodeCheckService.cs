@@ -59,7 +59,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.Services
                 ? await diagnosticWorker.GetAllDiagnosticsAsync()
                 : await diagnosticWorker.GetDiagnostics(ImmutableArray.Create(request.FileName));
 
-            // todo: does it matter if the file name is null or empty?
             var diagnosticLocations = await diagnosticsToCodeLocationsConverter.Convert(diagnostics, request.FileName);
 
             return new QuickFixResponse(diagnosticLocations);

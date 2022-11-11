@@ -138,10 +138,13 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
 
             var items = semanticModels.SelectMany(sm => sm.GetDiagnostics());
 
+            // This execution path is not being called in SonarLint context so we don't need to support quick fixes here
+            var quickFixes = Array.Empty<IQuickFix>();
+
             return new DiagnosticResult
             {
                 FileName = filePath,
-                QuickFixes = items.Select(x => x.ToDiagnosticLocation(Array.Empty<IQuickFix>())).Distinct().ToArray()
+                QuickFixes = items.Select(x => x.ToDiagnosticLocation(quickFixes)).Distinct().ToArray()
             };
         }
 

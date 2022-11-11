@@ -63,8 +63,6 @@ namespace SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes
                 await codeFixProvider.RegisterCodeFixesAsync(context);
             }
 
-            // todo: do we need `action.CodeAction.GetNestedCodeActions` ? https://github.com/OmniSharp/omnisharp-roslyn/blob/80d7f26b258853cafacea773276521319f3a5786/src/OmniSharp.Roslyn.CSharp/Services/Refactoring/V2/BaseCodeActionService.cs#L230
-
             return actions;
         }
     }
