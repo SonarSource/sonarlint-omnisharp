@@ -20,6 +20,7 @@ using OmniSharp.Helpers;
 using OmniSharp.Models.Diagnostics;
 using OmniSharp.Options;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 
 namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
 {
@@ -29,6 +30,7 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
     /// Changes:
     ///     1. Making <see cref="GetDiagnosticsForDocument"/> protected-virtual
     ///     2. Making needed members protected
+    ///     3. Passing empty quick fixes in <see cref="ProcessNextItem"/>
     /// </summary>
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class CopiedCSharpDiagnosticWorker: ICsDiagnosticWorker, IDisposable
@@ -134,13 +136,15 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
             var documents = _workspace.GetDocuments(filePath);
             var semanticModels = await Task.WhenAll(documents.Select(doc => doc.GetSemanticModelAsync()));
 
-            var items = semanticModels
-                .SelectMany(sm => sm.GetDiagnostics());
+            var items = semanticModels.SelectMany(sm => sm.GetDiagnostics());
 
-            return new DiagnosticResult()
+            // This execution path is not being called in SonarLint context so we don't need to support quick fixes here
+            var quickFixes = Array.Empty<IQuickFix>();
+
+            return new DiagnosticResult
             {
                 FileName = filePath,
-                QuickFixes = items.Select(x => x.ToDiagnosticLocation()).Distinct().ToArray()
+                QuickFixes = items.Select(x => x.ToDiagnosticLocation(quickFixes)).Distinct().ToArray()
             };
         }
 

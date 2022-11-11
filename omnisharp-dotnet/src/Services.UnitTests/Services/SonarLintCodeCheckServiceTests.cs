@@ -41,7 +41,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
         public void MefCtor_CheckIsExported()
         {
             CheckTypeCanBeImported<SonarLintCodeCheckService, IRequestHandler>(
-                CreateExport<ISonarLintDiagnosticWorker>());
+                CreateExport<ISonarLintDiagnosticWorker>(),
+                CreateExport<IDiagnosticsToCodeLocationsConverter>());
         }
 
         [TestMethod]
@@ -62,7 +63,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             }.ToImmutableArray();
 
             var diagnosticWorker = SetupDiagnosticWorker(diagnostics);
-            var diagnosticsConverter = SetupDiagnosticsConverter(null, diagnostics, convertedLocations);
+            var diagnosticsConverter = SetupDiagnosticsConverter(fileName, diagnostics, convertedLocations);
 
             var testSubject = CreateTestSubject(diagnosticWorker.Object, diagnosticsConverter.Object);
 
@@ -73,7 +74,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             var quickFixes = result.QuickFixes.ToList();
             quickFixes.Should().BeEquivalentTo(convertedLocations);
 
-            diagnosticWorker.Verify(x=> x.GetAllDiagnosticsAsync(), Times.Once);
+            diagnosticWorker.Verify(x => x.GetAllDiagnosticsAsync(), Times.Once);
             diagnosticWorker.VerifyNoOtherCalls();
         }
 
@@ -110,7 +111,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
             diagnosticWorker.VerifyNoOtherCalls();
         }
 
-        private SonarLintCodeCheckRequest CreateRequest(string fileName) => new() {FileName = fileName};
+        private SonarLintCodeCheckRequest CreateRequest(string fileName) => new() { FileName = fileName };
 
         private static SonarLintCodeCheckService CreateTestSubject(
             ISonarLintDiagnosticWorker diagnosticWorker,
@@ -161,7 +162,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Services
 
             diagnosticsConverter
                 .Setup(x => x.Convert(diagnostics, fileNameFilter))
-                .Returns(convertedLocations);
+                .ReturnsAsync(convertedLocations);
 
             return diagnosticsConverter;
         }

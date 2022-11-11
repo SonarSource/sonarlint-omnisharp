@@ -19,29 +19,39 @@
  */
 
 using System.Collections.Immutable;
+using System.Composition;
 using System.Linq;
+using System.Threading.Tasks;
 using OmniSharp.Helpers;
 using OmniSharp.Roslyn.CSharp.Services.Diagnostics;
 using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.AdditionalLocations;
+using SonarLint.OmniSharp.DotNet.Services.DiagnosticWorker.QuickFixes;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Services
 {
     internal interface IDiagnosticsToCodeLocationsConverter
     {
-        ImmutableArray<SonarLintDiagnosticLocation> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter);
+        Task<ImmutableArray<SonarLintDiagnosticLocation>> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter);
     }
 
+    [Export(typeof(IDiagnosticsToCodeLocationsConverter)), Shared]
     internal class DiagnosticsToCodeLocationsConverter : IDiagnosticsToCodeLocationsConverter
     {
-        public ImmutableArray<SonarLintDiagnosticLocation> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter)
-        {
-            var diagnosticLocations = documentDiagnostics
-                .Where(x => string.IsNullOrEmpty(fileNameFilter) || x.DocumentPath == fileNameFilter)
-                .DistinctDiagnosticLocationsByProject()
-                .Where(x => x.FileName != null)
-                .ToImmutableArray();
+        private readonly IDiagnosticQuickFixesProvider quickFixesProvider;
 
-            return diagnosticLocations;
+        [ImportingConstructor]
+        public DiagnosticsToCodeLocationsConverter(IDiagnosticQuickFixesProvider quickFixesProvider)
+        {
+            this.quickFixesProvider = quickFixesProvider;
+        }
+
+        public async Task<ImmutableArray<SonarLintDiagnosticLocation>> Convert(ImmutableArray<DocumentDiagnostics> documentDiagnostics, string fileNameFilter)
+        {
+             var diagnosticLocations = await documentDiagnostics
+                .Where(x => string.IsNullOrEmpty(fileNameFilter) || x.DocumentPath == fileNameFilter)
+                .DistinctDiagnosticLocationsByProject(quickFixesProvider);
+
+             return diagnosticLocations.Where(x => x.FileName != null).ToImmutableArray();
         }
     }
 }
