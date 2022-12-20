@@ -45,6 +45,10 @@ import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.batch.sensor.issue.Issue;
 import org.sonar.api.batch.sensor.issue.NewIssue;
 import org.sonar.api.batch.sensor.issue.NewIssueLocation;
+import org.sonar.api.batch.sensor.issue.NewMessageFormatting;
+import org.sonar.api.batch.sensor.issue.fix.NewInputFileEdit;
+import org.sonar.api.batch.sensor.issue.fix.NewQuickFix;
+import org.sonar.api.batch.sensor.issue.fix.NewTextEdit;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.utils.log.LogTesterJUnit5;
@@ -55,10 +59,6 @@ import org.sonarsource.sonarlint.omnisharp.protocol.Fix;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.QuickFix;
 import org.sonarsource.sonarlint.omnisharp.protocol.QuickFixEdit;
-import org.sonarsource.sonarlint.plugin.api.issue.NewInputFileEdit;
-import org.sonarsource.sonarlint.plugin.api.issue.NewQuickFix;
-import org.sonarsource.sonarlint.plugin.api.issue.NewSonarLintIssue;
-import org.sonarsource.sonarlint.plugin.api.issue.NewTextEdit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -543,7 +543,7 @@ class OmnisharpSensorTests {
       .containsExactly(tuple(1, 1, 1, 3, ""), tuple(1, 1, 1, 3, ""), tuple(1, 5, 1, 7, "another"), tuple(2, 11, 2, 13, ""), tuple(2, 15, 2, 17, "another"));
   }
 
-  private static class MockSonarLintIssue implements NewSonarLintIssue, NewIssue {
+  private static class MockSonarLintIssue implements NewIssue {
     private final List<MockSonarLintQuickFix> quickFixes = new ArrayList<>();
 
     @Override
@@ -602,12 +602,12 @@ class OmnisharpSensorTests {
     }
 
     @Override
-    public NewQuickFix newQuickFix() {
+    public MockSonarLintQuickFix newQuickFix() {
       return new MockSonarLintQuickFix();
     }
 
     @Override
-    public NewSonarLintIssue addQuickFix(NewQuickFix newQuickFix) {
+    public NewIssue addQuickFix(org.sonar.api.batch.sensor.issue.fix.NewQuickFix newQuickFix) {
       quickFixes.add((MockSonarLintQuickFix) newQuickFix);
       return this;
     }
@@ -717,6 +717,16 @@ class OmnisharpSensorTests {
     @Override
     public NewIssueLocation message(String s) {
       return this;
+    }
+
+    @Override
+    public NewIssueLocation message(String message, List<NewMessageFormatting> newMessageFormatting) {
+      return this;
+    }
+
+    @Override
+    public NewMessageFormatting newMessageFormatting() {
+      throw new UnsupportedOperationException();
     }
   }
 
