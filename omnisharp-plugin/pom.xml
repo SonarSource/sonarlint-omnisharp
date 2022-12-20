@@ -19,9 +19,8 @@
     <analyzer.version>8.48.0.56517</analyzer.version>
     <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
     <sonar.analyzer.commons>2.1.0.1111</sonar.analyzer.commons>
-    <sonar.version>9.11.0.290</sonar.version>
-    <sonar.api.impl.version>9.6.1.59531</sonar.api.impl.version>
-    <sonarLTS.version>7.9</sonarLTS.version>
+    <sonar.version>9.13.0.360</sonar.version>
+    <sonar.api.impl.version>9.7.1.62043</sonar.api.impl.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <sonarAnalyzer.directory>${project.build.directory}/analyzer</sonarAnalyzer.directory>
     <servicesDll.directory>${project.build.directory}/services</servicesDll.directory>
@@ -183,7 +182,7 @@
           <pluginClass>org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin</pluginClass>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <sonarLintSupported>true</sonarLintSupported>
-          <sonarQubeMinVersion>${sonarLTS.version}</sonarQubeMinVersion> <!-- runtime minimal API version -->
+          <sonarQubeMinVersion>9.13</sonarQubeMinVersion> <!-- set 9.13 as runtime minimal API version, to be able to use the quickfix API -->
         </configuration>
       </plugin>
       <plugin>

@@ -48,7 +48,6 @@ import org.sonarsource.sonarlint.omnisharp.protocol.Fix;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.QuickFix;
 import org.sonarsource.sonarlint.omnisharp.protocol.QuickFixEdit;
-import org.sonarsource.sonarlint.plugin.api.issue.NewSonarLintIssue;
 
 public class OmnisharpSensor implements Sensor {
 
@@ -191,14 +190,13 @@ public class OmnisharpSensor implements Sensor {
     if (quickFixes != null && quickFixes.length > 0) {
       newIssue.setQuickFixAvailable(true);
       for (var quickFix : quickFixes) {
-        var newIssueSL = (NewSonarLintIssue) newIssue;
-        handleQuickFix(context, quickFix, newIssueSL);
+        handleQuickFix(context, quickFix, newIssue);
       }
     }
   }
 
-  static void handleQuickFix(SensorContext context, QuickFix quickFix, NewSonarLintIssue newIssueSL) {
-    var newQuickFix = newIssueSL.newQuickFix();
+  static void handleQuickFix(SensorContext context, QuickFix quickFix, NewIssue newIssue) {
+    var newQuickFix = newIssue.newQuickFix();
     newQuickFix.message(quickFix.getMessage());
     for (Fix fix : quickFix.getFixes()) {
       var fixInputFile = findInputFile(context, Paths.get(fix.getFilename()));
@@ -214,7 +212,7 @@ public class OmnisharpSensor implements Sensor {
         newQuickFix.addInputFileEdit(newInputFileEdit);
       }
     }
-    newIssueSL.addQuickFix(newQuickFix);
+    newIssue.addQuickFix(newQuickFix);
   }
 
   private static void handleSecondaryLocations(SensorContext context, Diagnostic diag, NewIssue newIssue) {
