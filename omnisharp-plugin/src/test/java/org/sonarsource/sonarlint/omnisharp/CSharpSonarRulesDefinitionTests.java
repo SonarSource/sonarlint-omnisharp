@@ -156,7 +156,7 @@ class CSharpSonarRulesDefinitionTests {
     definition.define(context);
     RulesDefinition.Rule rule = context.repository("csharpsquid").rule(SECURITY_HOTSPOT_RULE_KEY);
 
-    assertThat(rule.tags()).containsExactly("cwe", "owasp-a8");
+    assertThat(rule.tags()).containsExactly("cwe");
   }
 
   @Test
