@@ -182,6 +182,39 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  void analyzeNet7Solution(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet7Project");
+    ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet7Project/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");\n"
+        + "public sealed record Foo\n"
+        + "{\n"
+        + "    public required Bar Baz { get; init; }  // \"Bar\" is flagged with S1104: Fields should not have public accessibility\n"
+        + "}\n"
+        + "\n"
+        + "public sealed record Bar\n"
+        + "{\n"
+        + "}",
+      false);
+
+    final List<Issue> issues = new ArrayList<>();
+    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
+      .setBaseDir(baseDir)
+      .addInputFile(inputFile)
+      .setModuleKey(SOLUTION1_MODULE_KEY)
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
+      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNet7Project.sln").toString())
+      .build();
+    sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
+
+    assertThat(issues)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
+      .containsOnly(
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), INFO));
+  }
+
+  @Test
   void provideQuickFixes(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
     ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet6Project/Program.cs",
