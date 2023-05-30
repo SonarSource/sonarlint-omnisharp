@@ -52,7 +52,6 @@ import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.REPOSITORY_NAM
 public class CSharpSonarRulesDefinition implements RulesDefinition {
   private static final Gson GSON = new Gson();
   private static final String RESOURCES_DIRECTORY = "/org/sonar/plugins/csharp/";
-  private static final String METADATA_SUFFIX = "_c#";
 
   private final boolean isOwaspByVersionSupported;
   private final boolean isAddPciDssSupported;
@@ -85,7 +84,7 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
     for (Rule rule : rules) {
       NewRule newRule = repository.createRule(rule.id);
       configureRule(newRule, loadMetadata(rule.id), rule.parameters);
-      newRule.setHtmlDescription(readResource(rule.id + METADATA_SUFFIX + ".html"));
+      newRule.setHtmlDescription(readResource(rule.id + ".html"));
     }
 
     activeDefaultRules(repository.rules());
@@ -163,7 +162,7 @@ public class CSharpSonarRulesDefinition implements RulesDefinition {
   }
 
   private RuleMetadata loadMetadata(String id) {
-    return GSON.fromJson(readResource(id + METADATA_SUFFIX + ".json"), RuleMetadata.class);
+    return GSON.fromJson(readResource(id + ".json"), RuleMetadata.class);
   }
 
   private String readResource(String name) {
