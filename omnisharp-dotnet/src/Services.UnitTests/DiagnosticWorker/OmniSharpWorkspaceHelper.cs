@@ -51,9 +51,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         public static OmniSharpWorkspace CreateOmnisharpWorkspaceWithDocument(string documentFileName, string documentContent)
         {
             var projectInfo = CreateProjectInfo();
-            var textLoader = new InMemoryTextLoader();
+            var textLoader = new InMemoryTextLoader(documentContent);
             var documentInfo = CreateDocumentInfo(projectInfo, textLoader, documentFileName);
-            textLoader.AddText(documentInfo.Id, documentContent);
 
             var workspace = CreateOmniSharpWorkspace();
             workspace.AddProject(projectInfo);
@@ -89,17 +88,16 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 
         private class InMemoryTextLoader : TextLoader
         {
-            private readonly Dictionary<DocumentId, string> documentsText = new();
+            private string fileContent;
 
-            public void AddText(DocumentId documentInfoId, string someText)
+            internal InMemoryTextLoader(string fileContent)
             {
-                documentsText.Add(documentInfoId, someText);
+                this.fileContent = fileContent;
             }
 
-            public override async Task<TextAndVersion> LoadTextAndVersionAsync(Workspace workspace, DocumentId documentId, CancellationToken cancellationToken)
+            public override async Task<TextAndVersion> LoadTextAndVersionAsync(LoadTextOptions options, CancellationToken cancellationToken)
             {
-                var text = documentsText[documentId];
-                return TextAndVersion.Create(SourceText.From(text), VersionStamp.Default);
+                return TextAndVersion.Create(SourceText.From(fileContent), VersionStamp.Default);
             }
         }
     }
