@@ -92,7 +92,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.0/omnisharp-roslyn-1.39.0-net472.zip</url>
+              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.6/omnisharp-roslyn-1.39.6-net472.zip</url>
               <unpack>true</unpack>
               <outputDirectory>${project.build.directory}/omnisharp-win</outputDirectory>
             </configuration>
@@ -104,7 +104,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.0/omnisharp-roslyn-1.39.0-mono.zip</url>
+              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.6/omnisharp-roslyn-1.39.6-mono.zip</url>
               <unpack>true</unpack>
               <outputDirectory>${project.build.directory}/omnisharp-mono</outputDirectory>
             </configuration>
@@ -116,7 +116,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.0/omnisharp-roslyn-1.39.0-net6.zip</url>
+              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.6/omnisharp-roslyn-1.39.6-net6.zip</url>
               <unpack>true</unpack>
               <outputDirectory>${project.build.directory}/omnisharp-net6</outputDirectory>
             </configuration>

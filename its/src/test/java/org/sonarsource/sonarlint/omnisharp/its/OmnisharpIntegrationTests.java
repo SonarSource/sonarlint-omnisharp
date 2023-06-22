@@ -67,6 +67,7 @@ import static org.sonarsource.sonarlint.core.commons.IssueSeverity.BLOCKER;
 import static org.sonarsource.sonarlint.core.commons.IssueSeverity.CRITICAL;
 import static org.sonarsource.sonarlint.core.commons.IssueSeverity.INFO;
 import static org.sonarsource.sonarlint.core.commons.IssueSeverity.MAJOR;
+import static org.sonarsource.sonarlint.core.commons.IssueSeverity.MINOR;
 
 class OmnisharpIntegrationTests {
 
@@ -211,7 +212,11 @@ class OmnisharpIntegrationTests {
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), INFO));
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 1, 3, 1, 7, inputFile.getPath(), INFO),
+        tuple("csharpsquid:S3903", "Move 'Foo' into a named namespace.", 3, 21, 3, 24, inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S3903", "Move 'Bar' into a named namespace.", 8, 21, 8, 24, inputFile.getPath(), MAJOR),
+        tuple("csharpsquid:S2094", "Remove this empty record, write its code or make it an \"interface\".", 8, 21, 8, 24, inputFile.getPath(), MINOR)
+      );
   }
 
   @Test
