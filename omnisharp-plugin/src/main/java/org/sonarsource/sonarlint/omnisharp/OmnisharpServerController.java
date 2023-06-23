@@ -241,8 +241,10 @@ public class OmnisharpServerController implements Startable {
         stateMachine.waitForStop();
         LOG.info("OmniSharp stopped");
       } catch (InterruptedException e) {
+        LOG.debug("Interrupted!", e);
         Thread.currentThread().interrupt();
       } catch (ExecutionException e) {
+        LOG.error("Could not stop Omnisharp properly", e);
         throw new IllegalStateException("Could not stop Omnisharp properly", e.getCause());
       }
     }
