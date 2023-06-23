@@ -18,7 +18,7 @@
   <properties>
     <analyzer.version>9.4.0.72892</analyzer.version>
     <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
-    <sonar.analyzer.commons>2.1.0.1111</sonar.analyzer.commons>
+    <sonar.analyzer.commons>2.5.0.1358</sonar.analyzer.commons>
     <sonar.version>9.13.0.360</sonar.version>
     <sonar.api.impl.version>9.7.1.62043</sonar.api.impl.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
