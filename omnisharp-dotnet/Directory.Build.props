@@ -24,9 +24,7 @@
 	<!-- OmniSharp assembly references                       -->
 	<!-- ****************************************************-->
 	<PropertyGroup>
-		<!-- TODO: this version needs to be kept in sync with
-      1) the version in the POM for the ITs
-      2) the version in the POM of the SonarLint.IntelliJ repo -->
+		<!-- TODO: this version needs to be kept in sync with the version in the POM of the SonarLint.IntelliJ repo -->
 		<OmniSharpVersion>1.39.6</OmniSharpVersion>
 
 		<OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)\</OmniSharpLocalDownloadDir>

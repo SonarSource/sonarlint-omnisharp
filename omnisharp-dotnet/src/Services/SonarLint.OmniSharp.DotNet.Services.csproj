@@ -9,10 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- We need to target the same Roslyn version as is used by OmniSharp.
-         Referencing a different version of NewtonSoft.Json doesn't seem to cause a problem,
-         but we're targeting the same version to be on the safe side.
-    -->
+		<!-- We need to target the same Roslyn version as is used by OmniSharp. -->
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.6.0-1.final" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.6.0-1.final" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
