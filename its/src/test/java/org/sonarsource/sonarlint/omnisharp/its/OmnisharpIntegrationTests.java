@@ -106,9 +106,9 @@ class OmnisharpIntegrationTests {
 
   @AfterAll
   public static void stop() throws InterruptedException {
-    sonarlintEngine.stop();
-    // Give enough time to release dll, else we got deletion failure on Windows
+    // SLCORE-504 Give enough time to release dll, else we got deletion failure on Windows
     Thread.sleep(5000);
+    sonarlintEngine.stop();
   }
 
   @BeforeEach
