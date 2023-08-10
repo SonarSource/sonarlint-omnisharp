@@ -12,7 +12,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref:  refs/tags/v1.0.17
+      ref:  refs/tags/v2.0.1
 
 
 stages:
@@ -90,10 +90,10 @@ stages:
               
         - task: SonarQubeAnalyze@5
         
-        - template: whitesource.yml@commonTemplates
+        - template: mend.yml@commonTemplates
           parameters:
             productName : 'SonarLint/OmniSharp'
-            # We're running two WhiteSource scans in this pipeline, one for .NET and one for Java.
+            # We're running two Mend scans in this pipeline, one for .NET and one for Java.
             # They can't both have the same projectName. We'll use the default projectName for the Java
             # project so it works with the releasability check.
             projectName : 'SonarSource/sonarlint-omnisharp/dotnet'
@@ -272,7 +272,7 @@ stages:
                 jdkVersionOption: '1.11'
                 mavenOptions: $(MAVEN_OPTS)        
         - job: sonarqube
-          displayName: SonarQube analysis on Next and WhiteSource analysis
+          displayName: SonarQube analysis on Next and Mend analysis
           variables:
             MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
             MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
@@ -307,10 +307,10 @@ stages:
                 mavenOptions: $(MAVEN_OPTS)
                 sonarQubeRunAnalysis: true
                 sqMavenPluginVersionChoice: 'latest'
-            - template: whitesource-with-maven-repox.yml@commonTemplates
+            - template: mend-with-maven-repox.yml@commonTemplates
               parameters:
                 # NB using the default projectName for this scan so it works with the releasability check.
-                # The .NET WhiteSource scan (above) uses a custom projectName.
+                # The .NET Mend scan (above) uses a custom projectName.
                 productName : 'SonarLint/OmniSharp'
                 mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
                 mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
