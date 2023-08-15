@@ -144,7 +144,7 @@ stages:
             - template: update-maven-version-steps.yml
               parameters:
                 mavenSettingsFilePath: $(mavenSettings.secureFilePath)
-            - task: Maven@3
+            - task: JFrogMaven@1
               displayName: 'Run Maven deploy and sign'
               condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
               env:
@@ -165,7 +165,7 @@ stages:
                 javaHomeOption: 'JDKVersion'
                 jdkVersionOption: '1.11'
                 mavenOptions: $(MAVEN_OPTS)
-            - task: Maven@3
+            - task: JFrogMaven@1
               displayName: 'Run Maven deploy'
               condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
               env:
