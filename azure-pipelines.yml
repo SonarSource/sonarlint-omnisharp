@@ -218,7 +218,7 @@ stages:
               name: mavenSettings
               inputs:
                 secureFile: 'maven-settings.xml'
-            - task: Maven@3
+            - task: JFrogMaven@1
               displayName: 'Run Maven verify'
               env:
                 ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
@@ -258,7 +258,7 @@ stages:
               name: mavenSettings
               inputs:
                 secureFile: 'maven-settings.xml'
-            - task: Maven@3
+            - task: JFrogMaven@1
               displayName: 'Run Maven verify'
               env:
                 ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
@@ -295,7 +295,7 @@ stages:
               inputs:
                 secureFile: 'maven-settings.xml'
             - template: prepare-sq-analysis-steps.yml
-            - task: Maven@3
+            - task: JFrogMaven@1
               env:
                 ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
                 ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
