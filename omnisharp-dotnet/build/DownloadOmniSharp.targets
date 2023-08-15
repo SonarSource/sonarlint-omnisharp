@@ -17,7 +17,7 @@
     <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-osx.zip</OmniSharpZipUrl>
     <OmniSharpZipUrl>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/$(OmniSharpVersion)/omnisharp-win-x64.zip</OmniSharpZipUrl>
     -->
-    <OmniSharpZipUrl>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/$(OmniSharpVersion)/omnisharp-roslyn-$(OmniSharpVersion)-net472.zip</OmniSharpZipUrl>
+    <OmniSharpZipUrl>https://repox.jfrog.io/repox/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/$(OmniSharpVersion)/omnisharp-roslyn-$(OmniSharpVersion)-net472.zip</OmniSharpZipUrl>
     
   </PropertyGroup>
   
