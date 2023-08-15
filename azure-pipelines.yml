@@ -6,6 +6,7 @@ pool:
 
 variables:
   - group: sonarsource-build-variables
+  - group: artifactory_access
 
 resources:
   repositories:
@@ -147,8 +148,8 @@ stages:
               displayName: 'Run Maven deploy and sign'
               condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
               env:
-                ARTIFACTORY_DEPLOY_USERNAME: $(ARTIFACTORY_DEPLOY_USERNAME)
-                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_DEPLOY_PASSWORD)
+                ARTIFACTORY_DEPLOY_USERNAME: $(ARTIFACTORY_QA_DEPLOYER_USERNAME)
+                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
                 PGP_PASSPHRASE: $(PGP_PASSPHRASE)
                 GIT_SHA1: $(Build.SourceVersion)
                 GITHUB_BRANCH: $(fixedBranch)
@@ -168,8 +169,8 @@ stages:
               displayName: 'Run Maven deploy'
               condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
               env:
-                ARTIFACTORY_DEPLOY_USERNAME: $(ARTIFACTORY_DEPLOY_USERNAME)
-                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_DEPLOY_PASSWORD)
+                ARTIFACTORY_DEPLOY_USERNAME: $(ARTIFACTORY_QA_DEPLOYER_USERNAME)
+                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
               inputs:
                 goals: 'deploy'
                 options: >-
@@ -360,8 +361,8 @@ stages:
             - task: Maven@3
               displayName: 'Run Maven ITs for SQ'
               env:
-                ARTIFACTORY_QA_READER_USERNAME: $(ARTIFACTORY_QA_READER_USERNAME)
-                ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_QA_READER_PASSWORD)
+                ARTIFACTORY_QA_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
+                ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
                 # For Orchestrator
                 ARTIFACTORY_API_KEY: $(ARTIFACTORY_API_KEY)
                 GITHUB_TOKEN: $(GITHUB_TOKEN)
