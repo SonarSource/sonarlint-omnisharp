@@ -50,9 +50,10 @@ import org.sonar.api.batch.sensor.issue.fix.NewInputFileEdit;
 import org.sonar.api.batch.sensor.issue.fix.NewQuickFix;
 import org.sonar.api.batch.sensor.issue.fix.NewTextEdit;
 import org.sonar.api.config.Configuration;
+import org.sonar.api.issue.impact.SoftwareQuality;
 import org.sonar.api.rule.RuleKey;
-import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
+import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
 import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
 import org.sonarsource.sonarlint.omnisharp.protocol.Fix;
@@ -562,6 +563,11 @@ class OmnisharpSensorTests {
     }
 
     @Override
+    public NewIssue overrideImpact(SoftwareQuality softwareQuality, org.sonar.api.issue.impact.Severity severity) {
+      return null;
+    }
+
+    @Override
     public NewIssue at(NewIssueLocation newIssueLocation) {
       return this;
     }
@@ -599,6 +605,11 @@ class OmnisharpSensorTests {
     @Override
     public NewIssue setRuleDescriptionContextKey(@Nullable String s) {
       return this;
+    }
+
+    @Override
+    public NewIssue setCodeVariants(@Nullable Iterable<String> iterable) {
+      return null;
     }
 
     @Override
