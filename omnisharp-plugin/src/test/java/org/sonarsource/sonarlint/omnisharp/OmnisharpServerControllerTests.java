@@ -44,8 +44,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.utils.System2;
-import org.sonar.api.utils.log.LogTesterJUnit5;
 import org.sonar.api.utils.log.LoggerLevel;
+import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 
