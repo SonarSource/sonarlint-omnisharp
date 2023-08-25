@@ -16,11 +16,11 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>9.6.0.74858</analyzer.version>
+    <analyzer.version>9.8.0.76515</analyzer.version>
     <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
-    <sonar.analyzer.commons>2.5.0.1358</sonar.analyzer.commons>
-    <sonar.version>9.13.0.360</sonar.version>
-    <sonar.api.impl.version>9.7.1.62043</sonar.api.impl.version>
+    <sonar.analyzer.commons>2.7.0.1482</sonar.analyzer.commons>
+    <sonar.version>10.1.0.809</sonar.version>
+    <sonar.api.impl.version>10.1.0.73491</sonar.api.impl.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <sonarAnalyzer.directory>${project.build.directory}/analyzer</sonarAnalyzer.directory>
     <servicesDll.directory>${project.build.directory}/services</servicesDll.directory>
@@ -60,6 +60,12 @@
     </dependency>
 
     <!-- test dependencies -->
+    <dependency>
+      <groupId>org.sonarsource.api.plugin</groupId>
+      <artifactId>sonar-plugin-api-test-fixtures</artifactId>
+      <version>${sonar.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.sonarsource.sonarqube</groupId>
       <artifactId>sonar-plugin-api-impl</artifactId>
