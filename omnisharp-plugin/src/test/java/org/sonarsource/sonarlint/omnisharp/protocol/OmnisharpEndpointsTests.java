@@ -104,34 +104,6 @@ class OmnisharpEndpointsTests {
     assertThat(loadProjectsFuture.isDone()).isTrue();
   }
 
-  //@Test
-  void testUnknownMessagesLoggedAsDebug() throws IOException {
-    emulateReceivedMessage("Something not json");
-
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).containsExactly("Something not json");
-  }
-
-  //@Test
-  void testUnknownTypeLoggedAsDebug() throws IOException {
-    emulateReceivedMessage("{\"Type\": \"unknown\", \"Body\": {\"Foo\": \"Bar\"}}");
-
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).containsExactly("{\"Type\": \"unknown\", \"Body\": {\"Foo\": \"Bar\"}}");
-  }
-
-  //@Test
-  void testUnknownEventTypeLoggedAsDebug() throws IOException {
-    emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"unknown\", \"Body\": {\"Foo\": \"Bar\"}}");
-
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).containsExactly("{\"Type\": \"event\", \"Event\": \"unknown\", \"Body\": {\"Foo\": \"Bar\"}}");
-  }
-
-  //@Test
-  void testOmnisharpLogLoggedAsDebug() throws IOException {
-    emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"log\", \"Body\": {\"LogLevel\": \"DEBUG\", \"Message\": \"Some message\"}}");
-
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).containsExactly("Omnisharp: [DEBUG] Some message");
-  }
-
   @Test
   void stopServer() throws Exception {
     underTest.stopServer();
