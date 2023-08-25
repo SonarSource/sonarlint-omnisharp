@@ -71,6 +71,10 @@ stages:
             extraProperties: |
               sonar.cs.opencover.reportsPaths="$(Build.SourcesDirectory)/**/TestResults/coverage.**.xml"
 
+        - task: UseDotNet@2
+          inputs:
+            version: '7.0.307'
+        
         # Build and run can be invoked in a single "test" command.
         # This could also execute the restore, but we'd want to work out how to limit the package feed used
         - task: DotNetCoreCLI@2
