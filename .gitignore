@@ -8,6 +8,9 @@ dependency-reduced-pom.xml
 *.ipr
 .idea/
 
+# ---- Visual Studio
+*.vs
+
 # ---- Eclipse
 .classpath
 .project
@@ -34,3 +37,5 @@ Desktop.ini
 /omnisharp-dotnet/.omnisharp
 /omnisharp-dotnet/JarContentFiles
 /omnisharp-dotnet/src/SonarLint.OmniSharp.Plugin/Properties/launchSettings.json
+/its/src/test/projects/DotNet8Project/DotNet8Project/obj
+/its/src/test/projects/DotNet8Project/DotNet8Project/bin
