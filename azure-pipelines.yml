@@ -6,6 +6,20 @@ pool:
 
 variables:
   - group: sonarsource-build-variables
+  # ensure, it is not used anymore
+  - name: ARTIFACTORY_API_USER
+    value: unset
+  - group: artifactory_access
+  # ARTIFACTORY_URL https://repox.jfrog.io/repox => https://repox.jfrog.io/artifactory
+  # JFROG_URL https://repox.jfrog.io
+  # https://github.com/SonarSource/parent-oss/blob/master/pom.xml#L708-L711
+  - name: ARTIFACTORY_DEPLOY_USERNAME
+    value: $[variables.ARTIFACTORY_QA_DEPLOYER_USERNAME]
+  # ~https://github.com/SonarSource/re-ci-images/blob/master/docker/mvn/settings-private.xml
+  - name: ARTIFACTORY_PRIVATE_USERNAME
+    value: $[variables.ARTIFACTORY_PRIVATE_READER_USERNAME]
+  - name: ARTIFACTORY_QA_READER_USERNAME
+    value: $[variables.ARTIFACTORY_PRIVATE_READER_USERNAME]
 
 resources:
   repositories:
@@ -20,7 +34,7 @@ stages:
     displayName: 'Build, test and analyze .NET extension'
     variables:
       - name: buildConfiguration
-        value: 'Release'  
+        value: 'Release'
       - name: slnPath
         value: 'omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln'
 
@@ -74,7 +88,8 @@ stages:
         - task: UseDotNet@2
           inputs:
             version: '7.0.307'
-        
+
+
         # Build and run can be invoked in a single "test" command.
         # This could also execute the restore, but we'd want to work out how to limit the package feed used
         - task: DotNetCoreCLI@2
@@ -89,11 +104,11 @@ stages:
         - task: PublishPipelineArtifact@1
           displayName: 'Publish the jar content files as a pipeline artifact'
           inputs:
-            path: omnisharp-dotnet/JarContentFiles 
+            path: omnisharp-dotnet/JarContentFiles
             artifact: DotNetJarContentFiles
-              
+
         - task: SonarQubeAnalyze@5
-        
+
         - template: mend.yml@commonTemplates
           parameters:
             productName : 'SonarLint/OmniSharp'
@@ -151,8 +166,7 @@ stages:
               displayName: 'Run Maven deploy and sign'
               condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
               env:
-                ARTIFACTORY_DEPLOY_USERNAME: $(ARTIFACTORY_DEPLOY_USERNAME)
-                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_DEPLOY_PASSWORD)
+                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
                 PGP_PASSPHRASE: $(PGP_PASSPHRASE)
                 GIT_SHA1: $(Build.SourceVersion)
                 GITHUB_BRANCH: $(fixedBranch)
@@ -172,8 +186,7 @@ stages:
               displayName: 'Run Maven deploy'
               condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
               env:
-                ARTIFACTORY_DEPLOY_USERNAME: $(ARTIFACTORY_DEPLOY_USERNAME)
-                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_DEPLOY_PASSWORD)
+                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
               inputs:
                 goals: 'deploy'
                 options: >-
@@ -224,8 +237,7 @@ stages:
             - task: Maven@3
               displayName: 'Run Maven verify'
               env:
-                ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
-                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
+                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
               inputs:
                 goals: 'verify'
                 options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
@@ -264,8 +276,7 @@ stages:
             - task: Maven@3
               displayName: 'Run Maven verify'
               env:
-                ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
-                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
+                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
               inputs:
                 goals: 'verify'
                 options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
@@ -274,7 +285,7 @@ stages:
                 testRunTitle: 'UTs on Linux'
                 javaHomeOption: 'JDKVersion'
                 jdkVersionOption: '1.11'
-                mavenOptions: $(MAVEN_OPTS)        
+                mavenOptions: $(MAVEN_OPTS)
         - job: sonarqube
           displayName: SonarQube analysis on Next and Mend analysis
           variables:
@@ -300,8 +311,7 @@ stages:
             - template: prepare-sq-analysis-steps.yml
             - task: Maven@3
               env:
-                ARTIFACTORY_PRIVATE_READER_USERNAME: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
-                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_PASSWORD)
+                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
               inputs:
                 goals: 'verify'
                 options: -B --settings $(mavenSettings.secureFilePath) -Pcoverage -DskipIts
@@ -364,10 +374,9 @@ stages:
             - task: Maven@3
               displayName: 'Run Maven ITs for SQ'
               env:
-                ARTIFACTORY_QA_READER_USERNAME: $(ARTIFACTORY_QA_READER_USERNAME)
-                ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_QA_READER_PASSWORD)
-                # For Orchestrator
-                ARTIFACTORY_API_KEY: $(ARTIFACTORY_API_KEY)
+                ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+                # For Orchestrator (https://github.com/SonarSource/orchestrator/commit/d5396c75ab77e6088afe58e61b0cd0693ac885f0)
+                ARTIFACTORY_ACCESS_TOKEN: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
                 GITHUB_TOKEN: $(GITHUB_TOKEN)
                 # SonarLintInstaller
                 MAVEN_LOCAL_REPOSITORY: $(MAVEN_CACHE_FOLDER)
