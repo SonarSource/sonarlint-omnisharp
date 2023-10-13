@@ -26,7 +26,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref:  refs/tags/v2.0.1
+      ref: refs/tags/v2.0.2
 
 
 stages:
