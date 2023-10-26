@@ -188,7 +188,7 @@
           <pluginClass>org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin</pluginClass>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <sonarLintSupported>true</sonarLintSupported>
-          <sonarQubeMinVersion>9.13</sonarQubeMinVersion> <!-- set 9.13 as runtime minimal API version, to be able to use the quickfix API -->
+          <pluginApiMinVersion>9.13</pluginApiMinVersion> <!-- set 9.13 as runtime minimal API version, to be able to use the quickfix API -->
         </configuration>
       </plugin>
       <plugin>
