@@ -104,7 +104,9 @@ public class OmnisharpSensor implements Sensor {
       Thread.currentThread().interrupt();
     } catch (ExecutionException e) {
       if (e.getCause() instanceof TimeoutException) {
-        LOG.error("Timeout waiting for the solution to be loaded. You can find help on https://github.com/SonarSource/sonarlint-intellij/wiki/Rider");
+        LOG.error("Timeout waiting for the solution to be loaded." +
+          " You can find help on https://docs.sonarsource.com/sonarlint/intellij/using-sonarlint/scan-my-project/#supported-features-in-rider" +
+          " or https://docs.sonarsource.com/sonarlint/vs-code/getting-started/requirements/#c-analysis");
         return;
       }
       throw new IllegalStateException("Analysis failed: " + e.getMessage(), e.getCause());
