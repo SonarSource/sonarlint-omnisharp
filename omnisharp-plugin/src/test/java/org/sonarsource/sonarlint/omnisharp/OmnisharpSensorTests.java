@@ -192,7 +192,9 @@ class OmnisharpSensorTests {
     verifyNoInteractions(mockProtocol);
 
     assertThat(logTester.logs(LoggerLevel.ERROR))
-      .contains("Timeout waiting for the solution to be loaded. You can find help on https://github.com/SonarSource/sonarlint-intellij/wiki/Rider");
+      .contains("Timeout waiting for the solution to be loaded." +
+        " You can find help on https://docs.sonarsource.com/sonarlint/intellij/using-sonarlint/scan-my-project/#supported-features-in-rider" +
+        " or https://docs.sonarsource.com/sonarlint/vs-code/getting-started/requirements/#c-analysis");
   }
 
   @Test
