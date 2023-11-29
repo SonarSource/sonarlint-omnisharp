@@ -30,6 +30,8 @@ Thumbs.db
 Desktop.ini
 /its/src/test/projects/ConsoleApp1/ConsoleApp1/obj
 /its/src/test/projects/ConsoleApp1/ConsoleApp1/bin
+/its/src/test/projects/DotNet8Project/DotNet8Project/obj
+/its/src/test/projects/DotNet8Project/DotNet8Project/bin
 /omnisharp-plugin/.vs
 /omnisharp-dotnet/.omnisharp
 /omnisharp-dotnet/JarContentFiles

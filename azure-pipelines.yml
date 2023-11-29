@@ -370,7 +370,7 @@ stages:
                 mavenSettingsFilePath: $(mavenSettings.secureFilePath)
             - task: UseDotNet@2
               inputs:
-                version: '7.0.x'
+                version: '8.0.x'
             - task: Maven@3
               displayName: 'Run Maven ITs for SQ'
               env:
