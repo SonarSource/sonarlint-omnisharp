@@ -108,6 +108,8 @@ stages:
             artifact: DotNetJarContentFiles
 
         - task: SonarQubeAnalyze@5
+          inputs:
+            jdkversion: 'JAVA_HOME_17_X64'
 
         - template: mend.yml@commonTemplates
           parameters:
@@ -245,7 +247,7 @@ stages:
                 testResultsFiles: '**/surefire-reports/TEST-*.xml'
                 testRunTitle: 'UTs on Windows'
                 javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.11'
+                jdkVersionOption: '1.17'
                 mavenOptions: $(MAVEN_OPTS)
         - job: test_linux
           displayName: Run unit tests on Linux
@@ -284,7 +286,7 @@ stages:
                 testResultsFiles: '**/surefire-reports/TEST-*.xml'
                 testRunTitle: 'UTs on Linux'
                 javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.11'
+                jdkVersionOption: '1.17'
                 mavenOptions: $(MAVEN_OPTS)
         - job: sonarqube
           displayName: SonarQube analysis on Next and Mend analysis
@@ -317,7 +319,7 @@ stages:
                 options: -B --settings $(mavenSettings.secureFilePath) -Pcoverage -DskipIts
                 publishJUnitResults: false
                 javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.11'
+                jdkVersionOption: '1.17'
                 mavenOptions: $(MAVEN_OPTS)
                 sonarQubeRunAnalysis: true
                 sqMavenPluginVersionChoice: 'latest'
@@ -388,7 +390,7 @@ stages:
                 testResultsFiles: '**/surefire-reports/TEST-*.xml'
                 testRunTitle: 'ITs $(imageName)'
                 javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.11'
+                jdkVersionOption: '1.17'
                 mavenOptions: $(MAVEN_OPTS)
             - bash: git checkout .
               name: revertPomChanges
