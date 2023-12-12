@@ -227,6 +227,18 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
             return documents.Select(x => x.Id).ToImmutableArray();
         }
 
+        public ImmutableArray<DocumentId> QueueDocumentsForDiagnostics(IEnumerable<Document> documents, AnalyzerWorkType workType)
+        {
+            // TODO
+            throw new NotImplementedException();
+        }
+
+        public bool AnalyzersEnabled
+        {
+            // TODO
+            get;
+        }
+
         public Task<ImmutableArray<DocumentDiagnostics>> GetAllDiagnosticsAsync()
         {
             var documents = _workspace.CurrentSolution.Projects.SelectMany(x => x.Documents).Select(x => x.FilePath).ToImmutableArray();

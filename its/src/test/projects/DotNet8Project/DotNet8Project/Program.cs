@@ -1,17 +1,14 @@
-﻿// simple method
-void print()
-{
-    Console.WriteLine("Hello World");
-}
+﻿namespace DotNet8Project;
 
-bool HasContent(IEnumerable<string> strings)
+public static class Class1
 {
-    strings = strings;
-    return strings.Count() > 0;
-}
 
-// non-compliant example
-var start = DateTime.Now;
-print();
-HasContent(new List<string>() { "a", "b" });
-Console.WriteLine($"{(DateTime.Now - start).TotalMilliseconds} ms");
+    public static void Method2()
+    {
+        Method(["", ""]);
+    }
+    static void Method(string[] list)
+    {
+        ;
+    }
+}

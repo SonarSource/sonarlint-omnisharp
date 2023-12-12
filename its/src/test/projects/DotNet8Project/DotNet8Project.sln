@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNet8Project", "DotNet8Project\DotNet8Project.csproj", "{95A8DB40-57A1-4BAA-AEB5-EBF5E3FD6F15}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNet8Project", "DotNet8Project\DotNet8Project.csproj", "{D426AF11-5650-4CEF-BE28-FBABCAFCB4DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +8,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{95A8DB40-57A1-4BAA-AEB5-EBF5E3FD6F15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{95A8DB40-57A1-4BAA-AEB5-EBF5E3FD6F15}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{95A8DB40-57A1-4BAA-AEB5-EBF5E3FD6F15}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{95A8DB40-57A1-4BAA-AEB5-EBF5E3FD6F15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D426AF11-5650-4CEF-BE28-FBABCAFCB4DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D426AF11-5650-4CEF-BE28-FBABCAFCB4DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D426AF11-5650-4CEF-BE28-FBABCAFCB4DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D426AF11-5650-4CEF-BE28-FBABCAFCB4DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
