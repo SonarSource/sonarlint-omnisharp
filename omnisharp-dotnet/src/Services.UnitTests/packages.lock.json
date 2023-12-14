@@ -453,8 +453,8 @@
       "sonarlint.omnisharp.dotnet.services": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.CodeAnalysis.CSharp.Features": "[4.9.0-3.23611.12, )",
-          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-3.23611.12, )",
+          "Microsoft.CodeAnalysis.CSharp.Features": "[4.9.0-3.23605.11, )",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-3.23605.11, )",
           "Microsoft.Extensions.Logging": "[7.0.0, )",
           "Newtonsoft.Json": "[13.0.1, )",
           "System.Collections.Immutable": "[7.0.0, )",

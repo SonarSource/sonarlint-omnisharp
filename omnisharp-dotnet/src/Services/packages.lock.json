@@ -4,7 +4,7 @@
     ".NETStandard,Version=v2.0": {
       "Microsoft.CodeAnalysis.CSharp.Features": {
         "type": "Direct",
-        "requested": "[4.9.0-3.23611.12, )",
+        "requested": "[4.9.0-3.23605.11, )",
         "resolved": "4.9.0-3.23611.12",
         "contentHash": "3tS2rlGgJefGCw3vV1Idhn/OzgoXfd7YzlIj5Co1Epo92hhkRQmD3ZDik+47PLzwD2QvrK3iut9O4lcXK0IbyQ==",
         "dependencies": {
@@ -18,7 +18,7 @@
       },
       "Microsoft.CodeAnalysis.CSharp.Workspaces": {
         "type": "Direct",
-        "requested": "[4.9.0-3.23611.12, )",
+        "requested": "[4.9.0-3.23605.11, )",
         "resolved": "4.9.0-3.23611.12",
         "contentHash": "9yEZM8AeDIwXEDsPht5PWHIw0pQLrGbAtY7L5PIcSTDlEqt1E4bYNrZ19jfcUbm86vwH3cCZ5LE53dzDaqEzQg==",
         "dependencies": {

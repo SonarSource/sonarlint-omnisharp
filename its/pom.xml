@@ -116,7 +116,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.10/omnisharp-linux-x64-net6.0.zip</url>
+              <url>https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/1.39.10/omnisharp-roslyn-1.39.10-net6.zip</url>
               <unpack>true</unpack>
               <outputDirectory>${project.build.directory}/omnisharp-net6</outputDirectory>
             </configuration>
