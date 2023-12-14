@@ -64,10 +64,11 @@ stages:
             Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
           displayName: 'Fetch the analysis version from the Java pom.xml'
 
-        - task: DotNetCoreCLI@2
+        - task: NuGetCommand@2
           displayName: 'Clean NuGet cache'
           inputs:
-            command: 'nuget locals http-cache --clear'
+            command: 'locals'
+            arguments: 'http-cache --clear'
             feedsToUse: 'select'
             vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
             includeNuGetOrg: false
