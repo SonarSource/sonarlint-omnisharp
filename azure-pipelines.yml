@@ -76,7 +76,7 @@ stages:
           inputs:
             command: 'restore'
             projects: $(slnPath)
-            restoreArguments: '--locked-mode'
+            restoreArguments: '--locked-mode -f --no-cache'
             feedsToUse: 'select'
             vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
             includeNuGetOrg: false
