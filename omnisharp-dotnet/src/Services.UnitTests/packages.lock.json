@@ -130,26 +130,26 @@
       },
       "Microsoft.CodeAnalysis.CSharp.Features": {
         "type": "Transitive",
-        "resolved": "4.9.0-3.23605.11",
-        "contentHash": "6URNZR71NwHDHhzNk8EURKvwddp8p170mFbrhkkukYAT3lFKn7DXAlxGJEKnJr0zG9NQzv97crobojYSbqvOJA==",
+        "resolved": "4.9.0-2.final",
+        "contentHash": "E0Ag+SZhXXAcjjU5pFUrSvSzr7W4MzvGW41FYs0jixkK20doAkfB6MLg60QIiEjIJ4C0zsRabqqMACbJ2n1dMg==",
         "dependencies": {
           "Humanizer.Core": "2.14.1",
-          "Microsoft.CodeAnalysis.CSharp": "[4.9.0-3.23605.11]",
-          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-3.23605.11]",
-          "Microsoft.CodeAnalysis.Common": "[4.9.0-3.23605.11]",
-          "Microsoft.CodeAnalysis.Features": "[4.9.0-3.23605.11]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.9.0-3.23605.11]"
+          "Microsoft.CodeAnalysis.CSharp": "[4.9.0-2.final]",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-2.final]",
+          "Microsoft.CodeAnalysis.Common": "[4.9.0-2.final]",
+          "Microsoft.CodeAnalysis.Features": "[4.9.0-2.final]",
+          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.9.0-2.final]"
         }
       },
       "Microsoft.CodeAnalysis.CSharp.Workspaces": {
         "type": "Transitive",
-        "resolved": "4.9.0-3.23605.11",
-        "contentHash": "ye+tuaGUMngY8yXW1lQWY2kqpeRs4N5VERLMqL7SmdH8WhbZyshgpD5g7m3tgHMam/6GgWs0BH718+pwyxcq7Q==",
+        "resolved": "4.9.0-2.final",
+        "contentHash": "bpjIFsHbU94uIUhk9Bwtox1llNt4/RR517O4hG10bDHKhr0i4w9ux0ZozAWGOt/J7ihSz0Dln+JkxTvqVzAyAw==",
         "dependencies": {
           "Humanizer.Core": "2.14.1",
-          "Microsoft.CodeAnalysis.CSharp": "[4.9.0-3.23605.11]",
-          "Microsoft.CodeAnalysis.Common": "[4.9.0-3.23605.11]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.9.0-3.23605.11]"
+          "Microsoft.CodeAnalysis.CSharp": "[4.9.0-2.final]",
+          "Microsoft.CodeAnalysis.Common": "[4.9.0-2.final]",
+          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.9.0-2.final]"
         }
       },
       "Microsoft.CodeAnalysis.Elfie": {
@@ -177,10 +177,10 @@
       },
       "Microsoft.CodeAnalysis.Scripting.Common": {
         "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "/rooxKDFwy5XnhXdhGfk0I7zaPuLg6G+jPlS0r0gxmdgYwhqIvLBRm2DMyI2WthxwGtPTCo2LqhCc5i5+JEnaw==",
+        "resolved": "4.9.0-3.23605.11",
+        "contentHash": "C6ASmT2vT8eUnCibFvrmSFpzv98bK4W9zoOlgY9jgBNowmCFLV4cGwztsb75cuYAPfmtp9YIYP5+6km4EjT/rA==",
         "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[4.7.0]"
+          "Microsoft.CodeAnalysis.Common": "[4.9.0-3.23605.11]"
         }
       },
       "Microsoft.CodeAnalysis.Workspaces.Common": {
@@ -299,8 +299,8 @@
       },
       "System.Composition.AttributedModel": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "NyElSuvmBMYdn2iPG0n29i7Igu0bq99izOP3MAtEwskY3OP9jqsavvVmPn9lesVaj/KT/o/QkNjA43dOJTsDQw=="
+        "resolved": "7.0.0",
+        "contentHash": "2QzClqjElKxgI1jK1Jztnq44/8DmSuTSGGahXqQ4TdEV0h9s2KikQZIgcEqVzR7OuWDFPGLHIprBJGQEPr8fAQ=="
       },
       "System.Composition.Convention": {
         "type": "Transitive",
@@ -453,13 +453,16 @@
       "sonarlint.omnisharp.dotnet.services": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.CodeAnalysis.CSharp.Features": "[4.9.0-3.*, )",
-          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-3.*, )",
-          "Microsoft.CodeAnalysis.Scripting.Common": "[4.*, )",
+          "Microsoft.CodeAnalysis.CSharp": "[4.9.0-3.23605.11, )",
+          "Microsoft.CodeAnalysis.CSharp.Features": "[4.9.0-2.final, )",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-2.final, )",
+          "Microsoft.CodeAnalysis.Common": "[4.9.0-3.23605.11, )",
+          "Microsoft.CodeAnalysis.Features": "[4.9.0-3.23605.11, )",
+          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.9.0-3.23605.11, )",
           "Microsoft.Extensions.Logging": "[7.0.0, )",
           "Newtonsoft.Json": "[13.0.1, )",
           "System.Collections.Immutable": "[7.0.0, )",
-          "System.Composition.AttributedModel": "[7.*, )",
+          "System.Composition.AttributedModel": "[7.0.0, )",
           "System.Reactive": "[4.4.1, )"
         }
       }
