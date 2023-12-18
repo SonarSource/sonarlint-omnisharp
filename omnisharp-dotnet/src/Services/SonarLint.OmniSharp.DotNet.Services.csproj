@@ -13,9 +13,9 @@
          Referencing a different version of NewtonSoft.Json doesn't seem to cause a problem,
          but we're targeting the same version to be on the safe side.
     -->
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.9.0-3.23605.11" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.9.0-3.23605.11" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.9.0-1.23504.3" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.9.0-1.23504.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
 		<PackageReference Include="System.Composition.AttributedModel" Version="7.0.0" />
 		<PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
