@@ -31,17 +31,11 @@
       "Microsoft.CodeAnalysis.Scripting.Common": {
         "type": "Direct",
         "requested": "[4.*, )",
-        "resolved": "4.6.0",
-        "contentHash": "BprguoVYmzRKvBtIDV0mkpGur5V385zqf2aPejBVcBwX9oTJORs/aPric8S2RmV+FKZj6Sj6jbmT4nwOvBQHbg==",
+        "resolved": "4.7.0",
+        "contentHash": "/rooxKDFwy5XnhXdhGfk0I7zaPuLg6G+jPlS0r0gxmdgYwhqIvLBRm2DMyI2WthxwGtPTCo2LqhCc5i5+JEnaw==",
         "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[4.6.0]"
+          "Microsoft.CodeAnalysis.Common": "[4.7.0]"
         }
-      },
-      "Microsoft.DiaSymReader": {
-        "type": "Direct",
-        "requested": "[2.0.0, )",
-        "resolved": "2.0.0",
-        "contentHash": "QcZrCETsBJqy/vQpFtJc+jSXQ0K5sucQ6NUFbTNVHD4vfZZOwjZ/3sBzczkC4DityhD3AVO/+K/+9ioLs1AgRA=="
       },
       "Microsoft.Extensions.Logging": {
         "type": "Direct",
@@ -84,7 +78,7 @@
       },
       "System.Composition.AttributedModel": {
         "type": "Direct",
-        "requested": "[8.0.0, )",
+        "requested": "[7.*, )",
         "resolved": "8.0.0",
         "contentHash": "NyElSuvmBMYdn2iPG0n29i7Igu0bq99izOP3MAtEwskY3OP9jqsavvVmPn9lesVaj/KT/o/QkNjA43dOJTsDQw=="
       },
@@ -179,6 +173,11 @@
           "System.IO.Pipelines": "7.0.0",
           "System.Threading.Channels": "7.0.0"
         }
+      },
+      "Microsoft.DiaSymReader": {
+        "type": "Transitive",
+        "resolved": "2.0.0",
+        "contentHash": "QcZrCETsBJqy/vQpFtJc+jSXQ0K5sucQ6NUFbTNVHD4vfZZOwjZ/3sBzczkC4DityhD3AVO/+K/+9ioLs1AgRA=="
       },
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Transitive",

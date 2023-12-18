@@ -177,10 +177,10 @@
       },
       "Microsoft.CodeAnalysis.Scripting.Common": {
         "type": "Transitive",
-        "resolved": "4.6.0",
-        "contentHash": "BprguoVYmzRKvBtIDV0mkpGur5V385zqf2aPejBVcBwX9oTJORs/aPric8S2RmV+FKZj6Sj6jbmT4nwOvBQHbg==",
+        "resolved": "4.7.0",
+        "contentHash": "/rooxKDFwy5XnhXdhGfk0I7zaPuLg6G+jPlS0r0gxmdgYwhqIvLBRm2DMyI2WthxwGtPTCo2LqhCc5i5+JEnaw==",
         "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[4.6.0]"
+          "Microsoft.CodeAnalysis.Common": "[4.7.0]"
         }
       },
       "Microsoft.CodeAnalysis.Workspaces.Common": {
@@ -456,11 +456,10 @@
           "Microsoft.CodeAnalysis.CSharp.Features": "[4.9.0-3.*, )",
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "[4.9.0-3.*, )",
           "Microsoft.CodeAnalysis.Scripting.Common": "[4.*, )",
-          "Microsoft.DiaSymReader": "[2.0.0, )",
           "Microsoft.Extensions.Logging": "[7.0.0, )",
           "Newtonsoft.Json": "[13.0.1, )",
           "System.Collections.Immutable": "[7.0.0, )",
-          "System.Composition.AttributedModel": "[8.0.0, )",
+          "System.Composition.AttributedModel": "[7.*, )",
           "System.Reactive": "[4.4.1, )"
         }
       }
