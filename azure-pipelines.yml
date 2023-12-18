@@ -78,7 +78,7 @@ stages:
             projects: $(slnPath)
             restoreArguments: '--locked-mode -f --no-cache'
             feedsToUse: config
-            nugetConfigPath: nuget.config
+            nugetConfigPath: 'omnisharp-dotnet/nuget.config'
             includeNuGetOrg: false
 
         - template: prepare-sq-analysis-steps.yml@commonTemplates
