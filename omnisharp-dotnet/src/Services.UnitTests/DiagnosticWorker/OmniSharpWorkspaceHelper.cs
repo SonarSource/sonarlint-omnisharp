@@ -96,9 +96,9 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
                 _sourceText = sourceText;
             }
 
-            public override async Task<TextAndVersion> LoadTextAndVersionAsync(LoadTextOptions options, CancellationToken token)
+            public override Task<TextAndVersion> LoadTextAndVersionAsync(LoadTextOptions options, CancellationToken token)
             {
-                return TextAndVersion.Create(SourceText.From(_sourceText), VersionStamp.Default);
+                return Task.FromResult(TextAndVersion.Create(SourceText.From(_sourceText), VersionStamp.Default));
             }
         }
     }
