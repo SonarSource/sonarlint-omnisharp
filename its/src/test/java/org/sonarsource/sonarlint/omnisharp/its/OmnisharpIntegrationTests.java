@@ -224,26 +224,40 @@ class OmnisharpIntegrationTests {
   @Test
   void analyzeNet8Solution(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet8Project");
-    ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet8Project/Program.cs", null, false);
+    ClientInputFile inputFile = prepareInputFile(baseDir, "DotNet8Project/Program.cs",
+      "namespace DotNet8Project;\n" +
+        "\n" +
+        "public static class Class1\n" +
+        "{\n" +
+        "\n" +
+        "    public static void Method2()\n" +
+        "    {\n" +
+        "        Method([\"\", \"\"]);\n" +
+        "    }\n" +
+        "    static void Method(string[] list)\n" +
+        "    {\n" +
+        "        ;\n" +
+        "    }\n" +
+        "}\n",
+      false);
 
     final List<Issue> issues = new ArrayList<>();
     StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
       .setBaseDir(baseDir)
       .addInputFile(inputFile)
       .setModuleKey(SOLUTION1_MODULE_KEY)
-      .putExtraProperty("sonar.cs.internal.useNet8", "true")
+      .putExtraProperty("sonar.cs.internal.useNet6", "true")
       .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("DotNet8Project.sln").toString())
       .build();
     sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null);
 
     assertThat(issues)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset,
-        Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(), Issue::getSeverity)
+      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
+        Issue::getSeverity)
       .containsOnly(
-        tuple("csharpsquid:S6561", "Avoid using \"DateTime.Now\" for benchmarking or timespan calculation operations.", 17, 22, 17, 42, inputFile.getPath(), MAJOR),
-        tuple("csharpsquid:S1155", "Use '.Any()' to test whether this 'IEnumerable<string>' is empty or not.", 10, 19, 10, 24, inputFile.getPath(), MINOR),
-        tuple("csharpsquid:S1656", "Remove or correct this useless self-assignment.", 9, 4, 9, 11, inputFile.getPath(), MAJOR),
-        tuple("csharpsquid:S3241", "Change return type to 'void'; not a single caller uses the returned value.", 7, 0, 7, 4, inputFile.getPath(), MINOR));
+        tuple("csharpsquid:S1116", "Remove this empty statement.", 12, 8, 12, 9, inputFile.getPath(), MINOR),
+        tuple("csharpsquid:S1172", "Remove this unused method parameter 'list'.", 10, 23, 10, 36, inputFile.getPath(), MAJOR)
+      );
   }
 
   @Test

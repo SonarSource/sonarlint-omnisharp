@@ -71,8 +71,8 @@ stages:
             command: 'restore'
             projects: $(slnPath)
             restoreArguments: '--locked-mode'
-            feedsToUse: 'select'
-            vstsFeed: '399fb241-ecc7-4802-8697-dcdd01fbb832/423b576f-2263-43a1-93bd-69f4def19102'
+            feedsToUse: config
+            nugetConfigPath: 'omnisharp-dotnet/nuget.config'
             includeNuGetOrg: false
 
         - template: prepare-sq-analysis-steps.yml@commonTemplates

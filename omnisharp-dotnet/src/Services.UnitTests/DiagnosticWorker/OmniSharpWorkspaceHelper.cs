@@ -18,6 +18,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -51,9 +52,8 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
         public static OmniSharpWorkspace CreateOmnisharpWorkspaceWithDocument(string documentFileName, string documentContent)
         {
             var projectInfo = CreateProjectInfo();
-            var textLoader = new InMemoryTextLoader();
+            var textLoader = new InMemoryTextLoader(documentContent);
             var documentInfo = CreateDocumentInfo(projectInfo, textLoader, documentFileName);
-            textLoader.AddText(documentInfo.Id, documentContent);
 
             var workspace = CreateOmniSharpWorkspace();
             workspace.AddProject(projectInfo);
@@ -89,17 +89,16 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.DiagnosticWorker
 
         private class InMemoryTextLoader : TextLoader
         {
-            private readonly Dictionary<DocumentId, string> documentsText = new();
-
-            public void AddText(DocumentId documentInfoId, string someText)
+            private readonly String _sourceText;
+            
+            public InMemoryTextLoader(String sourceText)
             {
-                documentsText.Add(documentInfoId, someText);
+                _sourceText = sourceText;
             }
 
-            public override async Task<TextAndVersion> LoadTextAndVersionAsync(Workspace workspace, DocumentId documentId, CancellationToken cancellationToken)
+            public override Task<TextAndVersion> LoadTextAndVersionAsync(LoadTextOptions options, CancellationToken token)
             {
-                var text = documentsText[documentId];
-                return TextAndVersion.Create(SourceText.From(text), VersionStamp.Default);
+                return Task.FromResult(TextAndVersion.Create(SourceText.From(_sourceText), VersionStamp.Default));
             }
         }
     }

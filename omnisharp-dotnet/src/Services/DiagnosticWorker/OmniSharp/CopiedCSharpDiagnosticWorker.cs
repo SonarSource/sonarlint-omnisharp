@@ -42,12 +42,13 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
         private readonly IObserver<string> _openDocuments;
         private readonly IDisposable _disposable;
 
-        public CopiedCSharpDiagnosticWorker(OmniSharpWorkspace workspace, DiagnosticEventForwarder forwarder, ILoggerFactory loggerFactory, OmniSharpOptions options)
+        public CopiedCSharpDiagnosticWorker(OmniSharpWorkspace workspace, DiagnosticEventForwarder forwarder, ILoggerFactory loggerFactory, OmniSharpOptions options, bool enableAnalyzers = true)
         {
             _workspace = workspace;
             _forwarder = forwarder;
             _logger = loggerFactory.CreateLogger<CopiedCSharpDiagnosticWorker>();
             _options = options;
+            AnalyzersEnabled = enableAnalyzers;
 
             var openDocumentsSubject = new Subject<string>();
             _openDocuments = openDocumentsSubject;
@@ -225,6 +226,17 @@ namespace OmniSharp.Roslyn.CSharp.Workers.Diagnostics
             var documents = projectIds.SelectMany(projectId => _workspace.CurrentSolution.GetProject(projectId).Documents);
             QueueForDiagnosis(documents.Select(x => x.FilePath).ToImmutableArray());
             return documents.Select(x => x.Id).ToImmutableArray();
+        }
+
+        public ImmutableArray<DocumentId> QueueDocumentsForDiagnostics(IEnumerable<Document> documents, AnalyzerWorkType workType)
+        {
+            QueueForDiagnosis(documents.Select(document => document.FilePath).ToImmutableArray());
+            return documents.Select(document => document.Id).ToImmutableArray();
+        }
+
+        public bool AnalyzersEnabled
+        {
+            get;
         }
 
         public Task<ImmutableArray<DocumentDiagnostics>> GetAllDiagnosticsAsync()
