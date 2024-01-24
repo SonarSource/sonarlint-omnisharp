@@ -16,7 +16,7 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>9.15.0.81779</analyzer.version>
+    <analyzer.version>9.17.0.82934</analyzer.version>
     <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
     <sonar.analyzer.commons>2.7.0.1482</sonar.analyzer.commons>
     <sonar.version>10.3.0.1951</sonar.version>
