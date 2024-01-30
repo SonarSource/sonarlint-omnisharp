@@ -32,7 +32,6 @@
 		<OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)\</OmniSharpLocalDownloadDir>
 		<OmniSharpUnzippedDir>$(OmniSharpLocalDownloadDir)\unzipped</OmniSharpUnzippedDir>
 	</PropertyGroup>
-	<Import Project="build\DownloadOmniSharp.targets"/>
 
 	<ItemGroup Label="OmniSharp assemblies">
 		<Reference Include="$(OmniSharpUnzippedDir)\OmniSharp.Abstractions.dll" Private="$(CopyOmniSharpToOutput)" />

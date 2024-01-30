@@ -89,6 +89,53 @@ stages:
           inputs:
             version: '7.0.307'
 
+        - powershell: |
+            # Reads the Sonar project version to use from the Java POM file
+            
+            # Calculate the POM file path
+            $buildPath = "$env:BUILD_SOURCESDIRECTORY\omnisharp-dotnet\Directory.Build.props"
+            Write-Host "Reading the Sonar project version from '${buildPath}' ..."
+            
+            # Read the version from the file
+            [xml]$buildProps = Get-Content "$buildPath"
+            $omniSharpVersion = $buildProps.Project.PropertyGroup.OmniSharpVersion
+            Write-Host "Sonar omniSharp version is '${omniSharpVersion}'"
+            
+            # Set the variable to it can be used by other tasks
+            Write-Output "##vso[task.setvariable variable=OmniSharpVersion;]$omniSharpVersion"
+            Write-Host "Sonar omniSharp version is '${OmniSharpVersion}'"
+
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '3.x'
+        - bash: pip3 install requests
+        - task: PythonScript@0
+          name: downloadOmnisharp
+          env:
+            ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+          inputs:
+            scriptSource: 'inline'
+            script: |
+              import requests, zipfile, io, os
+              version = "$(OmniSharpVersion)"
+              version = version.strip()
+              print(version)
+              localPath = "$(Build.Repository.LocalPath)"
+              localPath = localPath.strip()
+              print(localPath)
+              
+              url = "https://repox.jfrog.io/artifactory/sonarsource/org/sonarsource/sonarlint/omnisharp/omnisharp-roslyn/"+ version +"/omnisharp-roslyn-"+ version +"-net472.zip"
+              print(url)
+              
+              header = {'Authorization': 'Bearer $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)'}
+              r = requests.get(url, headers=header)
+              z = zipfile.ZipFile(io.BytesIO(r.content))
+              z.extractall(localPath + "/omnisharp-dotnet/.omnisharp/"+ version +"/unzipped")
+              arr = os.listdir(localPath + "/omnisharp-dotnet/.omnisharp/"+ version +"/unzipped")
+              
+              print(arr)
+              print(r.status_code)
+              print(len(r.content))
 
         # Build and run can be invoked in a single "test" command.
         # This could also execute the restore, but we'd want to work out how to limit the package feed used
