@@ -44,6 +44,7 @@
     <junit.version>5.9.1</junit.version>
     <sonarlint-core.version>9.0.0.74282</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
+    <omnisharp.version>1.39.10</omnisharp.version>
   </properties>
 
   <dependencyManagement>
@@ -120,11 +121,11 @@
                     <artifactItem>
                       <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
                       <artifactId>omnisharp-roslyn</artifactId>
-                      <version>1.39.10</version>
+                      <version>${omnisharp.version}</version>
                       <classifier>net472</classifier>
                       <type>zip</type>
                       <overWrite>true</overWrite>
-                      <outputDirectory>${project.build.directory}/../omnisharp-dotnet/.omnisharp/1.39.10/unzipped</outputDirectory>
+                      <outputDirectory>${project.build.directory}/../omnisharp-dotnet/.omnisharp/${omnisharp.version}</outputDirectory>
                     </artifactItem>
                   </artifactItems>
                 </configuration>
