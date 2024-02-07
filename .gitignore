@@ -33,6 +33,6 @@ Desktop.ini
 /its/src/test/projects/DotNet8Project/DotNet8Project/obj
 /its/src/test/projects/DotNet8Project/DotNet8Project/bin
 /omnisharp-plugin/.vs
-/omnisharp-dotnet/.omnisharp
+**/.omnisharp/**
 /omnisharp-dotnet/JarContentFiles
 /omnisharp-dotnet/src/SonarLint.OmniSharp.Plugin/Properties/launchSettings.json
