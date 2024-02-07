@@ -99,6 +99,41 @@
         <module>its</module>
       </modules>
     </profile>
+
+    <profile>
+      <id>download-omnisharp-for-building</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>download-omnisharp-windows</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>unpack</goal>
+                </goals>
+                <configuration>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
+                      <artifactId>omnisharp-roslyn</artifactId>
+                      <version>1.39.10</version>
+                      <classifier>net472</classifier>
+                      <type>zip</type>
+                      <overWrite>true</overWrite>
+                      <outputDirectory>${project.build.directory}/../omnisharp-dotnet/.omnisharp/1.39.10/unzipped</outputDirectory>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
 </project>
