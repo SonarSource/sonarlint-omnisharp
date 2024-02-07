@@ -27,6 +27,9 @@ The Azure pipeline builds, tests and packages both components.
 
 Use the following commands to build locally:
 
+Download OmniSharp fork
+`mvn generate-resources -Pdownload-omnisharp-for-building`
+
 .NET solution:
 `dotnet build omnisharp-dotnet\SonarLint.OmniSharp.DotNet.Services.sln`
 

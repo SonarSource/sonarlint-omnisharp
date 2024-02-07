@@ -96,7 +96,7 @@
                  <artifactItem>
                    <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
                    <artifactId>omnisharp-roslyn</artifactId>
-                   <version>1.39.10</version>
+                   <version>${omnisharp.version}</version>
                    <classifier>net472</classifier>
                    <type>zip</type>
                    <overWrite>true</overWrite>
@@ -116,7 +116,7 @@
                  <artifactItem>
                    <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
                    <artifactId>omnisharp-roslyn</artifactId>
-                   <version>1.39.10</version>
+                   <version>${omnisharp.version}</version>
                    <classifier>mono</classifier>
                    <type>zip</type>
                    <overWrite>true</overWrite>
@@ -136,7 +136,7 @@
                  <artifactItem>
                    <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
                    <artifactId>omnisharp-roslyn</artifactId>
-                   <version>1.39.10</version>
+                   <version>${omnisharp.version}</version>
                    <classifier>net6</classifier>
                    <type>zip</type>
                    <overWrite>true</overWrite>
