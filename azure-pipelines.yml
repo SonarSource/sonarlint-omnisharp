@@ -26,7 +26,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref: refs/tags/v2.0.2
+      ref: refs/tags/v3.0.0
 
 
 stages:
@@ -142,279 +142,267 @@ stages:
             # Using a different agent config file for the .NET scan
             configFilePath: '$(Build.SourcesDirectory)/omnisharp-dotnet/build/whitesource/wss-unified-agent.config'
 
-  - template: stage-with-burgr-notifications.yml@commonTemplates
-    parameters:
-      burgrName: 'build'
-      burgrType: 'build'
-      stageName: 'build'
-      stageDisplayName: Build and stage to repox
-      stageDependencies: build_dotnet
-      jobs:
-        - job: build
-          displayName: Build and stage to repox
-          variables:
-            MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
-            MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
-            commonMavenArguments: -B -Pdeploy-sonarsource -Dmaven.test.skip=true
-            fixedBranch: $[replace(variables['Build.SourceBranch'], 'refs/heads/', '')]
-          steps:
-            - checkout: self
-              fetchDepth: 1
-            - task: Cache@2
-              inputs:
-                key: 'build | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
-                path: $(MAVEN_CACHE_FOLDER)
-              displayName: Cache Maven local repo
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download .NET artifacts'
-              inputs:
-                source: current
-                artifact: DotNetJarContentFiles
-                path: omnisharp-dotnet/JarContentFiles
-            - task: DownloadSecureFile@1
-              displayName: 'Download Maven settings'
-              name: mavenSettings
-              inputs:
-                secureFile: 'maven-settings.xml'
-            - task: DownloadSecureFile@1
-              displayName: 'Download the sign key'
-              name: pgpSignKey
-              inputs:
-                secureFile: 'sign-key.asc'
-            - template: update-maven-version-steps.yml
-              parameters:
-                mavenSettingsFilePath: $(mavenSettings.secureFilePath)
-            - task: Maven@3
-              displayName: 'Run Maven deploy and sign'
-              condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-              env:
-                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
-                PGP_PASSPHRASE: $(PGP_PASSPHRASE)
-                GIT_SHA1: $(Build.SourceVersion)
-                GITHUB_BRANCH: $(fixedBranch)
-              inputs:
-                goals: 'deploy'
-                options: >-
-                  $(commonMavenArguments)
-                  --settings $(mavenSettings.secureFilePath)
-                  -Prelease,sign
-                  -Dsign.keyFile=$(pgpSignKey.secureFilePath)
-                  -DskipIts
-                publishJUnitResults: false
-                javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.11'
-                mavenOptions: $(MAVEN_OPTS)
-            - task: Maven@3
-              displayName: 'Run Maven deploy'
-              condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
-              env:
-                ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
-              inputs:
-                goals: 'deploy'
-                options: >-
-                  $(commonMavenArguments)
-                  --settings $(mavenSettings.secureFilePath)
-                  -DskipIts
-                publishJUnitResults: false
-                javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.11'
-                mavenOptions: $(MAVEN_OPTS)
-            - bash: git checkout .
-              name: revertPomChanges
-              displayName: Revert changes made to pom.xml to not break cache feature
-  - template: stage-with-burgr-notifications.yml@commonTemplates
-    parameters:
-      burgrName: 'validate'
-      burgrType: 'validate'
-      stageName: 'validate'
-      stageDisplayName: Run UTs and trigger SonarQube analysis
-      stageDependencies: build_dotnet
-      jobs:
-        - job: test_windows
-          displayName: Run unit tests on Windows
-          pool:
-            vmImage: 'windows-latest'
-          variables:
-            MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
-            MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
-          steps:
-            - checkout: self
-              fetchDepth: 1
-            - task: Cache@2
-              inputs:
-                key: 'validate_win | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
-                path: $(MAVEN_CACHE_FOLDER)
-              displayName: Cache Maven local repo
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download .NET artifacts'
-              inputs:
-                source: current
-                artifact: DotNetJarContentFiles
-                path: omnisharp-dotnet/JarContentFiles
-            - task: DownloadSecureFile@1
-              displayName: 'Download Maven settings'
-              name: mavenSettings
-              inputs:
-                secureFile: 'maven-settings.xml'
-            - task: Maven@3
-              displayName: 'Run Maven verify'
-              env:
-                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
-              inputs:
-                goals: 'verify'
-                options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
-                publishJUnitResults: true
-                testResultsFiles: '**/surefire-reports/TEST-*.xml'
-                testRunTitle: 'UTs on Windows'
-                javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.17'
-                mavenOptions: $(MAVEN_OPTS)
-        - job: test_linux
-          displayName: Run unit tests on Linux
-          pool:
-            vmImage: 'ubuntu-latest'
-          variables:
-            MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
-            MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
-          steps:
-            - checkout: self
-              fetchDepth: 1
-            - task: Cache@2
-              inputs:
-                key: 'validate_linux | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
-                path: $(MAVEN_CACHE_FOLDER)
-              displayName: Cache Maven local repo
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download .NET artifacts'
-              inputs:
-                source: current
-                artifact: DotNetJarContentFiles
-                path: omnisharp-dotnet/JarContentFiles
-            - task: DownloadSecureFile@1
-              displayName: 'Download Maven settings'
-              name: mavenSettings
-              inputs:
-                secureFile: 'maven-settings.xml'
-            - task: Maven@3
-              displayName: 'Run Maven verify'
-              env:
-                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
-              inputs:
-                goals: 'verify'
-                options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
-                publishJUnitResults: true
-                testResultsFiles: '**/surefire-reports/TEST-*.xml'
-                testRunTitle: 'UTs on Linux'
-                javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.17'
-                mavenOptions: $(MAVEN_OPTS)
-        - job: sonarqube
-          displayName: SonarQube analysis on Next and Mend analysis
-          variables:
-            MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
-            MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
-          steps:
-            - task: Cache@2
-              inputs:
-                key: 'sq | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
-                path: $(MAVEN_CACHE_FOLDER)
-              displayName: Cache Maven local repo
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download .NET artifacts'
-              inputs:
-                source: current
-                artifact: DotNetJarContentFiles
-                path: omnisharp-dotnet/JarContentFiles
-            - task: DownloadSecureFile@1
-              displayName: 'Download Maven settings'
-              name: mavenSettings
-              inputs:
-                secureFile: 'maven-settings.xml'
-            - template: prepare-sq-analysis-steps.yml
-            - task: Maven@3
-              env:
-                ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
-              inputs:
-                goals: 'verify'
-                options: -B --settings $(mavenSettings.secureFilePath) -Pcoverage -DskipIts
-                publishJUnitResults: false
-                javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.17'
-                mavenOptions: $(MAVEN_OPTS)
-                sonarQubeRunAnalysis: true
-                sqMavenPluginVersionChoice: 'latest'
-            - template: mend-with-maven-repox.yml@commonTemplates
-              parameters:
-                # NB using the default projectName for this scan so it works with the releasability check.
-                # The .NET Mend scan (above) uses a custom projectName.
-                productName : 'SonarLint/OmniSharp'
-                mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
-                mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
+  - stage: build
+    displayName: 'Build and stage to repox'
+    dependsOn: build_dotnet
+    jobs:
+      - job: build
+        displayName: Build and stage to repox
+        variables:
+          MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+          MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+          commonMavenArguments: -B -Pdeploy-sonarsource -Dmaven.test.skip=true
+          fixedBranch: $[replace(variables['Build.SourceBranch'], 'refs/heads/', '')]
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - task: Cache@2
+            inputs:
+              key: 'build | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
+              path: $(MAVEN_CACHE_FOLDER)
+            displayName: Cache Maven local repo
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download .NET artifacts'
+            inputs:
+              source: current
+              artifact: DotNetJarContentFiles
+              path: omnisharp-dotnet/JarContentFiles
+          - task: DownloadSecureFile@1
+            displayName: 'Download Maven settings'
+            name: mavenSettings
+            inputs:
+              secureFile: 'maven-settings.xml'
+          - task: DownloadSecureFile@1
+            displayName: 'Download the sign key'
+            name: pgpSignKey
+            inputs:
+              secureFile: 'sign-key.asc'
+          - template: update-maven-version-steps.yml@commonTemplates
+            parameters:
+              mavenSettingsFilePath: $(mavenSettings.secureFilePath)
+          - task: Maven@3
+            displayName: 'Run Maven deploy and sign'
+            condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+            env:
+              ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
+              PGP_PASSPHRASE: $(PGP_PASSPHRASE)
+              GIT_SHA1: $(Build.SourceVersion)
+              GITHUB_BRANCH: $(fixedBranch)
+            inputs:
+              goals: 'deploy'
+              options: >-
+                $(commonMavenArguments)
+                --settings $(mavenSettings.secureFilePath)
+                -Prelease,sign
+                -Dsign.keyFile=$(pgpSignKey.secureFilePath)
+                -DskipIts
+              publishJUnitResults: false
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.11'
+              mavenOptions: $(MAVEN_OPTS)
+          - task: Maven@3
+            displayName: 'Run Maven deploy'
+            condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+            env:
+              ARTIFACTORY_DEPLOY_PASSWORD: $(ARTIFACTORY_QA_DEPLOYER_ACCESS_TOKEN)
+            inputs:
+              goals: 'deploy'
+              options: >-
+                $(commonMavenArguments)
+                --settings $(mavenSettings.secureFilePath)
+                -DskipIts
+              publishJUnitResults: false
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.11'
+              mavenOptions: $(MAVEN_OPTS)
+          - bash: git checkout .
+            name: revertPomChanges
+            displayName: Revert changes made to pom.xml to not break cache feature
+  - stage: validate
+    displayName: 'Run UTs and trigger SonarQube analysis'
+    dependsOn: build_dotnet
+    jobs:
+      - job: test_windows
+        displayName: Run unit tests on Windows
+        pool:
+          vmImage: 'windows-latest'
+        variables:
+          MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+          MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - task: Cache@2
+            inputs:
+              key: 'validate_win | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
+              path: $(MAVEN_CACHE_FOLDER)
+            displayName: Cache Maven local repo
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download .NET artifacts'
+            inputs:
+              source: current
+              artifact: DotNetJarContentFiles
+              path: omnisharp-dotnet/JarContentFiles
+          - task: DownloadSecureFile@1
+            displayName: 'Download Maven settings'
+            name: mavenSettings
+            inputs:
+              secureFile: 'maven-settings.xml'
+          - task: Maven@3
+            displayName: 'Run Maven verify'
+            env:
+              ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+            inputs:
+              goals: 'verify'
+              options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              testRunTitle: 'UTs on Windows'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenOptions: $(MAVEN_OPTS)
+      - job: test_linux
+        displayName: Run unit tests on Linux
+        pool:
+          vmImage: 'ubuntu-latest'
+        variables:
+          MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+          MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - task: Cache@2
+            inputs:
+              key: 'validate_linux | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
+              path: $(MAVEN_CACHE_FOLDER)
+            displayName: Cache Maven local repo
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download .NET artifacts'
+            inputs:
+              source: current
+              artifact: DotNetJarContentFiles
+              path: omnisharp-dotnet/JarContentFiles
+          - task: DownloadSecureFile@1
+            displayName: 'Download Maven settings'
+            name: mavenSettings
+            inputs:
+              secureFile: 'maven-settings.xml'
+          - task: Maven@3
+            displayName: 'Run Maven verify'
+            env:
+              ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+            inputs:
+              goals: 'verify'
+              options: '-B --settings $(mavenSettings.secureFilePath) -DskipIts'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              testRunTitle: 'UTs on Linux'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenOptions: $(MAVEN_OPTS)
+      - job: sonarqube
+        displayName: SonarQube analysis on Next and Mend analysis
+        variables:
+          MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+          MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+        steps:
+          - task: Cache@2
+            inputs:
+              key: 'sq | maven | "$(Agent.OS)" | **/pom.xml, !its/**'
+              path: $(MAVEN_CACHE_FOLDER)
+            displayName: Cache Maven local repo
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download .NET artifacts'
+            inputs:
+              source: current
+              artifact: DotNetJarContentFiles
+              path: omnisharp-dotnet/JarContentFiles
+          - task: DownloadSecureFile@1
+            displayName: 'Download Maven settings'
+            name: mavenSettings
+            inputs:
+              secureFile: 'maven-settings.xml'
+          - template: prepare-sq-analysis-steps.yml@commonTemplates
+          - task: Maven@3
+            env:
+              ARTIFACTORY_PRIVATE_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+            inputs:
+              goals: 'verify'
+              options: -B --settings $(mavenSettings.secureFilePath) -Pcoverage -DskipIts
+              publishJUnitResults: false
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenOptions: $(MAVEN_OPTS)
+              sonarQubeRunAnalysis: true
+              sqMavenPluginVersionChoice: 'latest'
+          - template: mend-with-maven-repox.yml@commonTemplates
+            parameters:
+              # NB using the default projectName for this scan so it works with the releasability check.
+              # The .NET Mend scan (above) uses a custom projectName.
+              productName : 'SonarLint/OmniSharp'
+              mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
+              mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
 
-  - template: stage-with-burgr-notifications.yml@commonTemplates
-    parameters:
-      burgrName: 'qa'
-      burgrType: 'qa'
-      stageName: 'qa'
-      stageDisplayName: Run ITs
-      stageDependencies: build
-      jobs:
-        - job: its
-          displayName: Run ITs
-          strategy:
-            matrix:
-             Linux:
-               imageName: 'ubuntu-latest'
-             Windows:
-               imageName: 'windows-latest'
-             MacOS:
-               imageName: 'macOS-latest'
-          variables:
-            MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
-            MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
-          pool:
-            vmImage: $(imageName)
-          steps:
-            - checkout: self
-              fetchDepth: 1
-            - task: Cache@2
-              inputs:
-                key: 'its | maven | "$(Agent.OS)" | **/pom.xml'
-                path: $(MAVEN_CACHE_FOLDER)
-              displayName: Cache Maven local repo
-            - task: DownloadSecureFile@1
-              displayName: 'Download Maven settings'
-              name: mavenSettings
-              inputs:
-                secureFile: 'maven-settings.xml'
-            - template: update-maven-version-steps.yml
-              parameters:
-                mavenSettingsFilePath: $(mavenSettings.secureFilePath)
-            - task: UseDotNet@2
-              inputs:
-                version: '8.0.x'
-            - task: Maven@3
-              displayName: 'Run Maven ITs for SQ'
-              env:
-                ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
-                # For Orchestrator (https://github.com/SonarSource/orchestrator/commit/d5396c75ab77e6088afe58e61b0cd0693ac885f0)
-                ARTIFACTORY_ACCESS_TOKEN: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
-                GITHUB_TOKEN: $(GITHUB_TOKEN)
-                # SonarLintInstaller
-                MAVEN_LOCAL_REPOSITORY: $(MAVEN_CACHE_FOLDER)
-              inputs:
-                goals: 'verify'
-                mavenPomFile: 'its/pom.xml'
-                options: '-X -B --settings $(mavenSettings.secureFilePath) -Denable-repo=qa -DskipTests=false -Pdownload-staged-artifact'
-                publishJUnitResults: true
-                testResultsFiles: '**/surefire-reports/TEST-*.xml'
-                testRunTitle: 'ITs $(imageName)'
-                javaHomeOption: 'JDKVersion'
-                jdkVersionOption: '1.17'
-                mavenOptions: $(MAVEN_OPTS)
-            - bash: git checkout .
-              name: revertPomChanges
-              displayName: Revert changes made to pom.xml to not break cache feature
+  - stage: qa
+    displayName: 'Run ITs'
+    dependsOn: build
+    jobs:
+      - job: its
+        displayName: Run ITs
+        strategy:
+          matrix:
+           Linux:
+             imageName: 'ubuntu-latest'
+           Windows:
+             imageName: 'windows-latest'
+           MacOS:
+             imageName: 'macOS-latest'
+        variables:
+          MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+          MAVEN_OPTS: '-Xmx3072m -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+        pool:
+          vmImage: $(imageName)
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - task: Cache@2
+            inputs:
+              key: 'its | maven | "$(Agent.OS)" | **/pom.xml'
+              path: $(MAVEN_CACHE_FOLDER)
+            displayName: Cache Maven local repo
+          - task: DownloadSecureFile@1
+            displayName: 'Download Maven settings'
+            name: mavenSettings
+            inputs:
+              secureFile: 'maven-settings.xml'
+          - template: update-maven-version-steps.yml@commonTemplates
+            parameters:
+              mavenSettingsFilePath: $(mavenSettings.secureFilePath)
+          - task: UseDotNet@2
+            inputs:
+              version: '8.0.x'
+          - task: Maven@3
+            displayName: 'Run Maven ITs for SQ'
+            env:
+              ARTIFACTORY_QA_READER_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+              # For Orchestrator (https://github.com/SonarSource/orchestrator/commit/d5396c75ab77e6088afe58e61b0cd0693ac885f0)
+              ARTIFACTORY_ACCESS_TOKEN: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+              GITHUB_TOKEN: $(GITHUB_TOKEN)
+              # SonarLintInstaller
+              MAVEN_LOCAL_REPOSITORY: $(MAVEN_CACHE_FOLDER)
+            inputs:
+              goals: 'verify'
+              mavenPomFile: 'its/pom.xml'
+              options: '-X -B --settings $(mavenSettings.secureFilePath) -Denable-repo=qa -DskipTests=false -Pdownload-staged-artifact'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              testRunTitle: 'ITs $(imageName)'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenOptions: $(MAVEN_OPTS)
+          - bash: git checkout .
+            name: revertPomChanges
+            displayName: Revert changes made to pom.xml to not break cache feature
   - template: promote-stage.yml@commonTemplates
     parameters:
       stageDependencies:
