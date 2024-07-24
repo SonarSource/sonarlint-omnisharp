@@ -220,7 +220,7 @@ stages:
             displayName: Revert changes made to pom.xml to not break cache feature
   - stage: validate
     displayName: 'Run UTs and trigger SonarQube analysis'
-    dependsOn: build.dotnet
+    dependsOn: build_dotnet
     jobs:
       - job: test_windows
         displayName: Run unit tests on Windows
