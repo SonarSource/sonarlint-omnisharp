@@ -177,6 +177,9 @@ stages:
               name: pgpSignKey
               inputs:
                 secureFile: 'sign-key.asc'
+            - template: update-maven-version-steps.yml
+              parameters:
+                mavenSettingsFilePath: $(mavenSettings.secureFilePath)
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
