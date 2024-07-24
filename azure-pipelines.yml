@@ -26,8 +26,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref: refs/tags/v2.0.2
-
+      ref: refs/tags/v3.0.0
 
 stages:
   - stage: build_dotnet
