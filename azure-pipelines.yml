@@ -172,6 +172,11 @@ stages:
               name: mavenSettings
               inputs:
                 secureFile: 'maven-settings.xml'
+            - task: DownloadSecureFile@1
+              displayName: 'Download the sign key'
+              name: pgpSignKey
+              inputs:
+                secureFile: 'sign-key.asc'
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
