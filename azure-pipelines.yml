@@ -167,6 +167,11 @@ stages:
                 source: current
                 artifact: DotNetJarContentFiles
                 path: omnisharp-dotnet/JarContentFiles
+            - task: DownloadSecureFile@1
+              displayName: 'Download Maven settings'
+              name: mavenSettings
+              inputs:
+                secureFile: 'maven-settings.xml'
 
   - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
