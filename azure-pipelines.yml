@@ -177,7 +177,7 @@ stages:
               name: pgpSignKey
               inputs:
                 secureFile: 'sign-key.asc'
-            - template: update-maven-version-steps.yml
+            - template: update-maven-version-steps.yml@commonTemplates
               parameters:
                 mavenSettingsFilePath: $(mavenSettings.secureFilePath)
 
