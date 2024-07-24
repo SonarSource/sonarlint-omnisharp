@@ -142,8 +142,10 @@ stages:
             # Using a different agent config file for the .NET scan
             configFilePath: '$(Build.SourcesDirectory)/omnisharp-dotnet/build/whitesource/wss-unified-agent.config'
 
-  - stage: build
+  - template: stage-with-burgr-notifications.yml@commonTemplates
     parameters:
+      burgrName: 'build'
+      burgrType: 'build'
       stageName: 'build'
       stageDisplayName: Build and stage to repox
       stageDependencies: build_dotnet
