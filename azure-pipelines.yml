@@ -26,7 +26,7 @@ resources:
     - repository: commonTemplates
       type: git
       name: pipelines-yaml-templates
-      ref: refs/tags/v2.0.2
+      ref: refs/tags/v3.0.0
 
 
 stages:
@@ -142,11 +142,8 @@ stages:
             # Using a different agent config file for the .NET scan
             configFilePath: '$(Build.SourcesDirectory)/omnisharp-dotnet/build/whitesource/wss-unified-agent.config'
 
-  - template: stage-with-burgr-notifications.yml@commonTemplates
+  - stage: buildStageRepox
     parameters:
-      burgrName: 'build'
-      burgrType: 'build'
-      stageName: 'build'
       stageDisplayName: Build and stage to repox
       stageDependencies: build_dotnet
       jobs:
@@ -222,11 +219,8 @@ stages:
             - bash: git checkout .
               name: revertPomChanges
               displayName: Revert changes made to pom.xml to not break cache feature
-  - template: stage-with-burgr-notifications.yml@commonTemplates
+  - stage: validate
     parameters:
-      burgrName: 'validate'
-      burgrType: 'validate'
-      stageName: 'validate'
       stageDisplayName: Run UTs and trigger SonarQube analysis
       stageDependencies: build_dotnet
       jobs:
@@ -351,11 +345,8 @@ stages:
                 mavenRepositoryPath: '$(MAVEN_CACHE_FOLDER)'
                 mavenSettingsFilePath: '$(mavenSettings.secureFilePath)'
 
-  - template: stage-with-burgr-notifications.yml@commonTemplates
+  - stage: qa
     parameters:
-      burgrName: 'qa'
-      burgrType: 'qa'
-      stageName: 'qa'
       stageDisplayName: Run ITs
       stageDependencies: build
       jobs:
