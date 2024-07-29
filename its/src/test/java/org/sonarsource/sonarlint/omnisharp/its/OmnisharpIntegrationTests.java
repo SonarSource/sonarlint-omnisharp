@@ -55,7 +55,6 @@ import org.sonarsource.sonarlint.core.client.api.common.analysis.Issue;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisConfiguration;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneGlobalConfiguration;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintEngine;
-import org.sonarsource.sonarlint.core.commons.IssueSeverity;
 import org.sonarsource.sonarlint.core.commons.Language;
 import org.sonarsource.sonarlint.core.commons.RuleKey;
 import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
@@ -531,6 +530,7 @@ class OmnisharpIntegrationTests {
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
+        tuple("csharpsquid:S1871", "Either merge this branch with the identical one on line 10 or change one of the implementations.", 14, 10, 16, 11, inputFile.getPath(), MAJOR),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 19, 13, 19, 17, inputFile.getPath(), INFO));
 
     issues.clear();
@@ -550,6 +550,8 @@ class OmnisharpIntegrationTests {
       .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
         Issue::getSeverity)
       .containsOnly(
+        tuple("csharpsquid:S1871", "Either merge this branch with the identical one on line 10 or change one of the implementations.", 14, 10, 16, 11,
+          inputFile.getPath(), MAJOR),
         tuple("csharpsquid:S126", "Add the missing 'else' clause with either the appropriate action or a suitable comment as to why no action is taken.", 13, 10, 13, 17,
           inputFile.getPath(), CRITICAL));
   }
