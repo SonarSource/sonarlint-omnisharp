@@ -25,14 +25,15 @@ Icon?
 
 # ---- Windows
 # Windows image file caches
-Thumbs.db 
+Thumbs.db
 # Folder config file
 Desktop.ini
-/its/src/test/projects/ConsoleApp1/ConsoleApp1/obj
-/its/src/test/projects/ConsoleApp1/ConsoleApp1/bin
-/its/src/test/projects/DotNet8Project/DotNet8Project/obj
-/its/src/test/projects/DotNet8Project/DotNet8Project/bin
+/its/src/test/projects/**/obj
+/its/src/test/projects/**/bin
 /omnisharp-plugin/.vs
 **/.omnisharp/**
 /omnisharp-dotnet/JarContentFiles
 /omnisharp-dotnet/src/SonarLint.OmniSharp.Plugin/Properties/launchSettings.json
+
+# Visual Studio
+.vs
