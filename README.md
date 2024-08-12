@@ -31,6 +31,9 @@ Download OmniSharp fork
 `mvn generate-resources -Pdownload-omnisharp-for-building`
 
 .NET solution:
+Set ARTIFACTORY_USER(your Sonar email) and ARTIFACTORY_PASSWORD(Your repox credentials) as environment variable
+in your computer which will be used in nuget.config packageSourceCredentials (lines 19,20)
+You may need to restart your computer after these variables are set
 `dotnet build omnisharp-dotnet\SonarLint.OmniSharp.DotNet.Services.sln`
 
 Java plugin:
