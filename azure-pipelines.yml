@@ -50,21 +50,17 @@ stages:
           name: snk
           inputs:
             secureFile: SonarSourceSecret.snk
-
-        - powershell: |
-            # Reads the Sonar project version to use from the Java POM file
-
+        - bash: |
             # Calculate the POM file path
-            $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\pom.xml"
-            Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
-
+            versionFilePath="$BUILD_SOURCESDIRECTORY/pom.xml"
+            echo "Reading the Sonar project version from '${versionFilePath}' ..."
+            
             # Read the version from the file
-            [xml]$versionProps = Get-Content "$versionFilePath"
-            $sonarProjectVersion = $versionProps.project.version.Replace("-SNAPSHOT", "")
-            Write-Host "Sonar project version is '${sonarProjectVersion}'"
-
-            # Set the variable to it can be used by other tasks
-            Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
+            sonarProjectVersion=$(xmllint --xpath "string(//project/version)" "$versionFilePath" | sed 's/-SNAPSHOT//')
+            echo "Sonar project version is '${sonarProjectVersion}'"
+            
+            # Set the variable so it can be used by other tasks
+            echo "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
           displayName: 'Fetch the analysis version from the Java pom.xml'
 
         # Using the restore command directly seems to be the only way to explicitly limit the package feed used
