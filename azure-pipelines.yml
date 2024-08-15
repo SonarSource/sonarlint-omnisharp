@@ -1,6 +1,11 @@
 trigger:
 - master
 
+pr:
+  branches:
+    exclude:
+      - "*BUILD-5995*"
+
 pool:
   vmImage: 'ubuntu-latest'
 
