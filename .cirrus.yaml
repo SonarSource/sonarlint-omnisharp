@@ -35,6 +35,9 @@ build_dotnet_task:
       CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
     cpu: 4
     memory: 4G
+  env:
+    ARTIFACTORY_USER: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
+    ARTIFACTORY_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
   build_script: |
     source cirrus-env BUILD
 
@@ -44,3 +47,9 @@ build_dotnet_task:
 
     # Set the variable so it can be used by other tasks
     echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
+
+    # Restore the .NET project using Repox as source feed
+    dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+      --locked-mode \
+      --configfile omnisharp-dotnet/nuget.config \
+      --source config
