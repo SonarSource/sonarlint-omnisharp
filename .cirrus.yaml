@@ -36,8 +36,9 @@ build_dotnet_task:
     cpu: 4
     memory: 4G
   env:
-    ARTIFACTORY_USER: $(ARTIFACTORY_PRIVATE_READER_USERNAME)
-    ARTIFACTORY_PASSWORD: $(ARTIFACTORY_PRIVATE_READER_ACCESS_TOKEN)
+    ARTIFACTORY_USER: ${ARTIFACTORY_PRIVATE_USERNAME}
+    ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PRIVATE_PASSWORD}
+    PATH: ${PATH}:${HOME}/.dotnet/tools
   build_script: |
     source cirrus-env BUILD
 
@@ -51,5 +52,11 @@ build_dotnet_task:
     # Restore the .NET project using Repox as source feed
     dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
       --locked-mode \
-      --configfile omnisharp-dotnet/nuget.config \
-      --source config
+      --configfile omnisharp-dotnet/nuget.config
+
+    # TODO Handle differences between master and PR analysis
+    dotnet sonarscanner begin \
+      -d:sonar.token=${SONAR_TOKEN} \
+      -d:sonar.host.url=${SONAR_HOST_URL} \
+      -k:"sonarlint-omnisharp-dotnet" \
+      -d:sonar.cs.opencover.reportsPaths="${CIRRUS_WORKING_DIR}/**/TestResults/coverage.**.xml"
