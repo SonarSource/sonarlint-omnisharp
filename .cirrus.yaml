@@ -35,6 +35,12 @@ build_dotnet_task:
       CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
     cpu: 4
     memory: 4G
-  build_script:
-    - source cirrus-env BUILD
-    # - regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -pl '!java-checks-test-sources/default,!java-checks-test-sources/aws'
+  build_script: |
+    source cirrus-env BUILD
+
+    # Read the version from the root pom
+    sonarProjectVersion=$(maven_expression "project.version" | sed 's/-SNAPSHOT//')
+    echo "Sonar project version is '${sonarProjectVersion}'"
+
+    # Set the variable so it can be used by other tasks
+    echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
