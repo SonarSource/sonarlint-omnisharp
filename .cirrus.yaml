@@ -38,12 +38,8 @@ build_dotnet_task:
   build_script: |
     source cirrus-env BUILD
 
-    # Calculate the POM file path
-    versionFilePath="${CIRRUS_WORKING_DIR}/pom.xml"
-    echo "Reading the Sonar project version from '${versionFilePath}' ..."
-
-    # Read the version from the file
-    sonarProjectVersion=$(xmllint --xpath "string(/*[local-name()='project']/*[local-name()='version'])" "$versionFilePath" | sed 's/-SNAPSHOT//')
+    # Read the version from the root pom
+    sonarProjectVersion=$(maven_expression "project.version" | sed 's/-SNAPSHOT//')
     echo "Sonar project version is '${sonarProjectVersion}'"
 
     # Set the variable so it can be used by other tasks
