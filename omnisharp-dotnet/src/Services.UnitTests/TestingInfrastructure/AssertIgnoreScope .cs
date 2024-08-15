@@ -28,11 +28,11 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure
     /// <summary>
     /// Some of the tests cover exceptions in which we have asserts as well, we want to ignore those asserts during tests
     /// </summary>
-    public class AssertIgnoreScope : IDisposable
+    public sealed class AssertIgnoreScope : IDisposable
     {
         public AssertIgnoreScope()
         {
-            DefaultTraceListener listener = Debug.Listeners.OfType<DefaultTraceListener>().FirstOrDefault();
+            DefaultTraceListener listener = Trace.Listeners.OfType<DefaultTraceListener>().FirstOrDefault();
             if (listener != null)
             {
                 listener.AssertUiEnabled = false;
@@ -41,7 +41,7 @@ namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.TestingInfrastructure
 
         public void Dispose()
         {
-            DefaultTraceListener listener = Debug.Listeners.OfType<DefaultTraceListener>().FirstOrDefault();
+            DefaultTraceListener listener = Trace.Listeners.OfType<DefaultTraceListener>().FirstOrDefault();
             if (listener != null)
             {
                 listener.AssertUiEnabled = true;
