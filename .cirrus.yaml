@@ -40,9 +40,7 @@ build_dotnet_task:
     ARTIFACTORY_USER: ${ARTIFACTORY_PRIVATE_USERNAME}
     ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PRIVATE_PASSWORD}
     PATH: ${PATH}:${HOME}/.dotnet/tools
-  snk_file:
-    path: ${SONARSOURCE_SNK_PATH}
-    variable_name: SONARSOURCE_SNK
+    SOLUTION_PATH: omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln
   compute_project_version_script: |
     source cirrus-env BUILD
 
@@ -54,7 +52,7 @@ build_dotnet_task:
     echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
   dotnet_restore_script: |
     # Restore the .NET project using Repox as source feed
-    dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+    dotnet restore "${SOLUTION_PATH}" \
       --locked-mode \
       --configfile omnisharp-dotnet/nuget.config
   prepare_sonarqube_analysis_script: |
@@ -69,9 +67,13 @@ build_dotnet_task:
   download_omnisharp_script: |
     # Get OmniSharp fork from Repox
     mvn generate-resources -B -Denable-repo=qa -DskipIts -Pdownload-omnisharp-for-building
+  restore_snk_script: |
+    # Restore SNK file from Vault
+    echo "${SONARSOURCE_SNK}" | base64 -d > "${SONARSOURCE_SNK_PATH}"
   build_dotnet_script: |
     # Build and run .NET unit tests
-    dotnet test omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+    dotnet test "${SOLUTION_PATH}" \
+      -c Release \
       -p:SignAssembly=true -p:AssemblyOriginatorKeyFile="${SONARSOURCE_SNK_PATH}" \
       -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
       --no-restore
