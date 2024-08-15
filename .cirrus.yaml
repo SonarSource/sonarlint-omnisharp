@@ -1,0 +1,38 @@
+env:
+  ARTIFACTORY_URL: VAULT[development/kv/data/repox data.url]
+  ARTIFACTORY_PRIVATE_USERNAME: vault-${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-private-reader
+  ARTIFACTORY_PRIVATE_PASSWORD: VAULT[development/artifactory/token/${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-private-reader access_token]
+  ARTIFACTORY_DEPLOY_USERNAME: vault-${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-qa-deployer
+  ARTIFACTORY_DEPLOY_PASSWORD: VAULT[development/artifactory/token/${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-qa-deployer access_token]
+  ARTIFACTORY_DEPLOY_REPO: sonarsource-public-qa
+  ARTIFACTORY_ACCESS_TOKEN: VAULT[development/artifactory/token/${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-private-reader access_token
+  # Use bash (instead of sh on linux or cmd.exe on windows)
+  CIRRUS_SHELL: bash
+  # Allows to run builds for the 50 last commits in a branch:
+  CIRRUS_CLONE_DEPTH: 50
+  SIGN_KEY: VAULT[development/team/sonarlint/kv/data/sign-key data.key_pgp]
+  SIGN_PASSPHRASE: VAULT[development/team/sonarlint/kv/data/sign-key data.passphrase]
+  # analysis on next
+  SONAR_TOKEN: VAULT[development/kv/data/next data.token]
+  SONAR_HOST_URL: https://next.sonarqube.com/sonarqube
+  WS_APIKEY: VAULT[development/kv/data/mend data.apikey]
+  WS_WSS_URL: VAULT[development/kv/data/mend data.url]
+  WS_USERKEY: VAULT[development/kv/data/mend data.userKey]
+  SONARSOURCE_SNK: VAULT[development/team/languages/kv/data/strong_named_key data.SonarSourceSecret_snk]
+
+only_sonarsource_qa: &ONLY_SONARSOURCE_QA
+  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
+
+build_dotnet_task:
+  eks_container:
+    cluster_name: ${CIRRUS_CLUSTER_NAME}
+    region: eu-central-1
+    dockerfile: .cirrus/Dockerfile
+    builder_role: cirrus-builder
+    builder_image: docker-builder-v*
+    builder_instance_type: t3.small
+    cpu: 4
+    memory: 4G
+  build_script:
+    - source cirrus-env BUILD
+    # - regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -pl '!java-checks-test-sources/default,!java-checks-test-sources/aws'
