@@ -77,3 +77,5 @@ build_dotnet_task:
       -p:SignAssembly=true -p:AssemblyOriginatorKeyFile="${SONARSOURCE_SNK_PATH}" \
       -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
       --no-restore
+  jarcontentfiles_artifacts:
+    path: ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/JarContentFiles/SonarLint.OmniSharp.DotNet.Services.dll
