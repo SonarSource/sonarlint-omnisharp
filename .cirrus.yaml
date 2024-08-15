@@ -19,6 +19,7 @@ env:
   WS_WSS_URL: VAULT[development/kv/data/mend data.url]
   WS_USERKEY: VAULT[development/kv/data/mend data.userKey]
   SONARSOURCE_SNK: VAULT[development/team/languages/kv/data/strong_named_key data.SonarSourceSecret_snk]
+  SONARSOURCE_SNK_PATH: ${CIRRUS_WORKING_DIR}/SonarSource.snk
 
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
@@ -39,7 +40,10 @@ build_dotnet_task:
     ARTIFACTORY_USER: ${ARTIFACTORY_PRIVATE_USERNAME}
     ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PRIVATE_PASSWORD}
     PATH: ${PATH}:${HOME}/.dotnet/tools
-  build_script: |
+  snk_file:
+    path: ${SONARSOURCE_SNK_PATH}
+    variable_name: SONARSOURCE_SNK
+  compute_project_version_script: |
     source cirrus-env BUILD
 
     # Read the version from the root pom
@@ -48,27 +52,26 @@ build_dotnet_task:
 
     # Set the variable so it can be used by other tasks
     echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
-
+  dotnet_restore_script: |
     # Restore the .NET project using Repox as source feed
     dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
       --locked-mode \
       --configfile omnisharp-dotnet/nuget.config
-
+  prepare_sonarqube_analysis_script: |
     # TODO Handle differences between master and PR analysis
     dotnet sonarscanner begin \
       -d:sonar.token=${SONAR_TOKEN} \
       -d:sonar.host.url=${SONAR_HOST_URL} \
       -d:sonar.scanner.javaExePath=/opt/java/openjdk/bin/java \
       -k:"sonarlint-omnisharp-dotnet" \
-      -v:${sonarProjectVersion} \
+      -v:${SONAR_PROJECT_VERSION} \
       -d:sonar.cs.opencover.reportsPaths="${CIRRUS_WORKING_DIR}/**/TestResults/coverage.**.xml"
-
+  download_omnisharp_script: |
     # Get OmniSharp fork from Repox
     mvn generate-resources -B -Denable-repo=qa -DskipIts -Pdownload-omnisharp-for-building
-
+  build_dotnet_script: |
     # Build and run .NET unit tests
-    echo "${SONARSOURCE_SNK}" > SonarSource.snk
     dotnet test omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
-      -p:SignAssembly=true -p:AssemblyOriginatorKeyFile="SonarSource.snk" \
+      -p:SignAssembly=true -p:AssemblyOriginatorKeyFile="${SONARSOURCE_SNK_PATH}" \
       -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
       --no-restore
