@@ -58,5 +58,6 @@ build_dotnet_task:
     dotnet sonarscanner begin \
       -d:sonar.token=${SONAR_TOKEN} \
       -d:sonar.host.url=${SONAR_HOST_URL} \
+      -d:sonar.scanner.javaExePath=/opt/java/openjdk/bin/java \
       -k:"sonarlint-omnisharp-dotnet" \
       -d:sonar.cs.opencover.reportsPaths="${CIRRUS_WORKING_DIR}/**/TestResults/coverage.**.xml"
