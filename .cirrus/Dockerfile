@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get install -y \
-      dotnet-sdk-7.0 \
+      dotnet-sdk-8.0 \
       mono-runtime \
     && rm -rf /var/lib/apt/lists/*
 
