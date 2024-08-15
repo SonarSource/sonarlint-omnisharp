@@ -60,4 +60,15 @@ build_dotnet_task:
       -d:sonar.host.url=${SONAR_HOST_URL} \
       -d:sonar.scanner.javaExePath=/opt/java/openjdk/bin/java \
       -k:"sonarlint-omnisharp-dotnet" \
+      -v:${sonarProjectVersion} \
       -d:sonar.cs.opencover.reportsPaths="${CIRRUS_WORKING_DIR}/**/TestResults/coverage.**.xml"
+
+    # Get OmniSharp fork from Repox
+    mvn generate-resources -B -Denable-repo=qa -DskipIts -Pdownload-omnisharp-for-building
+
+    # Build and run .NET unit tests
+    echo "${SONARSOURCE_SNK}" > SonarSource.snk
+    dotnet test omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+      -p:SignAssembly=true -p:AssemblyOriginatorKeyFile="SonarSource.snk" \
+      -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
+      --no-restore
