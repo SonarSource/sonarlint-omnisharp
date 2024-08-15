@@ -43,7 +43,7 @@ build_dotnet_task:
     echo "Reading the Sonar project version from '${versionFilePath}' ..."
 
     # Read the version from the file
-    sonarProjectVersion=$(xmllint --xpath "string(//project/version)" "$versionFilePath" | sed 's/-SNAPSHOT//')
+    sonarProjectVersion=$(xmllint --xpath "string(/*[local-name()='project']/*[local-name()='version'])" "$versionFilePath" | sed 's/-SNAPSHOT//')
     echo "Sonar project version is '${sonarProjectVersion}'"
 
     # Set the variable so it can be used by other tasks
