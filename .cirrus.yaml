@@ -24,18 +24,21 @@ env:
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
 
+eks_container: &CONTAINER_DEFINITION
+  cluster_name: ${CIRRUS_CLUSTER_NAME}
+  region: eu-central-1
+  dockerfile: .cirrus/Dockerfile
+  builder_role: cirrus-builder
+  builder_image: docker-builder-v*
+  builder_instance_type: t3.small
+  docker_arguments:
+    CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
+  cpu: 4
+  memory: 4G
+
 build_dotnet_task:
   eks_container:
-    cluster_name: ${CIRRUS_CLUSTER_NAME}
-    region: eu-central-1
-    dockerfile: .cirrus/Dockerfile
-    builder_role: cirrus-builder
-    builder_image: docker-builder-v*
-    builder_instance_type: t3.small
-    docker_arguments:
-      CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
-    cpu: 4
-    memory: 4G
+    <<: *CONTAINER_DEFINITION
   env:
     ARTIFACTORY_USER: ${ARTIFACTORY_PRIVATE_USERNAME}
     ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PRIVATE_PASSWORD}
@@ -89,16 +92,7 @@ build_task:
     - build_dotnet
   #  name: "Build and stage to repox"
   eks_container:
-    cluster_name: ${CIRRUS_CLUSTER_NAME}
-    region: eu-central-1
-    dockerfile: .cirrus/Dockerfile
-    builder_role: cirrus-builder
-    builder_image: docker-builder-v*
-    builder_instance_type: t3.small
-    docker_arguments:
-      CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
-    cpu: 4
-    memory: 4G
+    <<: *CONTAINER_DEFINITION
   get_jarcontentfiles_script: |
     curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
     unzip jarcontentfiles.zip
