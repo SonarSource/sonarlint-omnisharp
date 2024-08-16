@@ -36,6 +36,12 @@ eks_container: &CONTAINER_DEFINITION
   cpu: 4
   memory: 4G
 
+maven_cache_definition: &MAVEN_CACHE_DEFINITION
+  maven_cache:
+    folder: ${CIRRUS_WORKING_DIR}/.m2/repository
+    fingerprint_script:
+      - find . -name pom.xml -not -path './its/*' -exec cat {} \+
+
 build_dotnet_task:
   eks_container:
     <<: *CONTAINER_DEFINITION
@@ -98,7 +104,8 @@ build_task:
     unzip jarcontentfiles.zip
   env:
     DEPLOY_PULL_REQUEST: true
+  <<: *MAVEN_CACHE_DEFINITION
   build_script: |
     source cirrus-env QA
     regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -DskipIts
-
+  cleanup_before_cache_script: cleanup_maven_repository
