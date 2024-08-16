@@ -83,3 +83,28 @@ build_dotnet_task:
       -d:sonar.token=${SONAR_TOKEN}
   jarcontentfiles_artifacts:
     path: ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/JarContentFiles/SonarLint.OmniSharp.DotNet.Services.dll
+
+build_task:
+  depends_on:
+    - build_dotnet
+  #  name: "Build and stage to repox"
+  eks_container:
+    cluster_name: ${CIRRUS_CLUSTER_NAME}
+    region: eu-central-1
+    dockerfile: .cirrus/Dockerfile
+    builder_role: cirrus-builder
+    builder_image: docker-builder-v*
+    builder_instance_type: t3.small
+    docker_arguments:
+      CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
+    cpu: 4
+    memory: 4G
+  get_jarcontentfiles_script: |
+    curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
+    unzip jarcontentfiles.zip
+  env:
+    DEPLOY_PULL_REQUEST: true
+  build_script: |
+    source cirrus-env QA
+    regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -DskipIts
+
