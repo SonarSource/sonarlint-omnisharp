@@ -15,16 +15,13 @@ env:
   # analysis on next
   SONAR_TOKEN: VAULT[development/kv/data/next data.token]
   SONAR_HOST_URL: https://next.sonarqube.com/sonarqube
-  WS_APIKEY: VAULT[development/kv/data/mend data.apikey]
-  WS_WSS_URL: VAULT[development/kv/data/mend data.url]
-  WS_USERKEY: VAULT[development/kv/data/mend data.userKey]
   SONARSOURCE_SNK: VAULT[development/team/languages/kv/data/strong_named_key data.SonarSourceSecret_snk]
   SONARSOURCE_SNK_PATH: ${CIRRUS_WORKING_DIR}/SonarSource.snk
 
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
 
-eks_container: &CONTAINER_DEFINITION
+container_definition: &CONTAINER_DEFINITION
   cluster_name: ${CIRRUS_CLUSTER_NAME}
   region: eu-central-1
   dockerfile: .cirrus/Dockerfile
@@ -33,8 +30,6 @@ eks_container: &CONTAINER_DEFINITION
   builder_instance_type: t3.small
   docker_arguments:
     CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
-  cpu: 4
-  memory: 4G
 
 maven_cache_definition: &MAVEN_CACHE_DEFINITION
   maven_cache:
@@ -42,15 +37,7 @@ maven_cache_definition: &MAVEN_CACHE_DEFINITION
     fingerprint_script:
       - find . -name pom.xml -not -path './its/*' -exec cat {} \+
 
-build_dotnet_task:
-  eks_container:
-    <<: *CONTAINER_DEFINITION
-  env:
-    ARTIFACTORY_USER: ${ARTIFACTORY_PRIVATE_USERNAME}
-    ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PRIVATE_PASSWORD}
-    PATH: ${PATH}:${HOME}/.dotnet/tools
-    SOLUTION_PATH: omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln
-  compute_project_version_script: |
+compute_project_version_script_definition: &COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION |
     source cirrus-env BUILD
 
     # Read the version from the root pom
@@ -59,6 +46,25 @@ build_dotnet_task:
 
     # Set the variable so it can be used by other tasks
     echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
+
+dotnet_cache_definition: &DOTNET_CACHE_DEFINITION
+  folders:
+    - omnisharp-dotnet/src/Services.UnitTests
+    - omnisharp-dotnet/src/Services
+  fingerprint_key: ${CI_BUILD_NUMBER}
+
+build_dotnet_task:
+  eks_container:
+    <<: *CONTAINER_DEFINITION
+    cpu: 4
+    memory: 2G
+  env:
+    ARTIFACTORY_USER: ${ARTIFACTORY_PRIVATE_USERNAME}
+    ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PRIVATE_PASSWORD}
+    PATH: ${PATH}:${HOME}/.dotnet/tools
+    SOLUTION_PATH: omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln
+  dotnet_cache: *DOTNET_CACHE_DEFINITION
+  compute_project_version_script: *COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION
   dotnet_restore_script: |
     # Restore the .NET project using Repox as source feed
     dotnet restore "${SOLUTION_PATH}" \
@@ -99,6 +105,8 @@ build_task:
   #  name: "Build and stage to repox"
   eks_container:
     <<: *CONTAINER_DEFINITION
+    cpu: 4
+    memory: 1G
   get_jarcontentfiles_script: |
     curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
     unzip jarcontentfiles.zip
@@ -109,3 +117,26 @@ build_task:
     source cirrus-env QA
     regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -DskipIts
   cleanup_before_cache_script: cleanup_maven_repository
+
+mend_scan_dotnet_task:
+  eks_container:
+    <<: *CONTAINER_DEFINITION
+    cpu: 3
+    memory: 1G
+  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && ($CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "mend-.*")
+  depends_on:
+    - build_dotnet
+  env:
+    WS_APIKEY: VAULT[development/kv/data/mend data.apikey]
+  dotnet_cache: *DOTNET_CACHE_DEFINITION
+  compute_project_version_script: *COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION
+  whitesource_script: |
+    source cirrus-env QA
+    export WS_PROJECTNAME="${CIRRUS_REPO_FULL_NAME}/dotnet ${SONAR_PROJECT_VERSION}"
+    export WS_PRODUCTNAME="SonarLint/OmniSharp"
+    export WS_PROJECTVERSION=${SONAR_PROJECT_VERSION}
+    ws_scan.sh -c ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/build/whitesource/wss-unified-agent.config
+  allow_failures: true
+  always:
+    ws_artifacts:
+      path: "whitesource/**/*"
