@@ -42,7 +42,7 @@ maven_cache_definition: &MAVEN_CACHE_DEFINITION
   maven_cache:
     folder: ${CIRRUS_WORKING_DIR}/.m2/repository
     fingerprint_script:
-      - find . -name pom.xml -not -path './its/*' -exec cat {} \+
+      - cat pom.xml omnisharp-plugin/pom.xml
 
 ec2_instance_definition: &INSTANCE_DEFINITION
   region: eu-central-1
@@ -147,6 +147,7 @@ qa_windows_task:
     - build
   ec2_instance:
     <<: *INSTANCE_DEFINITION
+  <<: *MAVEN_CACHE_DEFINITION
   qa_windows_script: |
     source cirrus-env QA
     source set_maven_build_version ${BUILD_NUMBER}
