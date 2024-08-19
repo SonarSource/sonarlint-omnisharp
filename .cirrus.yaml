@@ -128,7 +128,7 @@ qa_linux_task:
   qa_linux_script: |
     source cirrus-env QA
     source set_maven_build_version ${BUILD_NUMBER}
-    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Denable-repo=qa -Pdownload-staged-artifact
+    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
   always:
     # Publish test results regardless of status
     qa_linux_results_artifacts:
