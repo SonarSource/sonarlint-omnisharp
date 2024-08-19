@@ -158,3 +158,30 @@ qa_windows_task:
       path: '**/surefire-reports/TEST-*.xml'
   cleanup_before_cache_script: cleanup_maven_repository
   <<: *NOTIFY_SLACK_ON_FAILURE
+
+validate_windows_task:
+  depends_on:
+    - build_dotnet
+  ec2_instance:
+    <<: *INSTANCE_DEFINITION
+  get_jarcontentfiles_script: |
+    curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
+    unzip jarcontentfiles.zip
+  validate_script:
+  - source cirrus-env QA
+  - regular_mvn_build_deploy_analyze -Dsonar.skip=true -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign
+  cleanup_before_cache_script: cleanup_maven_repository
+
+validate_linux_task:
+  depends_on:
+    - build_dotnet
+  <<: *MAVEN_CACHE_DEFINITION
+  eks_container:
+    <<: *CONTAINER_DEFINITION
+  get_jarcontentfiles_script: |
+    curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
+    unzip jarcontentfiles.zip
+  validate_script:
+  - source cirrus-env QA
+  - regular_mvn_build_deploy_analyze -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
+  cleanup_before_cache_script: cleanup_maven_repository
