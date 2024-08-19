@@ -20,6 +20,8 @@ env:
   WS_USERKEY: VAULT[development/kv/data/mend data.userKey]
   SONARSOURCE_SNK: VAULT[development/team/languages/kv/data/strong_named_key data.SonarSourceSecret_snk]
   SONARSOURCE_SNK_PATH: ${CIRRUS_WORKING_DIR}/SonarSource.snk
+  SLACK_TOKEN: VAULT[development/kv/data/slack data.token]
+  SLACK_CHANNEL: squad-ide-intellij-family-bots
 
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
@@ -41,6 +43,11 @@ maven_cache_definition: &MAVEN_CACHE_DEFINITION
     folder: ${CIRRUS_WORKING_DIR}/.m2/repository
     fingerprint_script:
       - find . -name pom.xml -not -path './its/*' -exec cat {} \+
+
+notify_slack_on_failure: &NOTIFY_SLACK_ON_FAILURE
+  on_failure:
+    slack_notification_script: |
+      source slack-failure-notification
 
 build_dotnet_task:
   eks_container:
@@ -92,6 +99,7 @@ build_dotnet_task:
       -d:sonar.token=${SONAR_TOKEN}
   jarcontentfiles_artifacts:
     path: ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/JarContentFiles/SonarLint.OmniSharp.DotNet.Services.dll
+  <<: *NOTIFY_SLACK_ON_FAILURE
 
 build_task:
   depends_on:
@@ -109,3 +117,19 @@ build_task:
     source cirrus-env QA
     regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -DskipIts
   cleanup_before_cache_script: cleanup_maven_repository
+  <<: *NOTIFY_SLACK_ON_FAILURE
+
+qa_linux_task:
+  depends_on:
+    - build
+  eks_container:
+    <<: *CONTAINER_DEFINITION
+  <<: *MAVEN_CACHE_DEFINITION
+  qa_linux_script: |
+    source cirrus-env QA
+    source set_maven_build_version ${BUILD_NUMBER}
+    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Denable-repo=qa -Pdownload-staged-artifact
+  qa_linux_results_artifacts:
+    path: '**/surefire-reports/TEST-*.xml'
+  cleanup_before_cache_script: cleanup_maven_repository
+  <<: *NOTIFY_SLACK_ON_FAILURE
