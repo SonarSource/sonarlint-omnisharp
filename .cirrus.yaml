@@ -55,6 +55,12 @@ notify_slack_on_failure: &NOTIFY_SLACK_ON_FAILURE
     slack_notification_script: |
       source slack-failure-notification
 
+qa_script_definition: &QA_SCRIPT
+  qa_script: |
+    source cirrus-env QA
+    source set_maven_build_version ${BUILD_NUMBER}
+    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
+
 build_dotnet_task:
   eks_container:
     <<: *CONTAINER_DEFINITION
@@ -131,10 +137,7 @@ qa_linux_task:
   eks_container:
     <<: *CONTAINER_DEFINITION
   <<: *MAVEN_CACHE_DEFINITION
-  qa_linux_script: |
-    source cirrus-env QA
-    source set_maven_build_version ${BUILD_NUMBER}
-    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
+  <<: *QA_SCRIPT
   always:
     # Publish test results regardless of status
     qa_linux_results_artifacts:
@@ -148,10 +151,7 @@ qa_windows_task:
   ec2_instance:
     <<: *INSTANCE_DEFINITION
   <<: *MAVEN_CACHE_DEFINITION
-  qa_windows_script: |
-    source cirrus-env QA
-    source set_maven_build_version ${BUILD_NUMBER}
-    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
+  <<: *QA_SCRIPT
   always:
     # Publish test results regardless of status
     qa_windows_results_artifacts:
