@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y \
       dotnet-sdk-8.0 \
-      mono-runtime \
+      mono-complete \
     && rm -rf /var/lib/apt/lists/*
 
 USER sonarsource
