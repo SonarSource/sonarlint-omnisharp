@@ -147,7 +147,6 @@ qa_windows_task:
     - build
   ec2_instance:
     <<: *INSTANCE_DEFINITION
-  <<: *MAVEN_CACHE_DEFINITION
   qa_windows_script: |
     source cirrus-env QA
     source set_maven_build_version ${BUILD_NUMBER}
