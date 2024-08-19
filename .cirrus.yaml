@@ -34,10 +34,9 @@ container_definition: &CONTAINER_DEFINITION
     CIRRUS_AWS_ACCOUNT: ${CIRRUS_AWS_ACCOUNT}
 
 maven_cache_definition: &MAVEN_CACHE_DEFINITION
-  maven_cache:
-    folder: ${CIRRUS_WORKING_DIR}/.m2/repository
-    fingerprint_script:
-      - cat pom.xml omnisharp-plugin/pom.xml
+  folder: ${CIRRUS_WORKING_DIR}/.m2/repository
+  fingerprint_script:
+    - cat pom.xml omnisharp-plugin/pom.xml
 
 ec2_instance_definition: &INSTANCE_DEFINITION
   region: eu-central-1
@@ -119,7 +118,7 @@ build_dotnet_task:
     path: ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/JarContentFiles/SonarLint.OmniSharp.DotNet.Services.dll
   <<: *NOTIFY_SLACK_ON_FAILURE
 
-build_task:
+build_maven_task:
   depends_on:
     - build_dotnet
   #  name: "Build and stage to repox"
@@ -132,7 +131,7 @@ build_task:
     unzip jarcontentfiles.zip
   env:
     DEPLOY_PULL_REQUEST: true
-  <<: *MAVEN_CACHE_DEFINITION
+  maven_cache: *MAVEN_CACHE_DEFINITION
   build_script: |
     source cirrus-env QA
     regular_mvn_build_deploy_analyze -Dmaven.test.skip=true -Dsonar.skip=true -DskipIts
@@ -141,10 +140,10 @@ build_task:
 
 qa_linux_task:
   depends_on:
-    - build
+    - build_maven
   eks_container:
     <<: *CONTAINER_DEFINITION
-  <<: *MAVEN_CACHE_DEFINITION
+  maven_cache: *MAVEN_CACHE_DEFINITION
   <<: *QA_SCRIPT
   always:
     # Publish test results regardless of status
@@ -155,10 +154,10 @@ qa_linux_task:
 
 qa_windows_task:
   depends_on:
-    - build
+    - build_maven
   ec2_instance:
     <<: *INSTANCE_DEFINITION
-  <<: *MAVEN_CACHE_DEFINITION
+  maven_cache: *MAVEN_CACHE_DEFINITION
   <<: *QA_SCRIPT
   always:
     # Publish test results regardless of status
@@ -183,7 +182,8 @@ validate_windows_task:
 validate_linux_task:
   depends_on:
     - build_dotnet
-  <<: *MAVEN_CACHE_DEFINITION
+  maven_cache: *MAVEN_CACHE_DEFINITION
+  <<: *QA_SCRIPT
   eks_container:
     <<: *CONTAINER_DEFINITION
   get_jarcontentfiles_script: |
@@ -194,7 +194,7 @@ validate_linux_task:
   - regular_mvn_build_deploy_analyze -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
   cleanup_before_cache_script: cleanup_maven_repository
 
-mend_scan_dotnet_task:
+mend_scan_task:
   eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 3
@@ -202,16 +202,24 @@ mend_scan_dotnet_task:
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && ($CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "mend-.*")
   depends_on:
     - build_dotnet
+    - build_maven
   env:
     WS_APIKEY: VAULT[development/kv/data/mend data.apikey]
   dotnet_cache: *DOTNET_CACHE_DEFINITION
+  maven_cache: *MAVEN_CACHE_DEFINITION
   compute_project_version_script: *COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION
-  whitesource_script: |
+  mend_scan_dotnet_script: |
     source cirrus-env QA
-    export WS_PROJECTNAME="${CIRRUS_REPO_FULL_NAME}/dotnet ${SONAR_PROJECT_VERSION}"
     export WS_PRODUCTNAME="SonarLint/OmniSharp"
+    export WS_PROJECTNAME="${CIRRUS_REPO_FULL_NAME}/dotnet ${SONAR_PROJECT_VERSION}"
     export WS_PROJECTVERSION=${SONAR_PROJECT_VERSION}
     ws_scan.sh -c ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/build/whitesource/wss-unified-agent.config
+  mend_scan_maven_script: |
+    source cirrus-env QA
+    export WS_PRODUCTNAME="SonarLint/OmniSharp"
+    export WS_PROJECTNAME="${CIRRUS_REPO_FULL_NAME} ${SONAR_PROJECT_VERSION}"
+    export WS_PROJECTVERSION=${SONAR_PROJECT_VERSION}
+    ws_scan.sh
   allow_failures: true
   always:
     ws_artifacts:
