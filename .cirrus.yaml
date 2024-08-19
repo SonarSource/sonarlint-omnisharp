@@ -129,7 +129,9 @@ qa_linux_task:
     source cirrus-env QA
     source set_maven_build_version ${BUILD_NUMBER}
     mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Denable-repo=qa -Pdownload-staged-artifact
-  qa_linux_results_artifacts:
-    path: '**/surefire-reports/TEST-*.xml'
+  always:
+    # Publish test results regardless of status
+    qa_linux_results_artifacts:
+      path: '**/surefire-reports/TEST-*.xml'
   cleanup_before_cache_script: cleanup_maven_repository
   <<: *NOTIFY_SLACK_ON_FAILURE
