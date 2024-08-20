@@ -40,7 +40,7 @@ maven_cache_definition: &MAVEN_CACHE_DEFINITION
 
 ec2_instance_definition: &INSTANCE_DEFINITION
   region: eu-central-1
-  type: t3.medium
+  type: c6i.xlarge
   image: base-windows-dotnet-v*
   platform: windows
 
@@ -53,11 +53,10 @@ get_jarcontentfiles_definition: &GET_JARCONTENTFILES |
   curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
   unzip jarcontentfiles.zip
 
-qa_script_definition: &QA_SCRIPT
-  qa_script: |
-    source cirrus-env QA
-    source set_maven_build_version ${BUILD_NUMBER}
-    mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
+qa_script_definition: &QA_SCRIPT |
+  source cirrus-env QA
+  source set_maven_build_version ${BUILD_NUMBER}
+  mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
 
 compute_project_version_script_definition: &COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION |
     source cirrus-env BUILD
@@ -94,7 +93,6 @@ build_dotnet_task:
       --locked-mode \
       --configfile omnisharp-dotnet/nuget.config
   prepare_sonarqube_analysis_script: |
-    # TODO Handle differences between master and PR analysis
     dotnet sonarscanner begin \
       -d:sonar.token=${SONAR_TOKEN} \
       -d:sonar.host.url=${SONAR_HOST_URL} \
@@ -127,7 +125,6 @@ build_maven_task:
   depends_on:
     - build_dotnet
   <<: *ONLY_SONARSOURCE_QA
-  #  name: "Build and stage to repox"
   eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 4
@@ -149,7 +146,7 @@ qa_linux_task:
   eks_container:
     <<: *CONTAINER_DEFINITION
   maven_cache: *MAVEN_CACHE_DEFINITION
-  <<: *QA_SCRIPT
+  qa_script: *QA_SCRIPT
   always:
     # Publish test results regardless of status
     qa_linux_results_artifacts:
@@ -164,7 +161,7 @@ qa_windows_task:
   ec2_instance:
     <<: *INSTANCE_DEFINITION
   maven_cache: *MAVEN_CACHE_DEFINITION
-  <<: *QA_SCRIPT
+  qa_script: *QA_SCRIPT
   always:
     # Publish test results regardless of status
     qa_windows_results_artifacts:
