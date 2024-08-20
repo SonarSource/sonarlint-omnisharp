@@ -36,7 +36,7 @@ container_definition: &CONTAINER_DEFINITION
 maven_cache_definition: &MAVEN_CACHE_DEFINITION
   folder: ${CIRRUS_WORKING_DIR}/.m2/repository
   fingerprint_script:
-    - cat pom.xml omnisharp-plugin/pom.xml
+    - cat pom.xml omnisharp-plugin/pom.xml its/pom.xml
 
 ec2_instance_definition: &INSTANCE_DEFINITION
   region: eu-central-1
@@ -48,6 +48,10 @@ notify_slack_on_failure: &NOTIFY_SLACK_ON_FAILURE
   on_failure:
     slack_notification_script: |
       source slack-failure-notification
+
+get_jarcontentfiles_definition: &GET_JARCONTENTFILES |
+  curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
+  unzip jarcontentfiles.zip
 
 qa_script_definition: &QA_SCRIPT
   qa_script: |
@@ -128,9 +132,7 @@ build_maven_task:
     <<: *CONTAINER_DEFINITION
     cpu: 4
     memory: 1G
-  get_jarcontentfiles_script: |
-    curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
-    unzip jarcontentfiles.zip
+  get_jarcontentfiles_script: *GET_JARCONTENTFILES
   env:
     DEPLOY_PULL_REQUEST: true
   maven_cache: *MAVEN_CACHE_DEFINITION
@@ -176,9 +178,7 @@ validate_windows_task:
   <<: *ONLY_SONARSOURCE_QA
   ec2_instance:
     <<: *INSTANCE_DEFINITION
-  get_jarcontentfiles_script: |
-    curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
-    unzip jarcontentfiles.zip
+  get_jarcontentfiles_script: *GET_JARCONTENTFILES
   validate_script:
   - source cirrus-env QA
   - regular_mvn_build_deploy_analyze -Dsonar.skip=true -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign
@@ -190,12 +190,9 @@ validate_linux_task:
     - build_dotnet
   <<: *ONLY_SONARSOURCE_QA
   maven_cache: *MAVEN_CACHE_DEFINITION
-  <<: *QA_SCRIPT
   eks_container:
     <<: *CONTAINER_DEFINITION
-  get_jarcontentfiles_script: |
-    curl -O "https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build_dotnet/jarcontentfiles.zip"
-    unzip jarcontentfiles.zip
+  get_jarcontentfiles_script: *GET_JARCONTENTFILES
   validate_script:
   - source cirrus-env QA
   - regular_mvn_build_deploy_analyze -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
