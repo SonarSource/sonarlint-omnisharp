@@ -2,7 +2,7 @@
 
 Replacement for SonarC# that leverages OmniSharp to run our Roslyn analyzer
 
-[![Build Status](https://dev.azure.com/sonarsource/DotNetTeam%20Project/_apis/build/status/sonarlint/SonarLint%20OmniSharp?repoName=SonarSource%2Fsonarlint-omnisharp&branchName=master)](https://dev.azure.com/sonarsource/DotNetTeam%20Project/_build/latest?definitionId=118&repoName=SonarSource%2Fsonarlint-omnisharp&branchName=master)
+[![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonarlint-omnisharp.svg?branch=master)](https://cirrus-ci.com/github/SonarSource/sonarlint-omnisharp)
 [![Quality Gate Status (dotnet)](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=sonarlint-omnisharp-dotnet&metric=alert_status&token=8df1ef6c2932894736b31de4b75e9a99deca0afb)](https://next.sonarqube.com/sonarqube/dashboard?id=sonarlint-omnisharp-dotnet)
 [![Quality Gate Status (java)](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=org.sonarsource.sonarlint.omnisharp%3Asonarlint-omnisharp-parent&metric=alert_status&token=177424623401146d0d058846c561536e247d3ed6)](https://next.sonarqube.com/sonarqube/dashboard?id=org.sonarsource.sonarlint.omnisharp%3Asonarlint-omnisharp-parent)
 
