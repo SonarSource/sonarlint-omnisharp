@@ -10,8 +10,8 @@ env:
   CIRRUS_SHELL: bash
   # Allows to run builds for the 50 last commits in a branch:
   CIRRUS_CLONE_DEPTH: 50
-  SIGN_KEY: VAULT[development/team/sonarlint/kv/data/sign-key data.key_pgp]
-  SIGN_PASSPHRASE: VAULT[development/team/sonarlint/kv/data/sign-key data.passphrase]
+  SIGN_KEY: VAULT[development/kv/data/sign data.key]
+  PGP_PASSPHRASE: VAULT[development/kv/data/sign data.passphrase]
   # analysis on next
   SONAR_TOKEN: VAULT[development/kv/data/next data.token]
   SONAR_HOST_URL: https://next.sonarqube.com/sonarqube
