@@ -62,7 +62,8 @@ class OmnisharpServicesExtractorTests {
         "SonarAnalyzer.dll",
         "SonarAnalyzer.CSharp.dll",
         "SonarAnalyzer.CFG.dll",
-        "Google.Protobuf.dll");
+        "Google.Protobuf.dll",
+        "SonarAnalyzer.ShimLayer.dll");
     assertThat(underTest.getOmnisharpServicesDllPath()).endsWith(Paths.get("SonarLint.OmniSharp.DotNet.Services.dll"));
   }
 
