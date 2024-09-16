@@ -41,7 +41,7 @@ maven_cache_definition: &MAVEN_CACHE_DEFINITION
 ec2_instance_definition: &INSTANCE_DEFINITION
   region: eu-central-1
   type: c6i.xlarge
-  image: base-windows-dotnet-v*
+  image: sonarlint-visualstudio-v*
   platform: windows
 
 notify_slack_on_failure: &NOTIFY_SLACK_ON_FAILURE
