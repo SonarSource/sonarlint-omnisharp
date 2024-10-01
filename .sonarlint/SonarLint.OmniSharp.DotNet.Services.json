@@ -1,0 +1,4 @@
+{
+  "SonarQubeUri": "https://next.sonarqube.com/sonarqube",
+  "ProjectKey": "sonarlint-omnisharp-dotnet"
+}
