@@ -20,7 +20,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using SonarLint.VisualStudio.Core.CSharpVB;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
 {

@@ -1,6 +1,6 @@
 ﻿/*
- * SonarLint for Visual Studio
- * Copyright (C) 2016-2021 SonarSource SA
+ * SonarOmnisharp
+ * Copyright (C) 2021-2024 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -24,7 +24,7 @@ using System.Xml.Serialization;
 // Copied unchanged from SLVS
 // The file must be kept in line with the format that sonar-dotnet analyzers expect: 
 // https://github.com/SonarSource/sonar-dotnet/blob/1711a5f773013925e079d11e32bf0a3f592a6706/analyzers/src/SonarAnalyzer.Common/Common/RuleLoader.cs#L30
-namespace SonarLint.VisualStudio.Core.CSharpVB
+namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
 {
     /* XML-serializable classes to create a SonarLint.xml file.
         Example:
