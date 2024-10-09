@@ -24,7 +24,6 @@ using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml;
-using SonarLint.VisualStudio.Core.CSharpVB;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules.SonarLintXml
 {

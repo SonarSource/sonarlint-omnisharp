@@ -22,7 +22,6 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using SonarLint.VisualStudio.Core.CSharpVB;
 
 namespace SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml
 {
