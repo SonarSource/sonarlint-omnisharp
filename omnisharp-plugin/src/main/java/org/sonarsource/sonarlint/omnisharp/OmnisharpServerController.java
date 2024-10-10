@@ -132,6 +132,7 @@ public class OmnisharpServerController implements Startable {
 
   private final ServerStateMachine stateMachine = new ServerStateMachine();
 
+  private Path cachedAnalyzerJarPath;
   private Path cachedProjectBaseDir;
   private Path cachedDotnetCliPath;
   private Path cachedMonoPath;
@@ -153,12 +154,14 @@ public class OmnisharpServerController implements Startable {
     omnisharpEndpoints.setServer(this);
   }
 
-  public synchronized void lazyStart(Path projectBaseDir, boolean useNet6, boolean loadProjectsOnDemand, @Nullable Path dotnetCliPath, @Nullable Path monoPath,
+  public synchronized void lazyStart(Path projectBaseDir, Path analyzerJarPath, boolean useNet6, boolean loadProjectsOnDemand, @Nullable Path dotnetCliPath,
+    @Nullable Path monoPath,
     @Nullable Path msBuildPath,
     @Nullable Path solutionPath, int serverStartupTimeoutSec, int loadProjectsTimeoutSec)
     throws InterruptedException {
     AtomicBoolean shouldRestart = new AtomicBoolean(false);
     this.cachedProjectBaseDir = checkIfRestartRequired(cachedProjectBaseDir, projectBaseDir, "project basedir", shouldRestart);
+    this.cachedAnalyzerJarPath = checkIfRestartRequired(cachedAnalyzerJarPath, analyzerJarPath, "analyzer JAR path", shouldRestart);
     this.cachedDotnetCliPath = checkIfRestartRequired(cachedDotnetCliPath, dotnetCliPath, "dotnet CLI path", shouldRestart);
     this.cachedMonoPath = checkIfRestartRequired(cachedMonoPath, monoPath, "Mono location", shouldRestart);
     this.cachedMsBuildPath = checkIfRestartRequired(cachedMsBuildPath, msBuildPath, "MSBuild path", shouldRestart);

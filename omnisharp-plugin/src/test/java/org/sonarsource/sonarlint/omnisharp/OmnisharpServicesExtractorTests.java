@@ -20,7 +20,6 @@
 package org.sonarsource.sonarlint.omnisharp;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.impl.utils.DefaultTempFolder;
 import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 
@@ -46,7 +46,10 @@ class OmnisharpServicesExtractorTests {
   @BeforeEach
   void prepare(@TempDir Path tmpDir) {
     slTmpDir = tmpDir.resolve("tmp");
-    underTest = new OmnisharpServicesExtractor(new DefaultTempFolder(slTmpDir.toFile()));
+    var config = new MapSettings()
+      .setProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString())
+      .asConfig();
+    underTest = new OmnisharpServicesExtractor(new DefaultTempFolder(slTmpDir.toFile()), config);
   }
 
   @Test

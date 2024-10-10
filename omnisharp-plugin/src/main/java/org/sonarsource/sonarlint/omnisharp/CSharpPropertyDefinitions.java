@@ -93,6 +93,11 @@ public class CSharpPropertyDefinitions {
         .multiValues(true)
         .onQualifiers(Qualifiers.PROJECT)
         .build());
+    result.add(
+      PropertyDefinition.builder(getAnalyzerPluginPath())
+        .hidden()
+        .build()
+    );
     return result;
   }
 
@@ -142,5 +147,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getStartupTimeout() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.startupTimeout";
+  }
+
+  public static String getAnalyzerPluginPath() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.analyzerPluginPath";
   }
 }

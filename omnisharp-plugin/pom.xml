@@ -171,9 +171,6 @@
         </excludes>
       </resource>
       <resource>
-        <directory>${sonarAnalyzer.directory}</directory>
-      </resource>
-      <resource>
         <directory>${servicesDll.directory}</directory>
       </resource>
     </resources>
@@ -225,9 +222,9 @@
         <executions>
           <execution>
             <id>download-analyzer</id>
-            <phase>generate-resources</phase>
+            <phase>generate-test-resources</phase>
             <goals>
-              <goal>unpack</goal>
+              <goal>copy</goal>
             </goals>
             <configuration>
               <artifactItems>
@@ -236,9 +233,10 @@
                   <artifactId>sonar-csharp-plugin</artifactId>
                   <version>${analyzer.version}</version>
                   <overWrite>true</overWrite>
+                  <!-- Use a static file name to simplify access from tests -->
+                  <destFileName>sonarcsharp.jar</destFileName>
                 </artifactItem>
               </artifactItems>
-              <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.json,**/org/sonar/plugins/csharp/*.html</includes>
               <outputDirectory>${sonarAnalyzer.directory}</outputDirectory>
             </configuration>
           </execution>
@@ -255,13 +253,13 @@
             </goals>
             <configuration>
               <outputDirectory>${servicesDll.directory}</outputDirectory>
-              <resources>          
+              <resources>
                 <resource>
                   <directory>../omnisharp-dotnet/JarContentFiles</directory>
                   <filtering>false</filtering>
                 </resource>
-              </resources>              
-            </configuration>            
+              </resources>
+            </configuration>
           </execution>
         </executions>
       </plugin>

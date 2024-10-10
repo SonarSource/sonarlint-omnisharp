@@ -123,12 +123,13 @@ class OmnisharpSensorTests {
     assertThat(descriptor.languages()).containsOnly(OmnisharpPlugin.LANGUAGE_KEY);
     assertThat(descriptor.ruleRepositories()).containsOnly(OmnisharpPlugin.REPOSITORY_KEY);
 
-    Configuration configWithProp = mock(Configuration.class);
+    var configWithProp = mock(Configuration.class);
+    when(configWithProp.hasKey(CSharpPropertyDefinitions.getAnalyzerPluginPath())).thenReturn(true);
     when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpMonoLocation())).thenReturn(true);
     when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpWinLocation())).thenReturn(true);
     when(configWithProp.hasKey(CSharpPropertyDefinitions.getOmnisharpNet6Location())).thenReturn(true);
 
-    Configuration configWithoutProp = mock(Configuration.class);
+    var configWithoutProp = mock(Configuration.class);
 
     assertThat(descriptor.configurationPredicate()).accepts(configWithProp).rejects(configWithoutProp);
 
@@ -146,6 +147,7 @@ class OmnisharpSensorTests {
   @Test
   void scanCsFile() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     Path filePath = baseDir.resolve("Foo.cs");
     String content = "Console.WriteLine(\"Hello World!\");";
@@ -160,7 +162,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null, 60, 60);
+    verify(mockServer).lazyStart(baseDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, null, 60, 60);
 
     verify(mockProtocol).updateBuffer(filePath.toFile(), content);
     verify(mockProtocol).config(argThat(json -> json.toString().equals("{\"activeRules\":[]}")));
@@ -173,6 +175,7 @@ class OmnisharpSensorTests {
     when(mockServer.whenReady()).thenReturn(CompletableFuture.failedFuture(new TimeoutException()));
 
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     Path filePath = baseDir.resolve("Foo.cs");
     String content = "Console.WriteLine(\"Hello World!\");";
@@ -187,7 +190,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null, 60, 60);
+    verify(mockServer).lazyStart(baseDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, null, 60, 60);
 
     verifyNoInteractions(mockProtocol);
 
@@ -201,6 +204,7 @@ class OmnisharpSensorTests {
   void passConfig() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
 
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getUseNet6(), "true");
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getLoadProjectsOnDemand(), "true");
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getStartupTimeout(), "999");
@@ -219,12 +223,13 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, true, true, null, null, null, null, 999, 123);
+    verify(mockServer).lazyStart(baseDir, OmnisharpTestUtils.ANALYZER_JAR, true, true, null, null, null, null, 999, 123);
   }
 
   @Test
   void passActiveRulesAndParams() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
     sensorContext.setActiveRules(new ActiveRulesBuilder()
       // Rule from another repo, should be ignored
       .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of("foo", "bar")).build())
@@ -254,6 +259,7 @@ class OmnisharpSensorTests {
   @Test
   void testCancellation() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
     sensorContext.setCancelled(true);
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -269,7 +275,7 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
-    verify(mockServer).lazyStart(baseDir, false, false, null, null, null, null, 60, 60);
+    verify(mockServer).lazyStart(baseDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, null, 60, 60);
     verify(mockProtocol).config(any());
     verifyNoMoreInteractions(mockProtocol);
   }
@@ -277,6 +283,7 @@ class OmnisharpSensorTests {
   @Test
   void ignoreInactiveRules() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     Path filePath = baseDir.resolve("Foo.cs");
     String content = "Console.WriteLine(\"Hello World!\");";
@@ -308,6 +315,7 @@ class OmnisharpSensorTests {
   @Test
   void reportIssueForActiveRules() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
@@ -354,6 +362,7 @@ class OmnisharpSensorTests {
   @Test
   void ignoreIssuesOnOtherFiles() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
@@ -396,6 +405,7 @@ class OmnisharpSensorTests {
   @Test
   void processSecondaryLocations() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
@@ -472,6 +482,7 @@ class OmnisharpSensorTests {
   @Test
   void processQuickFixes() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
     RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());

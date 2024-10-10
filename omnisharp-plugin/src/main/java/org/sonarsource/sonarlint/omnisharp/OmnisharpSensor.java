@@ -79,6 +79,7 @@ public class OmnisharpSensor implements Sensor {
       return;
     }
     try {
+      Path analyzerPluginPath = context.config().get(CSharpPropertyDefinitions.getAnalyzerPluginPath()).map(Paths::get).orElse(null);
       Path dotnetCliExePath = context.config().get(CSharpPropertyDefinitions.getDotnetCliExeLocation()).map(Paths::get).orElse(null);
       Path monoExePath = context.config().get(CSharpPropertyDefinitions.getMonoExeLocation()).map(Paths::get).orElse(null);
       Path msBuildPath = context.config().get(CSharpPropertyDefinitions.getMSBuildPath()).map(Paths::get).orElse(null);
@@ -87,8 +88,8 @@ public class OmnisharpSensor implements Sensor {
       boolean loadProjectsOnDemand = context.config().getBoolean(CSharpPropertyDefinitions.getLoadProjectsOnDemand()).orElse(false);
       int startupTimeOutSec = context.config().getInt(CSharpPropertyDefinitions.getStartupTimeout()).orElse(60);
       int loadProjectsTimeOutSec = context.config().getInt(CSharpPropertyDefinitions.getLoadProjectsTimeout()).orElse(60);
-      server.lazyStart(context.fileSystem().baseDir().toPath(), useFramework, loadProjectsOnDemand, dotnetCliExePath, monoExePath, msBuildPath, solutionPath, startupTimeOutSec,
-        loadProjectsTimeOutSec);
+      server.lazyStart(context.fileSystem().baseDir().toPath(), analyzerPluginPath, useFramework, loadProjectsOnDemand, dotnetCliExePath, monoExePath, msBuildPath, solutionPath,
+        startupTimeOutSec, loadProjectsTimeOutSec);
     } catch (InterruptedException e) {
       LOG.warn("Interrupted", e);
       Thread.currentThread().interrupt();
