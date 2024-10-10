@@ -20,15 +20,17 @@
 package org.sonarsource.sonarlint.omnisharp;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.Predicate;
-import java.util.zip.ZipEntry;
+import java.util.stream.Stream;
 import org.sonar.api.Startable;
+import org.sonar.api.config.Configuration;
 import org.sonar.api.scanner.ScannerSide;
 import org.sonar.api.utils.TempFolder;
 import org.sonar.api.utils.ZipUtils;
@@ -37,31 +39,49 @@ import org.sonarsource.api.sonarlint.SonarLintSide;
 import static java.util.Objects.requireNonNull;
 
 @ScannerSide
-@SonarLintSide(lifespan = SonarLintSide.MULTIPLE_ANALYSES)
+@SonarLintSide(lifespan = SonarLintSide.INSTANCE)
 public class OmnisharpServicesExtractor implements Startable {
 
   private static final String SERVICES_DLL_FILENAME = "SonarLint.OmniSharp.DotNet.Services.dll";
 
   private static final String OMNISHARP_SERVICES_LOCATION = "slServices";
 
+  private Path analyzerZipPath;
   private Path omnisharpServicesDir;
 
   private final TempFolder tempFolder;
+  private final Configuration configuration;
 
-  public OmnisharpServicesExtractor(TempFolder tempFolder) {
+  public OmnisharpServicesExtractor(TempFolder tempFolder, Configuration configuration) {
     this.tempFolder = tempFolder;
+    this.configuration = configuration;
   }
 
   @Override
   public void start() {
-    String analyzerVersion = loadAnalyzerVersion();
+    unzipAnalyzerPlugin();
     this.omnisharpServicesDir = tempFolder.newDir(OMNISHARP_SERVICES_LOCATION).toPath();
-    unzipAnalyzer(analyzerVersion);
+    unzipAnalyzer();
     extractOmnisharpServicesDll();
   }
 
   public Path getOmnisharpServicesDllPath() {
     return omnisharpServicesDir.resolve(SERVICES_DLL_FILENAME);
+  }
+
+  private void unzipAnalyzerPlugin() {
+    var pluginUnzipDir = tempFolder.newDir("pluginZip");
+    var analyzerPluginPath = configuration.get(CSharpPropertyDefinitions.getAnalyzerPluginPath()).orElse(null);
+    try (InputStream analyzerPlugin = new FileInputStream(analyzerPluginPath)) {
+      requireNonNull(analyzerPlugin, "Plugin jar not found");
+      ZipUtils.unzip(analyzerPlugin, pluginUnzipDir, ze -> ze.getName().endsWith(".zip"));
+      analyzerZipPath = Stream.of(new File(pluginUnzipDir, "static").listFiles((dir, name) -> name.endsWith(".zip")))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException("Unable to find analyzer ZIP"))
+        .toPath();
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to extract analyzers", e);
+    }
   }
 
   private void extractOmnisharpServicesDll() {
@@ -73,10 +93,10 @@ public class OmnisharpServicesExtractor implements Startable {
     }
   }
 
-  private void unzipAnalyzer(String analyzerVersion) {
-    try (InputStream bundle = getClass().getResourceAsStream("/static/SonarAnalyzer-" + analyzerVersion + ".zip")) {
-      requireNonNull(bundle, "SonarAnalyzer not found in plugin jar");
-      ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile(), (Predicate<ZipEntry>) ze -> ze.getName().endsWith(".dll"));
+  private void unzipAnalyzer() {
+    try (InputStream bundle = new FileInputStream(analyzerZipPath.toFile())) {
+      requireNonNull(bundle, "SonarAnalyzer not found in extracted plugin jar");
+      ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile(), ze -> ze.getName().endsWith(".dll"));
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract analyzers", e);
     }

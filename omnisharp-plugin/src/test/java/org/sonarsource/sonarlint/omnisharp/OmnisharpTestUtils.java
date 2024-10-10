@@ -19,27 +19,14 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarRuntime;
-import org.sonar.api.internal.SonarRuntimeImpl;
-import org.sonar.api.utils.Version;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import static org.assertj.core.api.Assertions.assertThat;
+class OmnisharpTestUtils {
 
-class OmnisharpPluginTests {
-
-  @Test
-  void getExtensions() {
-    SonarRuntime sonarRuntime = SonarRuntimeImpl.forSonarLint(Version.create(7, 9));
-
-    Plugin.Context context = new Plugin.Context(sonarRuntime);
-    new OmnisharpPlugin().define(context);
-
-    List<?> extensions = context.getExtensions();
-
-    assertThat(extensions).hasSize(22);
+  private OmnisharpTestUtils() {
+    // NOP
   }
 
+  static final Path ANALYZER_JAR = Paths.get("target/analyzer").resolve("sonarcsharp.jar").toAbsolutePath();
 }
