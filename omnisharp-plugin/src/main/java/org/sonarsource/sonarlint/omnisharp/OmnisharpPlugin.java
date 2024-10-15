@@ -50,9 +50,7 @@ public class OmnisharpPlugin implements Plugin {
         OmnisharpCommandBuilder.class);
     }
 
-    context.addExtensions(
-      CSharpLanguage.class,
-      CSharpSonarRulesDefinition.class);
+    context.addExtension(CSharpLanguage.class);
 
     context.addExtensions(new CSharpPropertyDefinitions().create());
   }

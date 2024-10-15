@@ -47,7 +47,7 @@ class OmnisharpServicesExtractorTests {
   void prepare(@TempDir Path tmpDir) {
     slTmpDir = tmpDir.resolve("tmp");
     var config = new MapSettings()
-      .setProperty(CSharpPropertyDefinitions.getAnalyzerPluginPath(), OmnisharpTestUtils.ANALYZER_JAR.toString())
+      .setProperty(CSharpPropertyDefinitions.getEnterpriseAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString())
       .asConfig();
     underTest = new OmnisharpServicesExtractor(new DefaultTempFolder(slTmpDir.toFile()), config);
   }

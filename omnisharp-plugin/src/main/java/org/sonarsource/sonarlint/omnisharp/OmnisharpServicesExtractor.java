@@ -19,13 +19,10 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -48,6 +45,7 @@ public class OmnisharpServicesExtractor implements Startable {
 
   private Path analyzerZipPath;
   private Path omnisharpServicesDir;
+  private Path rulesMetadataPath;
 
   private final TempFolder tempFolder;
   private final Configuration configuration;
@@ -69,16 +67,21 @@ public class OmnisharpServicesExtractor implements Startable {
     return omnisharpServicesDir.resolve(SERVICES_DLL_FILENAME);
   }
 
+  public Path getRulesMetadataPath() {
+    return rulesMetadataPath;
+  }
+
   private void unzipAnalyzerPlugin() {
     var pluginUnzipDir = tempFolder.newDir("pluginZip");
-    var analyzerPluginPath = configuration.get(CSharpPropertyDefinitions.getAnalyzerPluginPath()).orElse(null);
+    var analyzerPluginPath = configuration.get(CSharpPropertyDefinitions.getEnterpriseAnalyzerPath()).orElse(null);
     try (InputStream analyzerPlugin = new FileInputStream(analyzerPluginPath)) {
       requireNonNull(analyzerPlugin, "Plugin jar not found");
-      ZipUtils.unzip(analyzerPlugin, pluginUnzipDir, ze -> ze.getName().endsWith(".zip"));
+      ZipUtils.unzip(analyzerPlugin, pluginUnzipDir, ze -> ze.getName().endsWith(".zip") || ze.getName().endsWith(".json") || ze.getName().endsWith(".html"));
       analyzerZipPath = Stream.of(new File(pluginUnzipDir, "static").listFiles((dir, name) -> name.endsWith(".zip")))
         .findFirst()
         .orElseThrow(() -> new IllegalStateException("Unable to find analyzer ZIP"))
         .toPath();
+      rulesMetadataPath = pluginUnzipDir.toPath();
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract analyzers", e);
     }
@@ -99,14 +102,6 @@ public class OmnisharpServicesExtractor implements Startable {
       ZipUtils.unzip(bundle, omnisharpServicesDir.resolve("analyzers").toFile(), ze -> ze.getName().endsWith(".dll"));
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract analyzers", e);
-    }
-  }
-
-  private String loadAnalyzerVersion() {
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/analyzer-version.txt"), StandardCharsets.UTF_8))) {
-      return reader.lines().findFirst().orElseThrow(() -> new IllegalStateException("Unable to read analyzer version"));
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
     }
   }
 
