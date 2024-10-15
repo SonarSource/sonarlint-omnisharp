@@ -24,7 +24,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using SonarLint.OmniSharp.DotNet.Services.Rules;
 using SonarLint.OmniSharp.DotNet.Services.Rules.SonarLintXml;
-using SonarLint.VisualStudio.Core.CSharpVB;
 
 namespace SonarLint.OmniSharp.DotNet.Services.UnitTests.Rules
 {
