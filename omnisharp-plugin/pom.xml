@@ -16,7 +16,6 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>9.32.0.97167</analyzer.version>
     <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
     <sonar.analyzer.commons>2.12.0.2964</sonar.analyzer.commons>
     <sonar.version>10.10.0.2391</sonar.version>
@@ -181,7 +180,7 @@
         <artifactId>sonar-packaging-maven-plugin</artifactId>
         <configuration>
           <pluginName>C# Code Quality and Security (Omnisharp)</pluginName>
-          <pluginKey>csharp</pluginKey>
+          <pluginKey>omnisharp</pluginKey>
           <pluginClass>org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin</pluginClass>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <sonarLintSupported>true</sonarLintSupported>

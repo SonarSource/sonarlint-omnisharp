@@ -79,7 +79,7 @@ public class OmnisharpSensor implements Sensor {
       return;
     }
     try {
-      Path analyzerPluginPath = context.config().get(CSharpPropertyDefinitions.getAnalyzerPluginPath()).map(Paths::get).orElse(null);
+      Path analyzerPluginPath = context.config().get(CSharpPropertyDefinitions.getEnterpriseAnalyzerPath()).map(Paths::get).orElse(null);
       Path dotnetCliExePath = context.config().get(CSharpPropertyDefinitions.getDotnetCliExeLocation()).map(Paths::get).orElse(null);
       Path monoExePath = context.config().get(CSharpPropertyDefinitions.getMonoExeLocation()).map(Paths::get).orElse(null);
       Path msBuildPath = context.config().get(CSharpPropertyDefinitions.getMSBuildPath()).map(Paths::get).orElse(null);
