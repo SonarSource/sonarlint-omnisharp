@@ -164,7 +164,7 @@
             </configuration>
           </execution>
           <execution>
-            <id>download-analyzer</id>
+            <id>download-analyzer-for-its</id>
             <phase>generate-test-resources</phase>
             <goals>
               <goal>copy</goal>
@@ -176,11 +176,11 @@
                   <artifactId>sonar-csharp-plugin</artifactId>
                   <version>${analyzer.version}</version>
                   <overWrite>true</overWrite>
+                  <outputDirectory>${project.build.directory}/analyzer</outputDirectory>
                   <!-- Use a static file name to simplify access from tests -->
                   <destFileName>sonarcsharp.jar</destFileName>
                 </artifactItem>
               </artifactItems>
-              <outputDirectory>${project.build.directory}/analyzer</outputDirectory>
             </configuration>
           </execution>
         </executions>
