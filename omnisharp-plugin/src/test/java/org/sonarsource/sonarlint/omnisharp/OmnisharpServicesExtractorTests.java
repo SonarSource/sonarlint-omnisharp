@@ -61,12 +61,7 @@ class OmnisharpServicesExtractorTests {
     Collection<File> content = FileUtils.listFiles(analyzersDir.toFile(), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
     assertThat(content)
       .extracting(File::getName)
-      .containsExactlyInAnyOrder(
-        "SonarAnalyzer.dll",
-        "SonarAnalyzer.CSharp.dll",
-        "SonarAnalyzer.CFG.dll",
-        "Google.Protobuf.dll",
-        "SonarAnalyzer.ShimLayer.dll");
+      .containsExactly("SonarAnalyzer.CSharp.dll");
     assertThat(underTest.getOmnisharpServicesDllPath()).endsWith(Paths.get("SonarLint.OmniSharp.DotNet.Services.dll"));
   }
 
