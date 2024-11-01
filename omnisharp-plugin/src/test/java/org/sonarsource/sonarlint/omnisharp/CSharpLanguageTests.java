@@ -49,7 +49,7 @@ class CSharpLanguageTests {
 
   @Test
   void shouldGetCustomFileSuffixes() {
-    settings.setProperty(OmnisharpPlugin.FILE_SUFFIXES_KEY, ".cs,.csharp");
+    settings.setProperty(CSharpPropertyDefinitions.FILE_SUFFIXES_KEY, ".cs,.csharp");
     assertThat(csharp.getFileSuffixes()).containsOnly(".cs", ".csharp");
   }
 
@@ -72,7 +72,7 @@ class CSharpLanguageTests {
   private class FakeCSharp extends AbstractLanguage {
 
     public FakeCSharp() {
-      super(OmnisharpPlugin.LANGUAGE_KEY, OmnisharpPlugin.LANGUAGE_NAME);
+      super(OmnisharpPluginConstants.LANGUAGE_KEY, OmnisharpPluginConstants.LANGUAGE_NAME);
     }
 
     @Override

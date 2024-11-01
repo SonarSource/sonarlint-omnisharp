@@ -120,8 +120,8 @@ class OmnisharpSensorTests {
     underTest.describe(descriptor);
 
     assertThat(descriptor.name()).isEqualTo("OmniSharp");
-    assertThat(descriptor.languages()).containsOnly(OmnisharpPlugin.LANGUAGE_KEY);
-    assertThat(descriptor.ruleRepositories()).containsOnly(OmnisharpPlugin.REPOSITORY_KEY);
+    assertThat(descriptor.languages()).containsOnly(OmnisharpPluginConstants.LANGUAGE_KEY);
+    assertThat(descriptor.ruleRepositories()).containsOnly(OmnisharpPluginConstants.REPOSITORY_KEY);
 
     var configWithProp = mock(Configuration.class);
     when(configWithProp.hasKey(CSharpPropertyDefinitions.getAnalyzerPath())).thenReturn(true);
@@ -155,7 +155,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -183,7 +183,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -216,7 +216,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -234,9 +234,9 @@ class OmnisharpSensorTests {
       // Rule from another repo, should be ignored
       .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of("foo", "bar")).build())
       // Rule without params
-      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S123")).build())
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S123")).build())
       // Rule with params
-      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S456")).setParam("param1", "val1").setParam("param2", "val2").build())
+      .addRule(new NewActiveRule.Builder().setRuleKey(RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S456")).setParam("param1", "val1").setParam("param2", "val2").build())
       .build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -245,7 +245,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -268,7 +268,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -291,7 +291,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .build();
     sensorContext.fileSystem().add(file);
@@ -317,7 +317,7 @@ class OmnisharpSensorTests {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
-    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -326,7 +326,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
@@ -364,7 +364,7 @@ class OmnisharpSensorTests {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
-    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -374,7 +374,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
@@ -407,7 +407,7 @@ class OmnisharpSensorTests {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
-    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -417,7 +417,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
@@ -484,7 +484,7 @@ class OmnisharpSensorTests {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
-    RuleKey ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, "S12345");
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
     Path filePath = baseDir.resolve("Foo.cs");
@@ -494,7 +494,7 @@ class OmnisharpSensorTests {
 
     InputFile file = TestInputFileBuilder.create("", "Foo.cs")
       .setModuleBaseDir(baseDir)
-      .setLanguage(OmnisharpPlugin.LANGUAGE_KEY)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();

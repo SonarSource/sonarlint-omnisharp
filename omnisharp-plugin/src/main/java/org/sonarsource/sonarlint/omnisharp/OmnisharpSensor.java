@@ -65,8 +65,8 @@ public class OmnisharpSensor implements Sensor {
   public void describe(SensorDescriptor descriptor) {
     descriptor
       .name("OmniSharp")
-      .onlyOnLanguage(OmnisharpPlugin.LANGUAGE_KEY)
-      .createIssuesForRuleRepositories(OmnisharpPlugin.REPOSITORY_KEY)
+      .onlyOnLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .createIssuesForRuleRepositories(OmnisharpPluginConstants.REPOSITORY_KEY)
       .onlyWhenConfiguration(c -> c.hasKey(CSharpPropertyDefinitions.getOmnisharpMonoLocation())
         || c.hasKey(CSharpPropertyDefinitions.getOmnisharpWinLocation())
         || c.hasKey(CSharpPropertyDefinitions.getOmnisharpNet6Location()));
@@ -74,7 +74,7 @@ public class OmnisharpSensor implements Sensor {
 
   @Override
   public void execute(SensorContext context) {
-    FilePredicate predicate = context.fileSystem().predicates().hasLanguage(OmnisharpPlugin.LANGUAGE_KEY);
+    FilePredicate predicate = context.fileSystem().predicates().hasLanguage(OmnisharpPluginConstants.LANGUAGE_KEY);
     if (!context.fileSystem().hasFiles(predicate)) {
       return;
     }
@@ -144,7 +144,7 @@ public class OmnisharpSensor implements Sensor {
   private static JsonObject buildRulesConfig(SensorContext context) {
     JsonObject config = new JsonObject();
     JsonArray rulesJson = new JsonArray();
-    for (ActiveRule activeRule : context.activeRules().findByRepository(OmnisharpPlugin.REPOSITORY_KEY)) {
+    for (ActiveRule activeRule : context.activeRules().findByRepository(OmnisharpPluginConstants.REPOSITORY_KEY)) {
       JsonObject ruleJson = new JsonObject();
       ruleJson.addProperty("ruleId", activeRule.ruleKey().rule());
       if (!activeRule.params().isEmpty()) {
@@ -172,7 +172,7 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static void handle(SensorContext context, Diagnostic diag) {
-    var ruleKey = RuleKey.of(OmnisharpPlugin.REPOSITORY_KEY, diag.getId());
+    var ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, diag.getId());
     if (context.activeRules().find(ruleKey) != null) {
       var diagFilePath = Paths.get(diag.getFilename());
       var diagInputFile = findInputFile(context, diagFilePath);
