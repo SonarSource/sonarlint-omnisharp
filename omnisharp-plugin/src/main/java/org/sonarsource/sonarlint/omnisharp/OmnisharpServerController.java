@@ -39,7 +39,7 @@ import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 import static java.util.stream.Collectors.joining;
 
 @ScannerSide
-@SonarLintSide(lifespan = "MODULE")
+@SonarLintSide(lifespan = SonarLintSide.MODULE)
 public class OmnisharpServerController implements Startable {
 
   private static final Logger LOG = Loggers.get(OmnisharpServerController.class);

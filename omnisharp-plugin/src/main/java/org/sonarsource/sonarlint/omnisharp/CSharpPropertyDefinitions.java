@@ -94,12 +94,7 @@ public class CSharpPropertyDefinitions {
         .onQualifiers(Qualifiers.PROJECT)
         .build());
     result.add(
-      PropertyDefinition.builder(getOssAnalyzerPath())
-        .hidden()
-        .build()
-    );
-    result.add(
-      PropertyDefinition.builder(getEnterpriseAnalyzerPath())
+      PropertyDefinition.builder(getAnalyzerPath())
         .hidden()
         .build()
     );
@@ -154,11 +149,7 @@ public class CSharpPropertyDefinitions {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.startupTimeout";
   }
 
-  public static String getOssAnalyzerPath() {
-    return PROP_PREFIX + LANGUAGE_KEY + ".internal.ossAnalyzerPath";
-  }
-
-  public static String getEnterpriseAnalyzerPath() {
-    return PROP_PREFIX + LANGUAGE_KEY + ".internal.enterpriseAnalyzerPath";
+  public static String getAnalyzerPath() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.analyzerPath";
   }
 }

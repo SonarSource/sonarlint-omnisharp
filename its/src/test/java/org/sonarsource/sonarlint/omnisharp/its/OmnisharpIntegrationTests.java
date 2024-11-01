@@ -149,7 +149,7 @@ class OmnisharpIntegrationTests {
         new InitializeParams(IT_CLIENT_INFO, IT_TELEMETRY_ATTRIBUTES, HttpConfigurationDto.defaultConfig(), null, featureFlags,
           slHome.resolve("storage"),
           slHome.resolve("work"),
-          Set.of(pluginJar, enterpriseAnalyserPath), Collections.emptyMap(),
+          Set.of(pluginJar), Collections.emptyMap(),
           Set.of(org.sonarsource.sonarlint.core.rpc.protocol.common.Language.CS), Collections.emptySet(), Collections.emptySet(), Collections.emptyList(), Collections.emptyList(), slHome.toString(), Map.of(),
           false, new LanguageSpecificRequirements(null,
             new OmnisharpRequirementsDto(omnisharpMonoPath, omnisharpNet6Path, omnisharpWinPath, ossAnalyserPath, enterpriseAnalyserPath)),
@@ -966,8 +966,8 @@ class OmnisharpIntegrationTests {
     // it could happen that the notification is not yet received while the analysis request is finished.
     // await().atMost(Duration.ofMillis(200)).untilAsserted(() -> assertThat(((MockSonarLintRpcClientDelegate) client).getRaisedIssues(configScopeId)).isNotEmpty());
     Thread.sleep(200);
-    var raisedIssues = ((MockSonarLintRpcClientDelegate) client).getRaisedIssues(configScopeId);
-    ((MockSonarLintRpcClientDelegate) client).getRaisedIssues().clear();
+    var raisedIssues = client.getRaisedIssues(configScopeId);
+    client.getRaisedIssues().clear();
     return raisedIssues != null ? raisedIssues : List.of();
   }
 

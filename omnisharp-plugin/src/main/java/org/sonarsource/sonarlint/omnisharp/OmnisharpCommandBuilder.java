@@ -29,7 +29,7 @@ import org.sonar.api.utils.System2;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.plugin.api.SonarLintRuntime;
 
-@SonarLintSide(lifespan = "MODULE")
+@SonarLintSide(lifespan = SonarLintSide.MODULE)
 public class OmnisharpCommandBuilder {
 
   private final System2 system2;

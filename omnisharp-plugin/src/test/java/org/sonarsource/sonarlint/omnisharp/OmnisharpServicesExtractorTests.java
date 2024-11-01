@@ -47,14 +47,14 @@ class OmnisharpServicesExtractorTests {
   void prepare(@TempDir Path tmpDir) {
     slTmpDir = tmpDir.resolve("tmp");
     var config = new MapSettings()
-      .setProperty(CSharpPropertyDefinitions.getEnterpriseAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString())
+      .setProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString())
       .asConfig();
     underTest = new OmnisharpServicesExtractor(new DefaultTempFolder(slTmpDir.toFile()), config);
   }
 
   @Test
-  void extractAnalyzersAndServicesOnStartup() {
-    underTest.start();
+  void lazilyExtractAnalyzersAndServices() {
+    underTest.getOmnisharpServicesDllPath();
     assertThat(slTmpDir.resolve("slServices"))
       .isDirectoryContaining("glob:**/SonarLint.OmniSharp.DotNet.Services.dll");
     Path analyzersDir = slTmpDir.resolve("slServices/analyzers");

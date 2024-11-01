@@ -37,7 +37,7 @@ import static java.util.Objects.requireNonNull;
 
 @ScannerSide
 @SonarLintSide(lifespan = SonarLintSide.INSTANCE)
-public class OmnisharpServicesExtractor implements Startable {
+public class OmnisharpServicesExtractor {
 
   private static final String SERVICES_DLL_FILENAME = "SonarLint.OmniSharp.DotNet.Services.dll";
 
@@ -45,7 +45,6 @@ public class OmnisharpServicesExtractor implements Startable {
 
   private Path analyzerZipPath;
   private Path omnisharpServicesDir;
-  private Path rulesMetadataPath;
 
   private final TempFolder tempFolder;
   private final Configuration configuration;
@@ -55,25 +54,19 @@ public class OmnisharpServicesExtractor implements Startable {
     this.configuration = configuration;
   }
 
-  @Override
-  public void start() {
-    unzipAnalyzerPlugin();
-    this.omnisharpServicesDir = tempFolder.newDir(OMNISHARP_SERVICES_LOCATION).toPath();
-    unzipAnalyzer();
-    extractOmnisharpServicesDll();
-  }
-
   public Path getOmnisharpServicesDllPath() {
+    if (omnisharpServicesDir == null) {
+      unzipAnalyzerPlugin();
+      this.omnisharpServicesDir = tempFolder.newDir(OMNISHARP_SERVICES_LOCATION).toPath();
+      unzipAnalyzer();
+      extractOmnisharpServicesDll();
+    }
     return omnisharpServicesDir.resolve(SERVICES_DLL_FILENAME);
-  }
-
-  public Path getRulesMetadataPath() {
-    return rulesMetadataPath;
   }
 
   private void unzipAnalyzerPlugin() {
     var pluginUnzipDir = tempFolder.newDir("pluginZip");
-    var analyzerPluginPath = configuration.get(CSharpPropertyDefinitions.getEnterpriseAnalyzerPath()).orElse(null);
+    var analyzerPluginPath = configuration.get(CSharpPropertyDefinitions.getAnalyzerPath()).orElse(null);
     try (InputStream analyzerPlugin = new FileInputStream(analyzerPluginPath)) {
       requireNonNull(analyzerPlugin, "Plugin jar not found");
       ZipUtils.unzip(analyzerPlugin, pluginUnzipDir, ze -> ze.getName().endsWith(".zip") || ze.getName().endsWith(".json") || ze.getName().endsWith(".html"));
@@ -81,7 +74,6 @@ public class OmnisharpServicesExtractor implements Startable {
         .findFirst()
         .orElseThrow(() -> new IllegalStateException("Unable to find analyzer ZIP"))
         .toPath();
-      rulesMetadataPath = pluginUnzipDir.toPath();
     } catch (IOException e) {
       throw new IllegalStateException("Unable to extract analyzers", e);
     }
@@ -104,10 +96,4 @@ public class OmnisharpServicesExtractor implements Startable {
       throw new IllegalStateException("Unable to extract analyzers", e);
     }
   }
-
-  @Override
-  public void stop() {
-    // Nothing to do
-  }
-
 }
