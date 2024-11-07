@@ -19,31 +19,14 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import java.util.Objects;
-import org.sonar.api.config.Configuration;
-import org.sonar.api.resources.AbstractLanguage;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-public class CSharpLanguage extends AbstractLanguage {
+class OmnisharpTestUtils {
 
-  private final Configuration configuration;
-
-  public CSharpLanguage(Configuration configuration) {
-    super(OmnisharpPluginConstants.LANGUAGE_KEY, OmnisharpPluginConstants.LANGUAGE_NAME);
-    this.configuration = configuration;
+  private OmnisharpTestUtils() {
+    // NOP
   }
 
-  @Override
-  public String[] getFileSuffixes() {
-    return configuration.getStringArray(CSharpPropertyDefinitions.FILE_SUFFIXES_KEY);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    return super.equals(o) && o instanceof CSharpLanguage && configuration == ((CSharpLanguage) o).configuration;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), configuration.hashCode());
-  }
+  static final Path ANALYZER_JAR = Paths.get("target/analyzer").resolve("sonarcsharp.jar").toAbsolutePath();
 }

@@ -16,7 +16,6 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <analyzer.version>9.32.0.97167</analyzer.version>
     <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
     <sonar.analyzer.commons>2.12.0.2964</sonar.analyzer.commons>
     <sonar.version>10.10.0.2391</sonar.version>
@@ -171,9 +170,6 @@
         </excludes>
       </resource>
       <resource>
-        <directory>${sonarAnalyzer.directory}</directory>
-      </resource>
-      <resource>
         <directory>${servicesDll.directory}</directory>
       </resource>
     </resources>
@@ -184,7 +180,7 @@
         <artifactId>sonar-packaging-maven-plugin</artifactId>
         <configuration>
           <pluginName>C# Code Quality and Security (Omnisharp)</pluginName>
-          <pluginKey>csharp</pluginKey>
+          <pluginKey>omnisharp</pluginKey>
           <pluginClass>org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin</pluginClass>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <sonarLintSupported>true</sonarLintSupported>
@@ -225,9 +221,9 @@
         <executions>
           <execution>
             <id>download-analyzer</id>
-            <phase>generate-resources</phase>
+            <phase>generate-test-resources</phase>
             <goals>
-              <goal>unpack</goal>
+              <goal>copy</goal>
             </goals>
             <configuration>
               <artifactItems>
@@ -236,9 +232,10 @@
                   <artifactId>sonar-csharp-plugin</artifactId>
                   <version>${analyzer.version}</version>
                   <overWrite>true</overWrite>
+                  <!-- Use a static file name to simplify access from tests -->
+                  <destFileName>sonarcsharp.jar</destFileName>
                 </artifactItem>
               </artifactItems>
-              <includes>**/static/SonarAnalyzer-*.zip,**/org/sonar/plugins/csharp/*.json,**/org/sonar/plugins/csharp/*.html</includes>
               <outputDirectory>${sonarAnalyzer.directory}</outputDirectory>
             </configuration>
           </execution>
@@ -255,13 +252,13 @@
             </goals>
             <configuration>
               <outputDirectory>${servicesDll.directory}</outputDirectory>
-              <resources>          
+              <resources>
                 <resource>
                   <directory>../omnisharp-dotnet/JarContentFiles</directory>
                   <filtering>false</filtering>
                 </resource>
-              </resources>              
-            </configuration>            
+              </resources>
+            </configuration>
           </execution>
         </executions>
       </plugin>

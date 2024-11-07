@@ -25,11 +25,14 @@ import org.sonar.api.PropertyType;
 import org.sonar.api.config.PropertyDefinition;
 import org.sonar.api.resources.Qualifiers;
 
-import static org.sonarsource.sonarlint.omnisharp.OmnisharpPlugin.LANGUAGE_KEY;
+import static org.sonarsource.sonarlint.omnisharp.OmnisharpPluginConstants.LANGUAGE_KEY;
 
 public class CSharpPropertyDefinitions {
 
   private static final String PROP_PREFIX = "sonar.";
+
+  static final String FILE_SUFFIXES_KEY = PROP_PREFIX + OmnisharpPluginConstants.LANGUAGE_KEY + ".file.suffixes";
+  static final String FILE_SUFFIXES_DEFVALUE = ".cs";
 
   public List<PropertyDefinition> create() {
     List<PropertyDefinition> result = new ArrayList<>();
@@ -86,13 +89,18 @@ public class CSharpPropertyDefinitions {
         .build());
     result.add(
       PropertyDefinition.builder(getFileSuffixProperty())
-        .category(OmnisharpPlugin.LANGUAGE_NAME)
-        .defaultValue(OmnisharpPlugin.FILE_SUFFIXES_DEFVALUE)
+        .category(OmnisharpPluginConstants.LANGUAGE_NAME)
+        .defaultValue(FILE_SUFFIXES_DEFVALUE)
         .name("File suffixes")
         .description("Comma-separated list of suffixes of files to analyze.")
         .multiValues(true)
         .onQualifiers(Qualifiers.PROJECT)
         .build());
+    result.add(
+      PropertyDefinition.builder(getAnalyzerPath())
+        .hidden()
+        .build()
+    );
     return result;
   }
 
@@ -142,5 +150,9 @@ public class CSharpPropertyDefinitions {
 
   public static String getStartupTimeout() {
     return PROP_PREFIX + LANGUAGE_KEY + ".internal.startupTimeout";
+  }
+
+  public static String getAnalyzerPath() {
+    return PROP_PREFIX + LANGUAGE_KEY + ".internal.analyzerPath";
   }
 }

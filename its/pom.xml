@@ -47,7 +47,25 @@
     </dependency>
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-core</artifactId>
+      <artifactId>sonarlint-java-client-utils</artifactId>
+      <version>${sonarlint-core.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.sonarsource.sonarlint.core</groupId>
+      <artifactId>sonarlint-rpc-protocol</artifactId>
+      <version>${sonarlint-core.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.sonarsource.sonarlint.core</groupId>
+      <artifactId>sonarlint-rpc-impl</artifactId>
+      <version>${sonarlint-core.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.sonarsource.sonarlint.core</groupId>
+      <artifactId>sonarlint-rpc-java-client</artifactId>
       <version>${sonarlint-core.version}</version>
       <scope>test</scope>
     </dependency>
@@ -143,6 +161,26 @@
                    <outputDirectory>${project.build.directory}/omnisharp-net6</outputDirectory>
                  </artifactItem>
                </artifactItems>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-analyzer-for-its</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.sonarsource.dotnet</groupId>
+                  <artifactId>sonar-csharp-plugin</artifactId>
+                  <version>${analyzer.version}</version>
+                  <overWrite>true</overWrite>
+                  <outputDirectory>${project.build.directory}/analyzer</outputDirectory>
+                  <!-- Use a static file name to simplify access from tests -->
+                  <destFileName>sonarcsharp.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
             </configuration>
           </execution>
         </executions>

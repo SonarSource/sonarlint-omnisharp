@@ -19,31 +19,14 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import java.util.Objects;
-import org.sonar.api.config.Configuration;
-import org.sonar.api.resources.AbstractLanguage;
+final class OmnisharpPluginConstants {
 
-public class CSharpLanguage extends AbstractLanguage {
+  static final String LANGUAGE_KEY = "cs";
+  static final String LANGUAGE_NAME = "C#";
 
-  private final Configuration configuration;
+  static final String REPOSITORY_KEY = "csharpsquid";
 
-  public CSharpLanguage(Configuration configuration) {
-    super(OmnisharpPluginConstants.LANGUAGE_KEY, OmnisharpPluginConstants.LANGUAGE_NAME);
-    this.configuration = configuration;
-  }
-
-  @Override
-  public String[] getFileSuffixes() {
-    return configuration.getStringArray(CSharpPropertyDefinitions.FILE_SUFFIXES_KEY);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    return super.equals(o) && o instanceof CSharpLanguage && configuration == ((CSharpLanguage) o).configuration;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), configuration.hashCode());
+  private OmnisharpPluginConstants() {
+    // Static stuff only
   }
 }

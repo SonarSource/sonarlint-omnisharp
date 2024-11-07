@@ -26,17 +26,6 @@ import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 
 public class OmnisharpPlugin implements Plugin {
 
-  static final String LANGUAGE_KEY = "cs";
-  static final String LANGUAGE_NAME = "C#";
-
-  static final String REPOSITORY_KEY = "csharpsquid";
-  static final String REPOSITORY_NAME = "SonarAnalyzer";
-  static final String PLUGIN_KEY = "csharp";
-
-  private static final String PROP_PREFIX = "sonar.";
-  static final String FILE_SUFFIXES_KEY = PROP_PREFIX + LANGUAGE_KEY + ".file.suffixes";
-  static final String FILE_SUFFIXES_DEFVALUE = ".cs";
-
   @Override
   public void define(Context context) {
     if (context.getRuntime().getProduct() == SonarProduct.SONARLINT) {
@@ -50,9 +39,7 @@ public class OmnisharpPlugin implements Plugin {
         OmnisharpCommandBuilder.class);
     }
 
-    context.addExtensions(
-      CSharpLanguage.class,
-      CSharpSonarRulesDefinition.class);
+    context.addExtension(CSharpLanguage.class);
 
     context.addExtensions(new CSharpPropertyDefinitions().create());
   }
