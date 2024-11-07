@@ -69,7 +69,7 @@ public class OmnisharpServicesExtractor {
     var analyzerPluginPath = configuration.get(CSharpPropertyDefinitions.getAnalyzerPath()).orElse(null);
     try (InputStream analyzerPlugin = new FileInputStream(analyzerPluginPath)) {
       requireNonNull(analyzerPlugin, "Plugin jar not found");
-      ZipUtils.unzip(analyzerPlugin, pluginUnzipDir, ze -> ze.getName().endsWith(".zip") || ze.getName().endsWith(".json") || ze.getName().endsWith(".html"));
+      ZipUtils.unzip(analyzerPlugin, pluginUnzipDir, ze -> ze.getName().endsWith(".zip"));
       analyzerZipPath = Stream.of(new File(pluginUnzipDir, "static").listFiles((dir, name) -> name.endsWith(".zip")))
         .findFirst()
         .orElseThrow(() -> new IllegalStateException("Unable to find analyzer ZIP"))
