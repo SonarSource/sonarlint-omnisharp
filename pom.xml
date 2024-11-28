@@ -45,7 +45,7 @@
     <sonarlint-core.version>10.10.0.79500</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.10</omnisharp.version>
-    <analyzer.version>10.2.0.103721</analyzer.version>
+    <analyzer.version>10.3.0.106239</analyzer.version>
   </properties>
 
   <dependencyManagement>
