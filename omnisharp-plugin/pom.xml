@@ -16,10 +16,10 @@
   <description>Code Analyzer based on Omnisharp</description>
 
   <properties>
-    <!-- The following properties should match https://github.com/SonarSource/sonar-dotnet/blob/master/pom.xml#L58 for the given analyzer version -->
-    <sonar.analyzer.commons>2.12.0.2964</sonar.analyzer.commons>
-    <sonar.version>10.10.0.2391</sonar.version>
-    <sonar.api.impl.version>10.6.0.92116</sonar.api.impl.version>
+    <!-- The following properties should match the pom.xml of sonar-dotnet for the given analyzer version -->
+    <sonar.analyzer.commons>2.16.0.3141</sonar.analyzer.commons>
+    <sonar.version>10.13.0.2560</sonar.version>
+    <sonar.api.impl.version>10.7.0.96327</sonar.api.impl.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <sonarAnalyzer.directory>${project.build.directory}/analyzer</sonarAnalyzer.directory>
     <servicesDll.directory>${project.build.directory}/services</servicesDll.directory>
