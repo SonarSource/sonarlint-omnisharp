@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.sonarsource.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>75.0.0.1943</version>
+    <version>82.0.0.2314</version>
   </parent>
 
   <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
@@ -42,10 +42,11 @@
     <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
     <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
     <junit.version>5.9.1</junit.version>
-    <sonarlint-core.version>10.10.0.79500</sonarlint-core.version>
+    <sonarlint-core.version>10.11.0.79687</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.10</omnisharp.version>
     <analyzer.version>10.3.0.106239</analyzer.version>
+    <license.name>GNU LGPL v3</license.name>
   </properties>
 
   <dependencyManagement>

@@ -414,7 +414,7 @@ class OmnisharpIntegrationTests {
 
     var newFilePath = baseDir.resolve("ConsoleApp1/Program2.cs");
     backend.getFileService().didUpdateFileSystem(new DidUpdateFileSystemParams(List.of(), List.of(new ClientFileDto(
-      baseDir.resolve("ConsoleApp1/Program2.cs").toUri(), newFilePath, SOLUTION1_MODULE_KEY, false, "UTF-8", newFilePath, "", Language.CS, false))));
+      baseDir.resolve("ConsoleApp1/Program2.cs").toUri(), newFilePath, SOLUTION1_MODULE_KEY, false, "UTF-8", newFilePath, "", Language.CS, false)), List.of()));
 
     // Give time for Omnisharp to process the file event
     Thread.sleep(1000);
@@ -951,7 +951,7 @@ class OmnisharpIntegrationTests {
     var filePath = Path.of("projects").resolve(baseDir).resolve(filePathStr);
     var fileUri = filePath.toUri();
     backend.getFileService().didUpdateFileSystem(new DidUpdateFileSystemParams(List.of(),
-      List.of(new ClientFileDto(fileUri, Path.of(filePathStr), configScopeId, false, "UTF-8", filePath.toAbsolutePath(), content, Language.CS, true))));
+      List.of(new ClientFileDto(fileUri, Path.of(filePathStr), configScopeId, false, "UTF-8", filePath.toAbsolutePath(), content, Language.CS, true)), List.of()));
 
     var propertiesMap = new HashMap<String, String>();
     for (int i=0; i<properties.length; i+=2) {
