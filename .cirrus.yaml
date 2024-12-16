@@ -21,7 +21,11 @@ env:
   SLACK_CHANNEL: squad-ide-intellij-family-bots
 
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
+  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
+
+only_sonarsource_qa_or_image_verifier: &ONLY_SONARSOURCE_QA_OR_IMAGE_VERIFIER
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH == "ci-images-verifier" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "dogfood-on-.*")
+
 
 container_definition: &CONTAINER_DEFINITION
   cluster_name: ${CIRRUS_CLUSTER_NAME}
@@ -75,7 +79,7 @@ dotnet_cache_definition: &DOTNET_CACHE_DEFINITION
   fingerprint_key: ${CI_BUILD_NUMBER}
 
 build_dotnet_task:
-  <<: *ONLY_SONARSOURCE_QA
+  <<: *ONLY_SONARSOURCE_QA_OR_IMAGE_VERIFIER
   eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 4
@@ -124,7 +128,7 @@ build_dotnet_task:
 build_maven_task:
   depends_on:
     - build_dotnet
-  <<: *ONLY_SONARSOURCE_QA
+  <<: *ONLY_SONARSOURCE_QA_OR_IMAGE_VERIFIER
   eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 4
@@ -157,7 +161,7 @@ qa_linux_task:
 qa_windows_task:
   depends_on:
     - build_maven
-  <<: *ONLY_SONARSOURCE_QA
+  <<: *ONLY_SONARSOURCE_QA_OR_IMAGE_VERIFIER
   ec2_instance:
     <<: *INSTANCE_DEFINITION
   maven_cache: *MAVEN_CACHE_DEFINITION
@@ -172,7 +176,7 @@ qa_windows_task:
 validate_windows_task:
   depends_on:
     - build_dotnet
-  <<: *ONLY_SONARSOURCE_QA
+  <<: *ONLY_SONARSOURCE_QA_OR_IMAGE_VERIFIER
   ec2_instance:
     <<: *INSTANCE_DEFINITION
   get_jarcontentfiles_script: *GET_JARCONTENTFILES
