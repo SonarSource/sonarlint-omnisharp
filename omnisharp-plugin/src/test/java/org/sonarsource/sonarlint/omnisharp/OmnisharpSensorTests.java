@@ -252,8 +252,10 @@ class OmnisharpSensorTests {
 
     underTest.execute(sensorContext);
 
+    // The order of parameters is not guaranteed
     verify(mockProtocol)
-      .config(argThat(json -> json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param1\":\"val1\",\"param2\":\"val2\"}}]}")));
+      .config(argThat(json -> json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param1\":\"val1\",\"param2\":\"val2\"}}]}")
+      || json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param2\":\"val2\",\"param1\":\"val1\"}}]}")));
   }
 
   @Test
