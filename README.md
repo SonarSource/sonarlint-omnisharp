@@ -9,7 +9,7 @@ Replacement for SonarC# that leverages OmniSharp to run our Roslyn analyzer
 
 ## License
 
-Copyright 2024 SonarSource.
+Copyright 2025 SonarSource.
 
 Licensed under the [GNU Lesser General Public License, Version 3.0](http://www.gnu.org/licenses/lgpl.txt)
 
