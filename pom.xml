@@ -45,7 +45,7 @@
     <sonarlint-core.version>10.11.0.79687</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.10</omnisharp.version>
-    <analyzer.version>10.6.0.109712</analyzer.version>
+    <analyzer.version>10.7.0.110445</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
   </properties>
 
