@@ -79,7 +79,8 @@ public class OmnisharpCommandBuilder {
   }
 
   private ProcessBuilder addArguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
-    args.add("-v");
+    args.add("-l");
+    args.add("Trace");
     if (sonarLintRuntime.getClientPid() != 0) {
       args.add("--hostPID");
       args.add(Long.toString(sonarLintRuntime.getClientPid()));

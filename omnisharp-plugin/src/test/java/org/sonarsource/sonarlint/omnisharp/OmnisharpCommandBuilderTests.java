@@ -71,7 +71,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -87,7 +88,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, dotnetCliPath, null, null, false);
     assertThat(pb.command()).containsExactly(dotnetCliPath.toString(),
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -105,7 +107,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly("dotnet.exe",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -121,7 +124,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, null, null, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -139,7 +143,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, null, null, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "--hostPID",
       "12345",
       "MsBuild:loadProjectsOnDemand=false",
@@ -157,7 +162,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, null, msbuildPath, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:MSBuildOverride:MSBuildPath=" + msbuildPath.toString(),
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
@@ -183,7 +189,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.build(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly("mono",
       omnisharpMonoLocation.resolve("OmniSharp.exe").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -201,7 +208,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.build(projectBaseDir, monoPath, null, null, false);
     assertThat(pb.command()).containsExactly(monoPath.toString(),
       omnisharpMonoLocation.resolve("OmniSharp.exe").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -218,7 +226,8 @@ class OmnisharpCommandBuilderTests {
 
     var pb = underTest.build(projectBaseDir, null, null, null, false);
     assertThat(pb.command()).containsExactly(omnisharpWinLocation.resolve("OmniSharp.exe").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
@@ -234,7 +243,8 @@ class OmnisharpCommandBuilderTests {
     var pb = underTest.buildNet6(projectBaseDir, null, null, null, true);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
-      "-v",
+      "-l",
+      "Trace",
       "MsBuild:loadProjectsOnDemand=true",
       "DotNet:enablePackageRestore=false",
       "--encoding",
