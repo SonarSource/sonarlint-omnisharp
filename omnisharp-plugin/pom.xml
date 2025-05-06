@@ -17,9 +17,9 @@
 
   <properties>
     <!-- The following properties should match the pom.xml of sonar-dotnet for the given analyzer version -->
-    <sonar.analyzer.commons>2.16.0.3141</sonar.analyzer.commons>
+    <sonar.analyzer.commons>2.17.0.3322</sonar.analyzer.commons>
     <sonar.version>11.3.0.2824</sonar.version>
-    <sonar.api.impl.version>25.3.0.104237</sonar.api.impl.version>
+    <sonar.api.impl.version>25.4.0.105899</sonar.api.impl.version>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <sonarAnalyzer.directory>${project.build.directory}/analyzer</sonarAnalyzer.directory>
     <servicesDll.directory>${project.build.directory}/services</servicesDll.directory>
