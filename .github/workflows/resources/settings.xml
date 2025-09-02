@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 http://maven.apache.org/xsd/settings-1.2.0.xsd">
+  <servers>
+    <server>
+      <id>sonarsource</id>
+      <configuration>
+        <httpHeaders>
+          <property>
+            <name>Authorization</name>
+            <value>Bearer ${env.ARTIFACTORY_ACCESS_TOKEN}</value>
+          </property>
+        </httpHeaders>
+      </configuration>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <id>sonarsource-repo</id>
+      <activation>
+        <property>
+          <name>!skip-sonarsource-repo</name>
+        </property>
+      </activation>
+      <repositories>
+        <repository>
+          <id>sonarsource</id>
+          <name>SonarSource Central Repository</name>
+          <url>https://repox.jfrog.io/artifactory/sonarsource</url>
+          <releases>
+            <enabled>true</enabled>
+            <updatePolicy>interval:60</updatePolicy>
+            <checksumPolicy>fail</checksumPolicy>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+            <updatePolicy>never</updatePolicy>
+          </snapshots>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>sonarsource</id>
+          <name>SonarSource Central Repository</name>
+          <url>https://repox.jfrog.io/artifactory/sonarsource</url>
+          <releases>
+            <enabled>true</enabled>
+            <!-- no need to always check if new versions are available when executing a Maven plugin without specifying the version -->
+            <updatePolicy>interval:60</updatePolicy>
+            <checksumPolicy>fail</checksumPolicy>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+            <updatePolicy>never</updatePolicy>
+          </snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+</settings>

@@ -47,6 +47,7 @@
     <omnisharp.version>1.39.10</omnisharp.version>
     <analyzer.version>10.13.0.120203</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
+    <sonar.organization>sonarsource</sonar.organization>
   </properties>
 
   <dependencyManagement>

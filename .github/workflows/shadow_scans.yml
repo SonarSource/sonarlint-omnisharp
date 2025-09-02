@@ -1,0 +1,78 @@
+name: Shadow scans
+on:
+  schedule:
+    # Run the workflow every day at 04:00 UTC
+    - cron: '0 4 * * *'
+  # TODO remove
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: github-ubuntu-latest-s
+    name: Scan on shadow platforms
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && \
+            sudo apt-get install -y ca-certificates gnupg && \
+            gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
+            sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-focal main" > /etc/apt/sources.list.d/mono-official-stable.list' && \
+            sudo apt-get update && \
+            sudo apt-get install -y \
+              mono-complete \
+              mono-roslyn \
+              msbuild
+      - name: Get Repox Credentials from Vault
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+      - name: Populate Maven settings
+        run: |
+          mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+      - name: Build dotnet project
+        env:
+          # for nuget
+          ARTIFACTORY_USER: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          # for Maven
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          # Restore the .NET project using Repox as source feed
+          dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+            --locked-mode \
+            --configfile omnisharp-dotnet/nuget.config
+
+          # Get OmniSharp fork from Repox
+          mvn generate-resources -B -Denable-repo=qa -DskipIts -Pdownload-omnisharp-for-building
+
+          # Build and run .NET unit tests
+          dotnet test omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+            -c Release \
+            -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
+            --no-restore
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          version: 2025.7.12
+      - uses: SonarSource/ci-github-actions/build-maven@master # dogfood
+        with:
+          maven-opts: -DskipIts
+          run-shadow-scans: true
+          artifactory-reader-role: private-reader
+          artifactory-deployer-role: qa-deployer
+      - name: Run IRIS sync
+        uses: SonarSource/unified-dogfooding-actions/run-iris@v1
+        with:
+          primary_project_key: "org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-parent"
+          primary_platform: "Next"
+          shadow1_project_key: "org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-parent"
+          shadow1_platform: "SQC-EU"
+          shadow2_project_key: "org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-parent"
+          shadow2_platform: "SQC-US"
