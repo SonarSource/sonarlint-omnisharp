@@ -74,7 +74,7 @@ public class OmnisharpSensor implements Sensor {
 
   @Override
   public void execute(SensorContext context) {
-    FilePredicate predicate = context.fileSystem().predicates().hasLanguage(OmnisharpPluginConstants.LANGUAGE_KEY);
+    FilePredicate predicate = getIsCsharpLanguageAndNotRazorFilesPredicate(context);
     if (!context.fileSystem().hasFiles(predicate)) {
       return;
     }
@@ -114,6 +114,13 @@ public class OmnisharpSensor implements Sensor {
     }
   }
 
+  private static FilePredicate getIsCsharpLanguageAndNotRazorFilesPredicate(SensorContext context) {
+    return context.fileSystem().predicates().and(
+      context.fileSystem().predicates().hasLanguage(OmnisharpPluginConstants.LANGUAGE_KEY),
+      context.fileSystem().predicates().not(context.fileSystem().predicates().hasExtension(OmnisharpPluginConstants.RAZOR_EXTENSION))
+    );
+  }
+
   private void analyze(SensorContext context, FilePredicate predicate) {
     JsonObject config = buildRulesConfig(context);
     omnisharpEndpoints.config(config);
@@ -123,6 +130,7 @@ public class OmnisharpSensor implements Sensor {
     boolean successfullyCompleted = false;
     boolean cancelled = false;
     try {
+
       for (InputFile inputFile : context.fileSystem().inputFiles(predicate)) {
         if (context.isCancelled()) {
           cancelled = true;

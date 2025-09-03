@@ -19,6 +19,7 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,8 +53,8 @@ import org.sonar.api.batch.sensor.issue.fix.NewTextEdit;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.issue.impact.SoftwareQuality;
 import org.sonar.api.rule.RuleKey;
-import org.sonar.api.utils.log.LoggerLevel;
 import org.sonar.api.testfixtures.log.LogTesterJUnit5;
+import org.sonar.api.utils.log.LoggerLevel;
 import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
 import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
 import org.sonarsource.sonarlint.omnisharp.protocol.Fix;
@@ -255,7 +256,7 @@ class OmnisharpSensorTests {
     // The order of parameters is not guaranteed
     verify(mockProtocol)
       .config(argThat(json -> json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param1\":\"val1\",\"param2\":\"val2\"}}]}")
-      || json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param2\":\"val2\",\"param1\":\"val1\"}}]}")));
+        || json.toString().equals("{\"activeRules\":[{\"ruleId\":\"S123\"},{\"ruleId\":\"S456\",\"params\":{\"param2\":\"val2\",\"param1\":\"val1\"}}]}")));
   }
 
   @Test
@@ -313,6 +314,20 @@ class OmnisharpSensorTests {
 
     assertThat(sensorContext.allIssues()).isEmpty();
   }
+
+  @Test
+  void ignoresRazorFiles() throws Exception {
+    var sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
+    var ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+    mockFile(sensorContext, "Foo.razor", "Console.WriteLine(\"Hello World!\");");
+
+    underTest.execute(sensorContext);
+
+    verifyNoInteractions(mockProtocol, mockServer);
+  }
+
 
   @Test
   void reportIssueForActiveRules() throws Exception {
@@ -557,6 +572,19 @@ class OmnisharpSensorTests {
       .flatExtracting("textEdits")
       .extracting("textRange.start.line", "textRange.start.lineOffset", "textRange.end.line", "textRange.end.lineOffset", "newText")
       .containsExactly(tuple(1, 1, 1, 3, ""), tuple(1, 1, 1, 3, ""), tuple(1, 5, 1, 7, "another"), tuple(2, 11, 2, 13, ""), tuple(2, 15, 2, 17, "another"));
+  }
+
+  private void mockFile(SensorContextTester sensorContext, String fileName, String content) throws IOException {
+    var filePath = baseDir.resolve(fileName);
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", fileName)
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
   }
 
   private static class MockSonarLintIssue implements NewIssue {
