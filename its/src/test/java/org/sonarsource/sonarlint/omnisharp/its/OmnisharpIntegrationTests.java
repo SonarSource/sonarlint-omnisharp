@@ -376,6 +376,19 @@ class OmnisharpIntegrationTests {
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
+  @Test
+  void analyzeBlazorApp_IgnoresRazorFiles(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "BlazorApp");
+    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "BlazorApp/Components/App.razor",
+        "@code {" +
+        "        // TODO" +
+        "    }\n",
+      "sonar.cs.internal.useNet6", "true",
+      "sonar.cs.internal.solutionPath", baseDir.resolve("BlazorApp.sln").toString());
+
+    assertThat(issues).isEmpty();
+  }
+
   // @Test
   // FIXME Not sure what is broken
   void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {

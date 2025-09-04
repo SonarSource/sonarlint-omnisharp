@@ -22,6 +22,7 @@ package org.sonarsource.sonarlint.omnisharp;
 final class OmnisharpPluginConstants {
 
   static final String LANGUAGE_KEY = "cs";
+  static final String RAZOR_EXTENSION = "razor";
   static final String LANGUAGE_NAME = "C#";
 
   static final String REPOSITORY_KEY = "csharpsquid";
