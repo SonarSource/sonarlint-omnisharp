@@ -3,14 +3,12 @@ on:
   schedule:
     # Run the workflow every day at 04:00 UTC
     - cron: '0 4 * * *'
-  # TODO remove
-  pull_request:
   workflow_dispatch:
 
 jobs:
-  scan:
+  parent-scan:
     runs-on: github-ubuntu-latest-s
-    name: Scan on shadow platforms
+    name: Scan parent on shadow platforms
     permissions:
       id-token: write
       contents: write
@@ -18,15 +16,7 @@ jobs:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       - name: Install dependencies
         run: |
-          sudo apt-get update && \
-            sudo apt-get install -y ca-certificates gnupg && \
-            gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
-            sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-focal main" > /etc/apt/sources.list.d/mono-official-stable.list' && \
-            sudo apt-get update && \
-            sudo apt-get install -y \
-              mono-complete \
-              mono-roslyn \
-              msbuild
+          bash .github/workflows/install_dependencies.sh
       - name: Get Repox Credentials from Vault
         id: secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -75,4 +65,63 @@ jobs:
           shadow1_project_key: "org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-parent"
           shadow1_platform: "SQC-EU"
           shadow2_project_key: "org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-parent"
+          shadow2_platform: "SQC-US"
+
+  dotnet-scan:
+    runs-on: github-ubuntu-latest-s
+    name: Scan dotnet project on shadow platforms
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Install dependencies
+        run: |
+          bash .github/workflows/install_dependencies.sh
+          dotnet tool install --global dotnet-sonarscanner
+      - name: Get Repox Credentials from Vault
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
+            development/kv/data/sonarcloud url | SQC_EU_URL;
+            development/kv/data/sonarcloud token | SQC_EU_TOKEN;
+            
+            development/kv/data/sonarqube-us url | SQC_US_URL;
+            development/kv/data/sonarqube-us token | SQC_US_TOKEN;
+      - name: Populate Maven settings
+        run: |
+          mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+      - name: Build and analyze dotnet project on SQC EU
+        env:
+          # for nuget
+          ARTIFACTORY_USER: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          SONAR_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).SQC_EU_TOKEN }}
+          SONAR_REGION: eu
+          # for Maven
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          bash .github/workflows/build_scan_dotnet.sh
+      - name: Build and analyze dotnet project on SQC US
+        env:
+          # for nuget
+          ARTIFACTORY_USER: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          SONAR_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).SQC_US_TOKEN }}
+          SONAR_REGION: us
+        run: |
+          bash .github/workflows/build_scan_dotnet.sh
+      - name: Run IRIS sync
+        uses: SonarSource/unified-dogfooding-actions/run-iris@v1
+        with:
+          primary_project_key: "sonarlint-omnisharp-dotnet"
+          primary_platform: "Next"
+          shadow1_project_key: "sonarlint-omnisharp-dotnet"
+          shadow1_platform: "SQC-EU"
+          shadow2_project_key: "sonarlint-omnisharp-dotnet"
           shadow2_platform: "SQC-US"
