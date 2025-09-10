@@ -42,7 +42,7 @@
     <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
     <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
     <junit.version>5.9.1</junit.version>
-    <sonarlint-core.version>10.24.0.81415</sonarlint-core.version>
+    <sonarlint-core.version>10.30.0.82224</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.10</omnisharp.version>
     <analyzer.version>10.13.0.120203</analyzer.version>
