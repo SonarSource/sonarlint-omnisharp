@@ -59,14 +59,14 @@ qa_script_definition: &QA_SCRIPT |
   mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
 
 compute_project_version_script_definition: &COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION |
-    source cirrus-env BUILD
-
-    # Read the version from the root pom
-    sonarProjectVersion=$(maven_expression "project.version" | sed 's/-SNAPSHOT//')
-    echo "Sonar project version is '${sonarProjectVersion}'"
-
-    # Set the variable so it can be used by other tasks
-    echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
+  source cirrus-env BUILD
+  
+  # Read the version from the root pom
+  sonarProjectVersion=$(maven_expression "project.version" | sed 's/-SNAPSHOT//')
+  echo "Sonar project version is '${sonarProjectVersion}'"
+  
+  # Set the variable so it can be used by other tasks
+  echo "SONAR_PROJECT_VERSION=${sonarProjectVersion}" >> $CIRRUS_ENV
 
 dotnet_cache_definition: &DOTNET_CACHE_DEFINITION
   folders:
@@ -177,8 +177,8 @@ validate_windows_task:
     <<: *INSTANCE_DEFINITION
   get_jarcontentfiles_script: *GET_JARCONTENTFILES
   validate_script:
-  - source cirrus-env QA
-  - regular_mvn_build_deploy_analyze -Dsonar.skip=true -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign
+    - source cirrus-env QA
+    - regular_mvn_build_deploy_analyze -Dsonar.skip=true -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign
   cleanup_before_cache_script: cleanup_maven_repository
   <<: *NOTIFY_SLACK_ON_FAILURE
 
@@ -191,41 +191,10 @@ validate_linux_task:
     <<: *CONTAINER_DEFINITION
   get_jarcontentfiles_script: *GET_JARCONTENTFILES
   validate_script:
-  - source cirrus-env QA
-  - regular_mvn_build_deploy_analyze -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
+    - source cirrus-env QA
+    - regular_mvn_build_deploy_analyze -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
   cleanup_before_cache_script: cleanup_maven_repository
   <<: *NOTIFY_SLACK_ON_FAILURE
-
-mend_scan_task:
-  eks_container:
-    <<: *CONTAINER_DEFINITION
-    cpu: 3
-    memory: 1G
-  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && ($CIRRUS_BRANCH == "master" || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BRANCH =~ "mend-.*")
-  depends_on:
-    - build_dotnet
-    - build_maven
-  env:
-    WS_APIKEY: VAULT[development/kv/data/mend data.apikey]
-  dotnet_cache: *DOTNET_CACHE_DEFINITION
-  maven_cache: *MAVEN_CACHE_DEFINITION
-  compute_project_version_script: *COMPUTE_PROJECT_VERSION_SCRIPT_DEFINITION
-  mend_scan_dotnet_script: |
-    source cirrus-env QA
-    export WS_PRODUCTNAME="SonarLint/OmniSharp"
-    export WS_PROJECTNAME="${CIRRUS_REPO_FULL_NAME}/dotnet ${SONAR_PROJECT_VERSION}"
-    export WS_PROJECTVERSION=${SONAR_PROJECT_VERSION}
-    ws_scan.sh -c ${CIRRUS_WORKING_DIR}/omnisharp-dotnet/build/whitesource/wss-unified-agent.config
-  mend_scan_maven_script: |
-    source cirrus-env QA
-    export WS_PRODUCTNAME="SonarLint/OmniSharp"
-    export WS_PROJECTNAME="${CIRRUS_REPO_FULL_NAME} ${SONAR_PROJECT_VERSION}"
-    export WS_PROJECTVERSION=${SONAR_PROJECT_VERSION}
-    ws_scan.sh
-  allow_failures: true
-  always:
-    ws_artifacts:
-      path: "whitesource/**/*"
 
 promote_task:
   depends_on:
