@@ -3,6 +3,8 @@
 # This script expects 2 environment variables to be set:
 # * SONAR_TOKEN
 # * SONAR_HOST_URL
+# Optional:
+# * SONAR_REGION (for SonarCloud US, set to "us")
 
 set -euo pipefail
 
@@ -26,7 +28,7 @@ dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
   --locked-mode \
   --configfile omnisharp-dotnet/nuget.config
 
-REGION_FLAG=$([ "$SONAR_REGION" = "us" ] && echo "-d:sonar.region=$SONAR_REGION" || echo "")
+REGION_FLAG=$([ "${SONAR_REGION:-}" = "us" ] && echo "-d:sonar.region=$SONAR_REGION" || echo "")
 
 # Setup SonarQube scan
 dotnet sonarscanner begin \
