@@ -1,0 +1,257 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+      - branch-*
+      - dogfood-*
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build_maven:
+    runs-on: github-ubuntu-latest-m
+    name: Scan parent on shadow platforms
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install dependencies
+        run: |
+          bash .github/workflows/install_dependencies.sh
+      - name: Get Repox Credentials from Vault
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+      - name: Populate Maven settings
+        run: |
+          mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+      - name: Build dotnet project
+        env:
+          # for nuget
+          ARTIFACTORY_USER: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          # for Maven
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          # Restore the .NET project using Repox as source feed
+          dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+            --locked-mode \
+            --configfile omnisharp-dotnet/nuget.config
+
+          # Get OmniSharp fork from Repox
+          mvn generate-resources -B -Denable-repo=qa -DskipIts -Pdownload-omnisharp-for-building
+
+          # Build and run .NET unit tests
+          dotnet test omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
+            -c Release \
+            -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
+            --no-restore
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          version: 2025.9.12
+
+      - uses: SonarSource/ci-github-actions/build-maven@master # dogfood
+        with:
+          maven-opts: -DskipIts
+          sonar-platform: none
+          artifactory-reader-role: private-reader
+          artifactory-deployer-role: qa-deployer
+
+  build_dotnet:
+    runs-on: github-ubuntu-latest-m
+    name: Scan dotnet project on shadow platforms
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install dependencies
+        run: |
+          bash .github/workflows/install_dependencies.sh
+          dotnet tool install --global dotnet-sonarscanner
+      - name: Get Repox Credentials from Vault
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
+            development/kv/data/sonarcloud url | SQC_EU_URL;
+            development/kv/data/sonarcloud token | SQC_EU_TOKEN;
+
+            development/kv/data/sonarqube-us url | SQC_US_URL;
+            development/kv/data/sonarqube-us token | SQC_US_TOKEN;
+      - name: Populate Maven settings
+        run: |
+          mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+      - name: Build and analyze dotnet project
+        env:
+          SONAR_HOST_URL: https://next.sonarqube.com/sonarqube
+          # for nuget
+          ARTIFACTORY_USER: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          SONAR_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).SQC_EU_TOKEN }}
+          # for Maven
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          bash .github/workflows/build_scan_dotnet.sh
+          
+
+  qa_linux:
+    needs: build_maven
+    runs-on: github-ubuntu-latest-s
+    name: QA Linux
+    steps:
+      - uses: actions/checkout@v5 # v5.0.0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: 2025.9.12
+      - name: Get Vault secrets
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
+      - name: Run QA tests
+        env:
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: qa-linux-test-results
+          path: '**/surefire-reports/TEST-*.xml'
+
+  qa_windows:
+    needs: build_maven
+    runs-on: github-windows-latest-m
+    name: QA Windows
+    steps:
+      - uses: actions/checkout@v5 # v5.0.0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: 2025.9.12
+      - name: Get Vault secrets
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+      - name: Run QA tests
+        shell: bash
+        env:
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: qa-windows-test-results
+          path: '**/surefire-reports/TEST-*.xml'
+
+  validate_linux:
+    needs: build_dotnet
+    runs-on: github-ubuntu-latest-s
+    name: Validate Linux
+    steps:
+      - uses: actions/checkout@v5 # v5.0.0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: 2025.9.12
+      - name: Download .NET DLL artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dotnet-dll
+          path: omnisharp-dotnet/JarContentFiles/
+      - name: Get Vault secrets
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+      - name: Validate build
+        env:
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          mvn -B -e -V verify -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
+
+  validate_windows:
+    needs: build_dotnet
+    runs-on: github-windows-latest-m
+    name: Validate Windows
+    steps:
+      - uses: actions/checkout@v5 # v5.0.0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: 2025.9.12
+      - name: Download .NET DLL artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dotnet-dll
+          path: omnisharp-dotnet/JarContentFiles/
+      - name: Get Vault secrets
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+      - name: Get build number
+        id: build_number
+        uses: SonarSource/ci-github-actions/get-build-number@v1
+      - name: Set Maven build version
+        shell: bash
+        run: |
+          echo "Setting Maven build version to ${{ steps.build_number.outputs.build-number }}"
+          mvn -B versions:set -DnewVersion=${{ steps.build_number.outputs.build-number }} -DgenerateBackupPoms=false
+      - name: Validate build
+        shell: bash
+        env:
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          mvn -B -e -V verify -Dsonar.skip=true -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign
+
+  promote:
+    needs:
+      - build_maven
+      - validate_linux
+      - validate_windows
+      - qa_linux
+      - qa_windows
+    runs-on: github-ubuntu-latest-s
+    name: Promote
+    steps:
+      - uses: actions/checkout@v5 # v5.0.0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          cache_save: false
+          version: 2025.9.12
+      - uses: SonarSource/ci-github-actions/promote@v1
+        with:
+          promote-pull-request: true
