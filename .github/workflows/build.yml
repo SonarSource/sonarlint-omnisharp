@@ -111,7 +111,12 @@ jobs:
           ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
         run: |
           bash .github/workflows/build_scan_dotnet.sh
-          
+      - name: Upload .NET DLL artifact
+        if: always() && ! canceled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dotnet-dll
+          path: omnisharp-dotnet/JarContentFiles/SonarLint.OmniSharp.DotNet.Services.dll
 
   qa_linux:
     needs: build_maven
