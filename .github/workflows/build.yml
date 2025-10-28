@@ -70,6 +70,7 @@ jobs:
           sonar-platform: none
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
+          deploy-pull-request: true
 
   build_dotnet:
     runs-on: github-ubuntu-latest-m
