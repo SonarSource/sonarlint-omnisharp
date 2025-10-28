@@ -135,6 +135,10 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
+      - name: Populate Maven settings
+        run: |
+          mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+
       - name: Install Mono and .NET tools
         run: |
           sudo apt-get update
