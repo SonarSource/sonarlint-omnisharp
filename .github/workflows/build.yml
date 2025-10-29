@@ -128,6 +128,7 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           version: 2025.9.12
+
       - name: Get Vault secrets
         id: secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -175,6 +176,7 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           version: 2025.9.12
+
       - name: Get Vault secrets
         id: secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -182,6 +184,7 @@ jobs:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
       - name: Run QA tests
         shell: bash
         env:
