@@ -136,9 +136,10 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
-      - name: Populate Maven settings
-        run: |
-          mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+      - uses: SonarSource/ci-github-actions/config-maven@v1
+        with:
+          common-mvn-flags: -Dmaven.install.skip=true -Dmaven.test.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false
+          artifactory-reader-role: private-reader
 
       - name: Install Mono and .NET tools
         run: |
