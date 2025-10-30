@@ -170,8 +170,6 @@ jobs:
   qa_windows:
     needs: build_maven
     runs-on: warp-custom-sonarlint-visualstudio
-    env:
-      BUILD_NUMBER: ${{ needs.build_maven.outputs.BUILD_NUMBER }}
     name: QA Windows
     steps:
       - uses: actions/checkout@v5 # v5.0.0
@@ -188,6 +186,8 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
       - uses: SonarSource/ci-github-actions/config-maven@v1
+        env:
+          BUILD_NUMBER: ${{ needs.build_maven.outputs.BUILD_NUMBER }}
         with:
           common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false
           artifactory-reader-role: private-reader
