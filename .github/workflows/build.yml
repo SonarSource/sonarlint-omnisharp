@@ -185,6 +185,22 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
+      - name: Install Mono and .NET tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg
+          sudo gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+          echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+          sudo apt-get update
+          sudo apt-get install -y dotnet-sdk-8.0 mono-complete mono-roslyn msbuild
+          sudo rm -rf /var/lib/apt/lists/*
+          dotnet tool install --global dotnet-sonarscanner --version 8.0
+
+      - uses: SonarSource/ci-github-actions/config-maven@v1
+        with:
+          common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false
+          artifactory-reader-role: private-reader
+
       - name: Run QA tests
         shell: bash
         env:
@@ -208,11 +224,13 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           version: 2025.9.12
+
       - name: Download .NET DLL artifact
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: dotnet-dll
           path: omnisharp-dotnet/JarContentFiles/
+
       - name: Get Vault secrets
         id: secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -220,6 +238,7 @@ jobs:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
       - name: Validate build
         env:
           ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
@@ -236,11 +255,13 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           version: 2025.9.12
+
       - name: Download .NET DLL artifact
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: dotnet-dll
           path: omnisharp-dotnet/JarContentFiles/
+
       - name: Get Vault secrets
         id: secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -248,14 +269,7 @@ jobs:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
-      - name: Get build number
-        id: build_number
-        uses: SonarSource/ci-github-actions/get-build-number@v1
-      - name: Set Maven build version
-        shell: bash
-        run: |
-          echo "Setting Maven build version to ${{ steps.build_number.outputs.build-number }}"
-          mvn -B versions:set -DnewVersion=${{ steps.build_number.outputs.build-number }} -DgenerateBackupPoms=false
+
       - name: Validate build
         shell: bash
         env:
