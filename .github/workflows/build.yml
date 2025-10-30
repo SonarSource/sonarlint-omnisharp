@@ -18,17 +18,21 @@ permissions:
   contents: write
 
 jobs:
-  build_maven:
+  build_maven_parent:
     runs-on: github-ubuntu-latest-m
-    name: Scan parent on shadow platforms
+    name: Build Maven Parent
+    outputs:
+      BUILD_NUMBER: ${{ steps.build-maven-action.outputs.BUILD_NUMBER }}
     permissions:
       id-token: write
       contents: write
     steps:
       - uses: actions/checkout@v5
+
       - name: Install dependencies
         run: |
           bash .github/workflows/install_dependencies.sh
+
       - name: Get Repox Credentials from Vault
         id: secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -36,9 +40,11 @@ jobs:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
       - name: Populate Maven settings
         run: |
           mkdir ~/.m2 && cp .github/workflows/resources/settings.xml ~/.m2/settings.xml
+
       - name: Build dotnet project
         env:
           # for nuget
@@ -65,12 +71,16 @@ jobs:
           version: 2025.9.12
 
       - uses: SonarSource/ci-github-actions/build-maven@v1
+        id: build-maven-action
         with:
           maven-opts: -DskipIts
           sonar-platform: none
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
           deploy-pull-request: true
+
+      - name: Debug Build Number
+        run: echo "BUILD_NUMBER=${{ steps.build-maven-action.outputs.BUILD_NUMBER }}"
 
   build_dotnet:
     runs-on: github-ubuntu-latest-m
@@ -120,7 +130,7 @@ jobs:
           path: omnisharp-dotnet/JarContentFiles/SonarLint.OmniSharp.DotNet.Services.dll
 
   qa_linux:
-    needs: build_maven
+    needs: build_maven_parent
     runs-on: github-ubuntu-latest-s
     name: QA Linux
     steps:
@@ -168,8 +178,10 @@ jobs:
           path: '**/surefire-reports/TEST-*.xml'
 
   qa_windows:
-    needs: build_maven
+    needs: build_maven_parent
     runs-on: warp-custom-sonarlint-visualstudio
+    env:
+      BUILD_NUMBER: ${{ needs.build_maven_parent.outputs.BUILD_NUMBER }}
     name: QA Windows
     steps:
       - uses: actions/checkout@v5 # v5.0.0
@@ -186,8 +198,6 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
       - uses: SonarSource/ci-github-actions/config-maven@v1
-        env:
-          BUILD_NUMBER: ${{ needs.build_maven.outputs.BUILD_NUMBER }}
         with:
           common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false
           artifactory-reader-role: private-reader
@@ -270,7 +280,7 @@ jobs:
 
   promote:
     needs:
-      - build_maven
+      - build_maven_parent
       - validate_linux
       - validate_windows
       - qa_linux
