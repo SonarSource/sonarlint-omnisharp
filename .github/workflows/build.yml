@@ -169,7 +169,7 @@ jobs:
 
   qa_windows:
     needs: build_maven
-    runs-on: github-windows-latest-m
+    runs-on: github-windows-latest-l
     name: QA Windows
     steps:
       - uses: actions/checkout@v5 # v5.0.0
