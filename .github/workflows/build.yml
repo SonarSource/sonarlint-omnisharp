@@ -78,7 +78,7 @@ jobs:
           sonar-platform: none
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
-          deploy-pull-request: true
+          deploy-pull-request: false
 
       - name: Debug Build Number
         run: echo "BUILD_NUMBER=${{ steps.build-maven-action.outputs.BUILD_NUMBER }}"
@@ -136,7 +136,7 @@ jobs:
 
   qa_linux:
     needs: build_maven_parent
-    runs-on: github-ubuntu-latest-s
+    runs-on: github-ubuntu-latest-m
     name: QA Linux
     steps:
       - uses: actions/checkout@v5
@@ -224,7 +224,7 @@ jobs:
 
   validate_linux:
     needs: build_dotnet
-    runs-on: github-ubuntu-latest-s
+    runs-on: github-ubuntu-latest-m
     name: Validate Linux
     steps:
       - uses: actions/checkout@v5 # v5.0.0
