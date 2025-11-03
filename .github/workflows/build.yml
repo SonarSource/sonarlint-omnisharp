@@ -74,7 +74,7 @@ jobs:
       - uses: SonarSource/ci-github-actions/build-maven@v1
         id: build-maven-action
         with:
-          maven-opts: -DskipIts
+          maven-args: -DskipIts
           sonar-platform: none
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
