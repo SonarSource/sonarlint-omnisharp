@@ -29,9 +29,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          version: 2025.9.12
+
       - name: Install dependencies
         run: |
-          bash .github/workflows/install_dependencies.sh
+          bash .github/scripts/install_dependencies.sh
 
       - name: Get Repox Credentials from Vault
         id: secrets
@@ -67,10 +71,6 @@ jobs:
             -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
             --no-restore
 
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
-        with:
-          version: 2025.9.12
-
       - uses: SonarSource/ci-github-actions/build-maven@v1
         id: build-maven-action
         with:
@@ -85,15 +85,18 @@ jobs:
 
   build_dotnet:
     runs-on: github-ubuntu-latest-m
-    name: Scan dotnet project on shadow platforms
+    name: Build Dotnet
     permissions:
       id-token: write
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - name: Install dependencies
         run: |
-          bash .github/workflows/install_dependencies.sh
+          bash .github/scripts/install_dependencies.sh
           dotnet tool install --global dotnet-sonarscanner
 
       - name: Get Repox Credentials from Vault
@@ -104,10 +107,8 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
-
             development/kv/data/sonarcloud url | SQC_EU_URL;
             development/kv/data/sonarcloud token | SQC_EU_TOKEN;
-
             development/kv/data/sonarqube-us url | SQC_US_URL;
             development/kv/data/sonarqube-us token | SQC_US_TOKEN;
 
@@ -125,10 +126,10 @@ jobs:
           # for Maven
           ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
         run: |
-          bash .github/workflows/build_scan_dotnet.sh
+          bash .github/scripts/build_scan_dotnet.sh
 
       - name: Upload .NET DLL artifact
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: dotnet-dll
@@ -176,7 +177,7 @@ jobs:
           mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact -Dmaven.deploy.skip=true
 
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: qa-linux-test-results
@@ -216,7 +217,7 @@ jobs:
           mvn -B -e -V -f its/pom.xml verify -DskipTests=false -Pdownload-staged-artifact
 
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: qa-windows-test-results
@@ -234,7 +235,7 @@ jobs:
           version: 2025.9.12
 
       - name: Download .NET DLL artifact
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@v5
         with:
           name: dotnet-dll
           path: omnisharp-dotnet/JarContentFiles/
@@ -265,7 +266,7 @@ jobs:
           version: 2025.9.12
 
       - name: Download .NET DLL artifact
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@v5
         with:
           name: dotnet-dll
           path: omnisharp-dotnet/JarContentFiles/
