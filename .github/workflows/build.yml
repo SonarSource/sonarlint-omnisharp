@@ -250,8 +250,13 @@ jobs:
         env:
           ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
           ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
-        run: |
-          mvn -B -e -V verify -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
+
+        uses: SonarSource/ci-github-actions/build-maven@v1
+        with:
+          maven-args: -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
+          sonar-platform: next
+          artifactory-deployer-role: qa-deployer
+          artifactory-reader-role: private-reader
 
   validate_windows:
     needs: build_dotnet
