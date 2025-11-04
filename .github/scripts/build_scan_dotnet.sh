@@ -28,11 +28,16 @@ dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
   --locked-mode \
   --configfile omnisharp-dotnet/nuget.config
 
+# Optional flags based on provided env vars (safe with set -u)
+HOST_URL_FLAG=$([ -n "${SONAR_HOST_URL:-}" ] && echo "-d:sonar.host.url=${SONAR_HOST_URL}" || echo "")
 REGION_FLAG=$([ "${SONAR_REGION:-}" = "us" ] && echo "-d:sonar.region=$SONAR_REGION" || echo "")
+
+echo "HOST_URL_FLAG=$HOST_URL_FLAG"
 
 # Setup SonarQube scan
 dotnet sonarscanner begin \
   -d:sonar.token=${SONAR_TOKEN} \
+  $HOST_URL_FLAG \
   $REGION_FLAG \
   -o:sonarsource \
   -d:sonar.projectBaseDir="$GITHUB_WORKSPACE/omnisharp-dotnet/src" \
