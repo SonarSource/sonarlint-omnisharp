@@ -71,7 +71,7 @@ class OmnisharpFileListenerTests {
   })
   void broadcastFileEvents(ModuleFileEvent.Type eventType, FileChangeType expectedChangeType) {
     var f = new File("some/Foo.cs");
-    ModuleFileEvent event = mockEvent(eventType, f);
+    var event = mockEvent(eventType, f);
 
     underTest.process(event);
 
@@ -84,7 +84,7 @@ class OmnisharpFileListenerTests {
   @MethodSource("solutionFileArguments")
   void stopServerWhenSolutionFileChanges(String fileName, ModuleFileEvent.Type eventType) {
     var f = new File(fileName);
-    ModuleFileEvent event = mockEvent(eventType, f);
+    var event = mockEvent(eventType, f);
 
     underTest.process(event);
 
@@ -106,7 +106,7 @@ class OmnisharpFileListenerTests {
   @Test
   void stopServerIfCreatedProject() {
     var f = new File("foo/Project1.csproj");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.CREATED, f);
+    var event = mockEvent(ModuleFileEvent.Type.CREATED, f);
 
     underTest.process(event);
 

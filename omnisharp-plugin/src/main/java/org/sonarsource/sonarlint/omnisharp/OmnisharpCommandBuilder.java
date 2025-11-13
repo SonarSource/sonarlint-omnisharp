@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javax.annotation.Nullable;
 import org.sonar.api.config.Configuration;
 import org.sonar.api.utils.System2;
@@ -100,14 +101,14 @@ public class OmnisharpCommandBuilder {
     return new ProcessBuilder(args);
   }
 
-  private String getPathForOmniSharp(Path projectBaseDir, @Nullable Path solutionPath) {
+  private static String getPathForOmniSharp(Path projectBaseDir, @Nullable Path solutionPath) {
     if (solutionPath == null) {
       return projectBaseDir.toString();
     }
     // OmniSharp 1.39.10 only supports .sln and .slnf files, not .slnx
     // When we have a .slnx file, pass the directory instead so OmniSharp can discover projects
     var solutionPathStr = solutionPath.toString();
-    if (solutionPathStr.toLowerCase().endsWith(".slnx")) {
+    if (solutionPathStr.toLowerCase(Locale.getDefault()).endsWith(".slnx")) {
       return solutionPath.getParent() != null ? solutionPath.getParent().toString() : projectBaseDir.toString();
     }
     return solutionPathStr;
