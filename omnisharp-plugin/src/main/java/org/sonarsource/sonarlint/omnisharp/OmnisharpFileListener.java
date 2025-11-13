@@ -44,7 +44,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
     File file = event.getTarget().file();
     switch (event.getType()) {
       case CREATED:
-        if (file.getName().endsWith(".sln") || file.getName().endsWith(".csproj")) {
+        if (file.getName().endsWith(".sln") || file.getName().endsWith(".slnx") || file.getName().endsWith(".csproj")) {
           // Stop the server so that it is restarted during the next analysis and take into account changes to the solution, or added
           // projects
           serverController.stopServer();
@@ -56,7 +56,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
         omnisharpEndpoints.fileChanged(file, OmnisharpEndpoints.FileChangeType.DELETE);
         break;
       case MODIFIED:
-        if (file.getName().endsWith(".sln")) {
+        if (file.getName().endsWith(".sln") || file.getName().endsWith(".slnx")) {
           // Stop the server so that it is restarted during the next analysis and take into account changes to the solution
           serverController.stopServer();
         } else {
