@@ -20,9 +20,13 @@
 package org.sonarsource.sonarlint.omnisharp;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChangeType;
@@ -41,7 +45,7 @@ class OmnisharpFileListenerTests {
   private OmnisharpEndpoints omnisharpProtocol;
 
   @BeforeEach
-  void prepare() throws IOException {
+  void prepare() {
     omnisharpServer = mock(OmnisharpServerController.class);
     when(omnisharpServer.isOmnisharpStarted()).thenReturn(true);
     omnisharpProtocol = mock(OmnisharpEndpoints.class);
@@ -49,7 +53,7 @@ class OmnisharpFileListenerTests {
   }
 
   @Test
-  void dontBroadcastIfServerNotStarted() throws IOException {
+  void dontBroadcastIfServerNotStarted() {
     when(omnisharpServer.isOmnisharpStarted()).thenReturn(false);
 
     underTest.process(mock(ModuleFileEvent.class));
@@ -59,50 +63,28 @@ class OmnisharpFileListenerTests {
     verifyNoInteractions(omnisharpProtocol);
   }
 
-  @Test
-  void broadcastCreatedFileEvents() throws IOException {
-
-    File f = new File("some/Foo.cs");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.CREATED, f);
-
-    underTest.process(event);
-
-    verify(omnisharpServer).isOmnisharpStarted();
-    verifyNoMoreInteractions(omnisharpServer);
-    verify(omnisharpProtocol).fileChanged(f, FileChangeType.CREATE);
-  }
-
-  @Test
-  void broadcastModifiedFileEvents() throws IOException {
-
-    File f = new File("some/Foo.cs");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.MODIFIED, f);
+  @ParameterizedTest
+  @CsvSource({
+    "CREATED, CREATE",
+    "MODIFIED, CHANGE",
+    "DELETED, DELETE"
+  })
+  void broadcastFileEvents(ModuleFileEvent.Type eventType, FileChangeType expectedChangeType) {
+    var f = new File("some/Foo.cs");
+    ModuleFileEvent event = mockEvent(eventType, f);
 
     underTest.process(event);
 
     verify(omnisharpServer).isOmnisharpStarted();
     verifyNoMoreInteractions(omnisharpServer);
-    verify(omnisharpProtocol).fileChanged(f, FileChangeType.CHANGE);
+    verify(omnisharpProtocol).fileChanged(f, expectedChangeType);
   }
 
-  @Test
-  void broadcastDeletedFileEvents() throws IOException {
-
-    File f = new File("some/Foo.cs");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.DELETED, f);
-
-    underTest.process(event);
-
-    verify(omnisharpServer).isOmnisharpStarted();
-    verifyNoMoreInteractions(omnisharpServer);
-    verify(omnisharpProtocol).fileChanged(f, FileChangeType.DELETE);
-  }
-
-  @Test
-  void stopServerIfCreatedSolution() throws IOException {
-
-    File f = new File("Solution.sln");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.CREATED, f);
+  @ParameterizedTest
+  @MethodSource("solutionFileArguments")
+  void stopServerWhenSolutionFileChanges(String fileName, ModuleFileEvent.Type eventType) {
+    var f = new File(fileName);
+    ModuleFileEvent event = mockEvent(eventType, f);
 
     underTest.process(event);
 
@@ -112,23 +94,19 @@ class OmnisharpFileListenerTests {
     verifyNoInteractions(omnisharpProtocol);
   }
 
-  @Test
-  void stopServerIfCreatedProject() throws IOException {
-    File f = new File("foo/Project1.csproj");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.CREATED, f);
-
-    underTest.process(event);
-
-    verify(omnisharpServer).isOmnisharpStarted();
-    verify(omnisharpServer).stopServer();
-    verifyNoMoreInteractions(omnisharpServer);
-    verifyNoInteractions(omnisharpProtocol);
+  static Stream<Arguments> solutionFileArguments() {
+    return Stream.of(
+      Arguments.of("Solution.sln", ModuleFileEvent.Type.CREATED),
+      Arguments.of("Solution.sln", ModuleFileEvent.Type.MODIFIED),
+      Arguments.of("Solution.slnx", ModuleFileEvent.Type.CREATED),
+      Arguments.of("Solution.slnx", ModuleFileEvent.Type.MODIFIED)
+    );
   }
 
   @Test
-  void stopServerIfModifiedSolution() throws IOException {
-    File f = new File("Solution.sln");
-    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.MODIFIED, f);
+  void stopServerIfCreatedProject() {
+    var f = new File("foo/Project1.csproj");
+    ModuleFileEvent event = mockEvent(ModuleFileEvent.Type.CREATED, f);
 
     underTest.process(event);
 
@@ -155,7 +133,7 @@ class OmnisharpFileListenerTests {
   }
 
   private InputFile mockInputFile(File f) {
-    InputFile inputFile = mock(InputFile.class);
+    var inputFile = mock(InputFile.class);
     when(inputFile.file()).thenReturn(f);
     return inputFile;
   }

@@ -92,10 +92,25 @@ public class OmnisharpCommandBuilder {
     args.add("--encoding");
     args.add("utf-8");
     args.add("-s");
-    args.add(solutionPath != null ? solutionPath.toString() : projectBaseDir.toString());
+    // OmniSharp 1.39.10 doesn't support .slnx files, so pass the directory instead
+    var pathToPass = getPathForOmniSharp(projectBaseDir, solutionPath);
+    args.add(pathToPass);
     args.add("--plugin");
     args.add(servicesExtractor.getOmnisharpServicesDllPath().toString());
     return new ProcessBuilder(args);
+  }
+
+  private String getPathForOmniSharp(Path projectBaseDir, @Nullable Path solutionPath) {
+    if (solutionPath == null) {
+      return projectBaseDir.toString();
+    }
+    // OmniSharp 1.39.10 only supports .sln and .slnf files, not .slnx
+    // When we have a .slnx file, pass the directory instead so OmniSharp can discover projects
+    var solutionPathStr = solutionPath.toString();
+    if (solutionPathStr.toLowerCase().endsWith(".slnx")) {
+      return solutionPath.getParent() != null ? solutionPath.getParent().toString() : projectBaseDir.toString();
+    }
+    return solutionPathStr;
   }
 
   private String getMandatoryConfig(String propKey) {

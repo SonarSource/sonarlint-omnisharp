@@ -19,6 +19,7 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -236,6 +237,83 @@ class OmnisharpCommandBuilderTests {
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
       "MsBuild:loadProjectsOnDemand=true",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      projectBaseDir.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
+  void buildCommandNet6_slnx_file_uses_directory_instead(@TempDir Path projectBaseDir, @TempDir Path solutionDir) throws Exception {
+    var slnxFile = solutionDir.resolve("Solution.slnx");
+    Files.createFile(slnxFile);
+
+    var pb = underTest.buildNet6(projectBaseDir, null, null, slnxFile, false);
+    assertThat(pb.command()).containsExactly("dotnet",
+      omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      solutionDir.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
+  void buildCommand_slnx_file_uses_directory_instead(@TempDir Path projectBaseDir, @TempDir Path solutionDir) throws Exception {
+    when(system2.isOsWindows()).thenReturn(false);
+    var slnxFile = solutionDir.resolve("Solution.slnx");
+    Files.createFile(slnxFile);
+
+    var pb = underTest.build(projectBaseDir, null, null, slnxFile, false);
+    assertThat(pb.command()).containsExactly("mono",
+      omnisharpMonoLocation.resolve("OmniSharp.exe").toString(),
+      "-v",
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      solutionDir.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
+  void buildCommandNet6_sln_file_still_uses_file_path(@TempDir Path projectBaseDir, @TempDir Path solutionDir) throws Exception {
+    var slnFile = solutionDir.resolve("Solution.sln");
+    Files.createFile(slnFile);
+
+    var pb = underTest.buildNet6(projectBaseDir, null, null, slnFile, false);
+    assertThat(pb.command()).containsExactly("dotnet",
+      omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      slnFile.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
+  void buildCommandNet6_slnx_file_with_no_parent_uses_basedir(@TempDir Path projectBaseDir) throws Exception {
+    var slnxFile = projectBaseDir.resolve("Solution.slnx");
+    Files.createFile(slnxFile);
+
+    var pb = underTest.buildNet6(projectBaseDir, null, null, slnxFile, false);
+    assertThat(pb.command()).containsExactly("dotnet",
+      omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",
       "utf-8",
