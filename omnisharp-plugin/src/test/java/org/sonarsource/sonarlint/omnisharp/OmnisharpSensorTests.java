@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -664,6 +665,21 @@ class OmnisharpSensorTests {
     public NewIssue addQuickFix(org.sonar.api.batch.sensor.issue.fix.NewQuickFix newQuickFix) {
       quickFixes.add((MockSonarLintQuickFix) newQuickFix);
       return this;
+    }
+
+    @Override
+    public NewIssue addInternalTag(String s) {
+      return null;
+    }
+
+    @Override
+    public NewIssue setInternalTags(@Nullable Collection<String> collection) {
+      return null;
+    }
+
+    @Override
+    public NewIssue addInternalTags(Collection<String> collection) {
+      return null;
     }
 
     public List<MockSonarLintQuickFix> getQuickFixes() {
