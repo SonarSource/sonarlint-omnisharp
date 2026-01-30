@@ -42,10 +42,10 @@
     <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
     <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
     <junit.version>5.9.1</junit.version>
-    <sonarlint-core.version>10.30.0.82224</sonarlint-core.version>
+    <sonarlint-core.version>10.43.0.84255</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.10</omnisharp.version>
-    <analyzer.version>10.18.0.131500</analyzer.version>
+    <analyzer.version>10.19.0.132793</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
     <sonar.organization>sonarsource</sonar.organization>
   </properties>
