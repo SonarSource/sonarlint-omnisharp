@@ -29,8 +29,8 @@ dotnet restore omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \
   --configfile omnisharp-dotnet/nuget.config
 
 # Optional flags based on provided env vars (safe with set -u)
-HOST_URL_FLAG=$([ -n "${SONAR_HOST_URL:-}" ] && echo "-d:sonar.host.url=${SONAR_HOST_URL}" || echo "")
-REGION_FLAG=$([ "${SONAR_REGION:-}" = "us" ] && echo "-d:sonar.region=$SONAR_REGION" || echo "")
+HOST_URL_FLAG=$([[ -n "${SONAR_HOST_URL:-}" ]] && echo "-d:sonar.host.url=${SONAR_HOST_URL}" || echo "")
+REGION_FLAG=$([[ "${SONAR_REGION:-}" = "us" ]] && echo "-d:sonar.region=$SONAR_REGION" || echo "")
 
 echo "HOST_URL_FLAG=$HOST_URL_FLAG"
 
