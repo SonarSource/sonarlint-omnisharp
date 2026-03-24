@@ -26,6 +26,8 @@
 		<Reference Include="$(OmniSharpLocalDownloadDir)\OmniSharp.Shared.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpLocalDownloadDir)\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpLocalDownloadDir)\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpLocalDownloadDir)\Microsoft.CodeAnalysis.ExternalAccess.OmniSharp.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpLocalDownloadDir)\Microsoft.CodeAnalysis.ExternalAccess.OmniSharp.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
 
 		<!-- The following DLLs are added to avoid assembly conflicts. 
 		They cannot be solved with a BindingRedirect since we are a netstandard application.
