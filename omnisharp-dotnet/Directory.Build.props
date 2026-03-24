@@ -16,7 +16,7 @@
 	<!-- ****************************************************-->
 	<PropertyGroup>
 		<!-- TODO: this version needs to be kept in sync with ${omnisharp.version} in the parent POM -->
-		<OmniSharpVersion>1.39.10</OmniSharpVersion>
+		<OmniSharpVersion>1.39.15</OmniSharpVersion>
 
 		<OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)\</OmniSharpLocalDownloadDir>
 	</PropertyGroup>
