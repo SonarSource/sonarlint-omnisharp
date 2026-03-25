@@ -45,8 +45,8 @@ dotnet sonarscanner begin \
   -v:${SONAR_PROJECT_VERSION} \
   -d:sonar.cs.opencover.reportsPaths="./**/TestResults/coverage.**.xml"
 
-# Get OmniSharp fork from Repox
-mvn generate-resources -B -Denable-repo=qa -DskipIts -Pdownload-omnisharp-for-building
+# Get OmniSharp fork from Binaries
+mvn generate-resources -B -DskipIts -Pdownload-omnisharp-for-building
 
 # Build and run .NET unit tests
 dotnet test omnisharp-dotnet/SonarLint.OmniSharp.DotNet.Services.sln \

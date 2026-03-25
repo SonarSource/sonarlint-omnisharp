@@ -44,7 +44,8 @@
     <junit.version>5.9.1</junit.version>
     <sonarlint-core.version>10.43.0.84255</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
-    <omnisharp.version>1.39.10</omnisharp.version>
+    <omnisharp.version>1.39.15</omnisharp.version>
+    <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
     <analyzer.version>10.20.0.135146</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
     <sonar.organization>sonarsource</sonar.organization>
@@ -109,28 +110,20 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <version>3.6.1</version>
+            <groupId>com.googlecode.maven-download-plugin</groupId>
+            <artifactId>download-maven-plugin</artifactId>
+            <version>1.13.0</version>
             <executions>
               <execution>
                 <id>download-omnisharp-windows</id>
                 <phase>generate-resources</phase>
                 <goals>
-                  <goal>unpack</goal>
+                  <goal>wget</goal>
                 </goals>
                 <configuration>
-                  <artifactItems>
-                    <artifactItem>
-                      <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
-                      <artifactId>omnisharp-roslyn</artifactId>
-                      <version>${omnisharp.version}</version>
-                      <classifier>net472</classifier>
-                      <type>zip</type>
-                      <overWrite>true</overWrite>
-                      <outputDirectory>${project.build.directory}/../omnisharp-dotnet/.omnisharp/${omnisharp.version}</outputDirectory>
-                    </artifactItem>
-                  </artifactItems>
+                  <url>${omnisharp.binaries.baseUrl}/omnisharp-net472.zip</url>
+                  <unpack>true</unpack>
+                  <outputDirectory>${project.build.directory}/../omnisharp-dotnet/.omnisharp/${omnisharp.version}</outputDirectory>
                 </configuration>
               </execution>
             </executions>

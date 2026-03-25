@@ -99,70 +99,53 @@
     </pluginManagement>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.6.1</version>
+        <groupId>com.googlecode.maven-download-plugin</groupId>
+        <artifactId>download-maven-plugin</artifactId>
+        <version>1.13.0</version>
         <executions>
           <execution>
-            <id>download-omnisharp-windows</id>
+            <id>download-omnisharp-win</id>
             <phase>generate-test-resources</phase>
             <goals>
-              <goal>unpack</goal>
+              <goal>wget</goal>
             </goals>
             <configuration>
-              <artifactItems>
-                 <artifactItem>
-                   <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
-                   <artifactId>omnisharp-roslyn</artifactId>
-                   <version>${omnisharp.version}</version>
-                   <classifier>net472</classifier>
-                   <type>zip</type>
-                   <overWrite>true</overWrite>
-                   <outputDirectory>${project.build.directory}/omnisharp-win</outputDirectory>
-                 </artifactItem>
-               </artifactItems>
+              <url>${omnisharp.binaries.baseUrl}/omnisharp-net472.zip</url>
+              <unpack>true</unpack>
+              <outputDirectory>${project.build.directory}/omnisharp-win</outputDirectory>
             </configuration>
           </execution>
           <execution>
             <id>download-omnisharp-mono</id>
             <phase>generate-test-resources</phase>
             <goals>
-              <goal>unpack</goal>
+              <goal>wget</goal>
             </goals>
             <configuration>
-              <artifactItems>
-                 <artifactItem>
-                   <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
-                   <artifactId>omnisharp-roslyn</artifactId>
-                   <version>${omnisharp.version}</version>
-                   <classifier>mono</classifier>
-                   <type>zip</type>
-                   <overWrite>true</overWrite>
-                   <outputDirectory>${project.build.directory}/omnisharp-mono</outputDirectory>
-                 </artifactItem>
-               </artifactItems>
+              <url>${omnisharp.binaries.baseUrl}/omnisharp-mono.zip</url>
+              <unpack>true</unpack>
+              <outputDirectory>${project.build.directory}/omnisharp-mono</outputDirectory>
             </configuration>
           </execution>
           <execution>
             <id>download-omnisharp-net6</id>
             <phase>generate-test-resources</phase>
             <goals>
-              <goal>unpack</goal>
+              <goal>wget</goal>
             </goals>
             <configuration>
-              <artifactItems>
-                 <artifactItem>
-                   <groupId>org.sonarsource.sonarlint.omnisharp</groupId>
-                   <artifactId>omnisharp-roslyn</artifactId>
-                   <version>${omnisharp.version}</version>
-                   <classifier>net6</classifier>
-                   <type>zip</type>
-                   <overWrite>true</overWrite>
-                   <outputDirectory>${project.build.directory}/omnisharp-net6</outputDirectory>
-                 </artifactItem>
-               </artifactItems>
+              <url>${omnisharp.binaries.baseUrl}/omnisharp-net6.0.zip</url>
+              <unpack>true</unpack>
+              <outputDirectory>${project.build.directory}/omnisharp-net6</outputDirectory>
             </configuration>
           </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
           <execution>
             <id>download-analyzer-for-its</id>
             <phase>generate-test-resources</phase>

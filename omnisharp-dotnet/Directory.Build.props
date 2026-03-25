@@ -16,7 +16,7 @@
 	<!-- ****************************************************-->
 	<PropertyGroup>
 		<!-- TODO: this version needs to be kept in sync with ${omnisharp.version} in the parent POM -->
-		<OmniSharpVersion>1.39.10</OmniSharpVersion>
+		<OmniSharpVersion>1.39.15</OmniSharpVersion>
 
 		<OmniSharpLocalDownloadDir>$(MSBuildThisFileDirectory).omnisharp\$(OmniSharpVersion)\</OmniSharpLocalDownloadDir>
 	</PropertyGroup>
@@ -26,6 +26,8 @@
 		<Reference Include="$(OmniSharpLocalDownloadDir)\OmniSharp.Shared.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpLocalDownloadDir)\OmniSharp.Roslyn.dll" Private="$(CopyOmniSharpToOutput)" />
 		<Reference Include="$(OmniSharpLocalDownloadDir)\OmniSharp.Roslyn.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpLocalDownloadDir)\Microsoft.CodeAnalysis.ExternalAccess.OmniSharp.dll" Private="$(CopyOmniSharpToOutput)" />
+		<Reference Include="$(OmniSharpLocalDownloadDir)\Microsoft.CodeAnalysis.ExternalAccess.OmniSharp.CSharp.dll" Private="$(CopyOmniSharpToOutput)" />
 
 		<!-- The following DLLs are added to avoid assembly conflicts. 
 		They cannot be solved with a BindingRedirect since we are a netstandard application.
