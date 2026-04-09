@@ -46,7 +46,7 @@
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.15</omnisharp.version>
     <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
-    <analyzer.version>10.21.0.135717</analyzer.version>
+    <analyzer.version>10.23.0.137933</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
     <sonar.organization>sonarsource</sonar.organization>
   </properties>
