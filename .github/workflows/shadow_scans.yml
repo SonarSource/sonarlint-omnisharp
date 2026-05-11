@@ -51,9 +51,9 @@ jobs:
       - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
         with:
           version: 2025.7.12
-      - uses: SonarSource/ci-github-actions/build-maven@master # dogfood
+      - uses: SonarSource/ci-github-actions/build-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
-          maven-opts: -DskipIts
+          maven-args: -DskipIts
           run-shadow-scans: true
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
