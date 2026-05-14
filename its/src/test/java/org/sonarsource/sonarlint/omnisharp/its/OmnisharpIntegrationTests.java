@@ -115,7 +115,7 @@ class OmnisharpIntegrationTests {
   private static MockSonarLintRpcClientDelegate client;
 
   @BeforeAll
-  public static void prepare(@TempDir Path tmpDir) throws Exception {
+  static void prepare(@TempDir Path tmpDir) throws Exception {
     var clientToServerOutputStream = new PipedOutputStream();
     var clientToServerInputStream = new PipedInputStream(clientToServerOutputStream);
 
@@ -160,7 +160,7 @@ class OmnisharpIntegrationTests {
   }
 
   @BeforeEach
-  public void cleanupClient() {
+  void cleanupClient() {
     backend.getConfigurationService().didAddConfigurationScopes(new DidAddConfigurationScopesParams(List.of(
       new ConfigurationScopeDto(SOLUTION1_MODULE_KEY, null, false, SOLUTION1_MODULE_KEY, null),
       new ConfigurationScopeDto(SOLUTION2_MODULE_KEY, null, false, SOLUTION2_MODULE_KEY, null)
@@ -169,7 +169,7 @@ class OmnisharpIntegrationTests {
   }
 
   @AfterEach
-  public void cleanupBackend() {
+  void cleanupBackend() {
     backend.getConfigurationService().didRemoveConfigurationScope(new DidRemoveConfigurationScopeParams(SOLUTION1_MODULE_KEY));
     backend.getConfigurationService().didRemoveConfigurationScope(new DidRemoveConfigurationScopeParams(SOLUTION2_MODULE_KEY));
     // Reset rules configuration
@@ -178,7 +178,7 @@ class OmnisharpIntegrationTests {
 
   @AfterAll
   @SuppressWarnings("java:S2925")
-  public static void stop() throws InterruptedException {
+  static void stop() throws InterruptedException {
     Thread.sleep(5000);
     backend.shutdown().join();
   }
