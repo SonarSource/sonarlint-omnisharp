@@ -1,0 +1,126 @@
+name: Full release
+
+on:
+  workflow_dispatch:
+    inputs:
+      short-description:
+        description: 'A short description for the release ticket'
+        required: true
+        type: string
+      branch:
+        description: 'The branch from which to release.'
+        required: false
+        default: 'master'
+        type: string
+      new-version:
+        description: 'New Jira version to create after the release (e.g. 1.19). Leave empty to auto-increment the last segment.'
+        required: false
+        type: string
+      dry-run:
+        description: 'Test mode: use Jira sandbox and create a draft GitHub release'
+        required: false
+        default: false
+        type: boolean
+      slvscode-ticket:
+        description: 'SLVSCODE ticket to notify (e.g. SLVSCODE-123). Leave empty to skip.'
+        required: false
+        type: string
+      sli-ticket:
+        description: 'SLI ticket to notify (e.g. SLI-456). Leave empty to skip.'
+        required: false
+        type: string
+
+jobs:
+  release:
+    name: Release
+    uses: SonarSource/release-github-actions/.github/workflows/ide-automated-release.yml@706e44289960d7768dc6f953bc1c0df003e812cb # 1.5.9
+    permissions:
+      statuses: read
+      id-token: write
+      contents: write
+      actions: write
+      pull-requests: write
+    with:
+      jira-project-key: "SLOMNI"
+      project-name: "SonarLint OmniSharp"
+      short-description: ${{ inputs.short-description }}
+      branch: ${{ inputs.branch }}
+      slack-channel: "C02E6L5C01H"
+      is-test-run: ${{ inputs.dry-run }}
+      new-version: ${{ inputs.new-version }}
+
+  bump-version:
+    name: Bump version
+    needs: [release]
+    # Dry-run safety: never open a Maven version-bump PR against master during a sandbox test
+    if: ${{ !inputs.dry-run && needs.release.result == 'success' }}
+    runs-on: github-ubuntu-latest-s
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: SonarSource/release-github-actions/bump-version@706e44289960d7768dc6f953bc1c0df003e812cb # 1.5.9
+        with:
+          version: ${{ needs.release.outputs.new-version }}
+          token: ${{ github.token }}
+          tool: maven
+          base-branch: ${{ inputs.branch }}
+
+  notify-flavour-tickets:
+    name: Notify flavour tickets
+    needs: [release]
+    if: needs.release.result == 'success' && (inputs.slvscode-ticket != '' || inputs.sli-ticket != '')
+    runs-on: github-ubuntu-latest-s
+    permissions:
+      id-token: write
+    steps:
+      - name: Get Jira credentials
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/kv/data/jira user | JIRA_USER;
+            development/kv/data/jira token | JIRA_TOKEN;
+
+      - name: Comment on flavour tickets
+        env:
+          JIRA_USER: ${{ fromJSON(steps.secrets.outputs.vault).JIRA_USER }}
+          JIRA_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).JIRA_TOKEN }}
+          RELEASED_VERSION: ${{ needs.release.outputs.released-version }}
+          SLVSCODE_TICKET: ${{ inputs.slvscode-ticket }}
+          SLI_TICKET: ${{ inputs.sli-ticket }}
+          IS_DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          if [[ "$IS_DRY_RUN" == "true" ]]; then
+            JIRA_BASE_URL="https://sonarsource-sandbox-608.atlassian.net"
+            DRY_RUN_PREFIX="[DRY RUN] "
+          else
+            JIRA_BASE_URL="https://sonarsource.atlassian.net"
+            DRY_RUN_PREFIX=""
+          fi
+
+          if [[ -z "$RELEASED_VERSION" ]]; then
+            echo "::error::released-version output is empty — cannot post a meaningful comment" >&2
+            exit 1
+          fi
+
+          COMMENT="${DRY_RUN_PREFIX}New SonarLint OmniSharp *${RELEASED_VERSION}* has been released. Please update your dependency to consume this version."
+
+          for TICKET in "$SLVSCODE_TICKET" "$SLI_TICKET"; do
+            [[ -z "$TICKET" ]] && continue
+            echo "Commenting on ${TICKET}..."
+            HTTP_CODE=$(curl -s -o /tmp/jira_response.json -w "%{http_code}" \
+              -u "${JIRA_USER}:${JIRA_TOKEN}" \
+              -X POST \
+              -H "Content-Type: application/json" \
+              --data "{\"body\": \"${COMMENT}\"}" \
+              "${JIRA_BASE_URL}/rest/api/2/issue/${TICKET}/comment")
+            if [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]]; then
+              echo "✓ Commented on ${TICKET}"
+            else
+              echo "::error::Failed to comment on ${TICKET} (HTTP ${HTTP_CODE})"
+              cat /tmp/jira_response.json
+              exit 1
+            fi
+          done
