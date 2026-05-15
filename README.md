@@ -41,3 +41,5 @@ You may need to restart your computer after these variables are set.
 The Java component depends on the .NET component, so the .NET component must be built first.
 
 `mvn clean verify`
+
+test commit
