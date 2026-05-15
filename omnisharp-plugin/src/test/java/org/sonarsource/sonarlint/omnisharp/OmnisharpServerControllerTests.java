@@ -91,7 +91,7 @@ class OmnisharpServerControllerTests {
   }
 
   @AfterEach
-  public void cleanup() {
+  void cleanup() {
     underTest.stop();
     assertThat(underTest.isOmnisharpStarted()).isFalse();
   }

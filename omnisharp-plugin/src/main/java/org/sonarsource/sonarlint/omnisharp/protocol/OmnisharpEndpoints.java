@@ -31,8 +31,8 @@ import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.sonar.api.scanner.ScannerSide;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.omnisharp.OmnisharpServerController;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor.OmnisharpResponseHandler;
@@ -41,7 +41,7 @@ import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor.O
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpEndpoints {
 
-  private static final Logger LOG = Loggers.get(OmnisharpEndpoints.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OmnisharpEndpoints.class);
 
   private static final String FILENAME_PROPERTY = "FileName";
 

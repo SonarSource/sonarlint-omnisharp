@@ -24,15 +24,15 @@ import com.google.gson.JsonParser;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 
 
 @SonarLintSide(lifespan = "MODULE")
 public class OmnisharpResponseProcessor {
 
-  private static final Logger LOG = Loggers.get(OmnisharpResponseProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OmnisharpResponseProcessor.class);
 
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
