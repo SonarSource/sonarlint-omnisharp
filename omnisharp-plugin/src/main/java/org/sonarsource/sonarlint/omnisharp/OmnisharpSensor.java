@@ -39,8 +39,8 @@ import org.sonar.api.batch.sensor.SensorDescriptor;
 import org.sonar.api.batch.sensor.issue.NewIssue;
 import org.sonar.api.batch.sensor.issue.NewIssueLocation;
 import org.sonar.api.rule.RuleKey;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.analyzer.commons.ProgressReport;
 import org.sonarsource.sonarlint.omnisharp.protocol.Diagnostic;
 import org.sonarsource.sonarlint.omnisharp.protocol.DiagnosticLocation;
@@ -51,7 +51,7 @@ import org.sonarsource.sonarlint.omnisharp.protocol.QuickFixEdit;
 
 public class OmnisharpSensor implements Sensor {
 
-  private static final Logger LOG = Loggers.get(OmnisharpSensor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OmnisharpSensor.class);
 
   private final OmnisharpServerController server;
   private final OmnisharpEndpoints omnisharpEndpoints;
@@ -175,8 +175,8 @@ public class OmnisharpSensor implements Sensor {
     } catch (IOException e) {
       throw new IllegalStateException("Unable to read file buffer", e);
     }
-    omnisharpEndpoints.updateBuffer(f.file(), buffer);
-    omnisharpEndpoints.codeCheck(f.file(), diag -> handle(context, diag));
+    omnisharpEndpoints.updateBuffer(Paths.get(f.uri()).toFile(), buffer);
+    omnisharpEndpoints.codeCheck(Paths.get(f.uri()).toFile(), diag -> handle(context, diag));
   }
 
   private static void handle(SensorContext context, Diagnostic diag) {

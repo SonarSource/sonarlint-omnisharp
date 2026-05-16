@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import org.sonar.api.Startable;
 import org.sonar.api.scanner.ScannerSide;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
@@ -42,7 +42,7 @@ import static java.util.stream.Collectors.joining;
 @SonarLintSide(lifespan = SonarLintSide.MODULE)
 public class OmnisharpServerController implements Startable {
 
-  private static final Logger LOG = Loggers.get(OmnisharpServerController.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OmnisharpServerController.class);
 
   enum ServerState {
     PROCESS_STARTED,
