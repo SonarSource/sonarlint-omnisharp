@@ -35,7 +35,7 @@ class CSharpLanguageTests {
   private CSharpLanguage csharp;
 
   @BeforeEach
-  public void init() {
+  void init() {
     PropertyDefinitions defs = new PropertyDefinitions(System2.INSTANCE,
       new CSharpPropertyDefinitions().create());
     settings = new MapSettings(defs);
