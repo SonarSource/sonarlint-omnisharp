@@ -39,7 +39,7 @@ jobs:
 
       - name: Get Repox Credentials from Vault
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -71,7 +71,7 @@ jobs:
             -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
             --no-restore
 
-      - uses: SonarSource/ci-github-actions/build-maven@v1
+      - uses: SonarSource/ci-github-actions/build-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         id: build-maven-action
         with:
           maven-args: -DskipIts
@@ -101,7 +101,7 @@ jobs:
 
       - name: Get Repox Credentials from Vault
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -139,13 +139,13 @@ jobs:
     name: QA Linux
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
         with:
           version: 2025.9.12
 
       - name: Get Vault secrets
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -162,7 +162,7 @@ jobs:
           sudo rm -rf /var/lib/apt/lists/*
           dotnet tool install --global dotnet-sonarscanner --version 8.0
 
-      - uses: SonarSource/ci-github-actions/config-maven@v1
+      - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
           common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false
           artifactory-reader-role: private-reader
@@ -189,19 +189,19 @@ jobs:
     name: QA Windows
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
         with:
           version: 2025.9.12
 
       - name: Get Vault secrets
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
-      - uses: SonarSource/ci-github-actions/config-maven@v1
+      - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
           common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false -Dmaven.deploy.skip=true
           artifactory-reader-role: private-reader
@@ -230,7 +230,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
         with:
           version: 2025.9.12
 
@@ -242,7 +242,7 @@ jobs:
 
       - name: Get Vault secrets
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -253,7 +253,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
           ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
 
-        uses: SonarSource/ci-github-actions/build-maven@v1
+        uses: SonarSource/ci-github-actions/build-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
           maven-args: -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
           sonar-platform: next
@@ -266,7 +266,7 @@ jobs:
     name: Validate Windows
     steps:
       - uses: actions/checkout@v5 # v5.0.0
-      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
         with:
           version: 2025.9.12
 
@@ -278,7 +278,7 @@ jobs:
 
       - name: Get Vault secrets
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -289,7 +289,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
           ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
 
-        uses: SonarSource/ci-github-actions/build-maven@v1
+        uses: SonarSource/ci-github-actions/build-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
           maven-args: -DskipIts -Dmaven.deploy.skip=true -P-deploy-sonarsource,-release,-sign -Dsonar.analysisCache.enabled=true
           sonar-platform: none
@@ -306,6 +306,6 @@ jobs:
     runs-on: github-ubuntu-latest-s
     name: Promote
     steps:
-      - uses: SonarSource/ci-github-actions/promote@v1
+      - uses: SonarSource/ci-github-actions/promote@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
           promote-pull-request: true
