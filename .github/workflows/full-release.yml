@@ -33,7 +33,7 @@ on:
 jobs:
   release:
     name: Release
-    uses: SonarSource/release-github-actions/.github/workflows/ide-automated-release.yml@706e44289960d7768dc6f953bc1c0df003e812cb # 1.5.9
+    uses: SonarSource/release-github-actions/.github/workflows/ide-automated-release.yml@baea6012647dfc12521bb994b97a2a9438412e6d # 1.5.10
     permissions:
       statuses: read
       id-token: write
@@ -60,7 +60,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: SonarSource/release-github-actions/bump-version@706e44289960d7768dc6f953bc1c0df003e812cb # 1.5.9
+      - uses: SonarSource/release-github-actions/bump-version@baea6012647dfc12521bb994b97a2a9438412e6d # 1.5.10
         with:
           version: ${{ needs.release.outputs.new-version }}
           token: ${{ github.token }}
@@ -77,7 +77,7 @@ jobs:
     steps:
       - name: Get Jira credentials
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/kv/data/jira user | JIRA_USER;

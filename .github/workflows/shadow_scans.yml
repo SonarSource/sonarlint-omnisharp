@@ -13,13 +13,13 @@ jobs:
       id-token: write
       contents: write
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install dependencies
         run: |
           bash .github/scripts/install_dependencies.sh
       - name: Get Repox Credentials from Vault
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -58,7 +58,7 @@ jobs:
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
       - name: Run IRIS sync
-        uses: SonarSource/unified-dogfooding-actions/run-iris@v1
+        uses: SonarSource/unified-dogfooding-actions/run-iris@54cee68ff08f10645c757675c59d232063e0b947 # 1.0.0
         with:
           primary_project_key: "org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-parent"
           primary_platform: "Next"
@@ -85,7 +85,7 @@ jobs:
 
       - name: Get Repox Credentials from Vault
         id: secrets
-        uses: SonarSource/vault-action-wrapper@v3
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
         with:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
@@ -123,7 +123,7 @@ jobs:
           bash .github/scripts/build_scan_dotnet.sh
 
       - name: Run IRIS sync
-        uses: SonarSource/unified-dogfooding-actions/run-iris@v1
+        uses: SonarSource/unified-dogfooding-actions/run-iris@54cee68ff08f10645c757675c59d232063e0b947 # 1.0.0
         with:
           primary_project_key: "sonarlint-omnisharp-dotnet"
           primary_platform: "Next"
