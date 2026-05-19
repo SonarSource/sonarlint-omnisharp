@@ -21,6 +21,7 @@ package org.sonarsource.sonarlint.omnisharp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -175,8 +176,9 @@ public class OmnisharpSensor implements Sensor {
     } catch (IOException e) {
       throw new IllegalStateException("Unable to read file buffer", e);
     }
-    omnisharpEndpoints.updateBuffer(f.file(), buffer);
-    omnisharpEndpoints.codeCheck(f.file(), diag -> handle(context, diag));
+    File file = new File(f.uri());
+    omnisharpEndpoints.updateBuffer(file, buffer);
+    omnisharpEndpoints.codeCheck(file, diag -> handle(context, diag));
   }
 
   private static void handle(SensorContext context, Diagnostic diag) {

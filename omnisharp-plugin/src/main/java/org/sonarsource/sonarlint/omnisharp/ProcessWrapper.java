@@ -26,12 +26,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProcessWrapper {
 
-  private static final Logger LOG = Loggers.get(ProcessWrapper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ProcessWrapper.class);
 
   private final Process p;
   private final Thread stdOutThread;
