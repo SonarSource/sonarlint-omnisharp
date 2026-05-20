@@ -34,7 +34,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.sonar.api.utils.log.LoggerLevel;
+import org.slf4j.event.Level;
 import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.OmnisharpServerController;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChangeType;
@@ -61,7 +61,7 @@ class OmnisharpEndpointsTests {
   private OmnisharpResponseProcessor responseProcessor;
 
   @BeforeEach
-  void prepare() throws IOException {
+  void prepare() {
     requests.clear();
     startFuture = new CompletableFuture<>();
     loadProjectsFuture = new CompletableFuture<>();
@@ -105,7 +105,7 @@ class OmnisharpEndpointsTests {
   }
 
   @Test
-  void stopServer() throws Exception {
+  void stopServer() {
     underTest.stopServer();
 
     assertThat(requests).containsExactly("{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/stopserver\"}");
@@ -150,7 +150,7 @@ class OmnisharpEndpointsTests {
 
     codeCheckFailed(f, "Some error");
 
-    assertThat(logTester.logs(LoggerLevel.ERROR)).contains("Some error");
+    assertThat(logTester.logs(Level.ERROR)).contains("Some error");
 
     assertThat(issues).isEmpty();
   }
