@@ -84,7 +84,7 @@ class OmnisharpEndpointsTests {
 
   @ParameterizedTest
   @ValueSource(strings = {"ProjectAdded", "ProjectChanged", "ProjectRemoved"})
-  void testStartFuture(String firstConfigEvent) throws IOException {
+  void testStartFuture(String firstConfigEvent) {
     assertThat(startFuture.isDone()).isFalse();
     assertThat(loadProjectsFuture.isDone()).isFalse();
 
@@ -359,16 +359,16 @@ class OmnisharpEndpointsTests {
   }
 
   @Test
-  void failEarlyIfUnableToWriteRequestToServer() throws Exception {
+  void failEarlyIfUnableToWriteRequestToServer() {
     when(omnisharpServer.writeRequestOnStdIn(anyString())).thenReturn(false);
     JsonObject jsonObject = new JsonObject();
     assertThrows(IllegalStateException.class, () -> underTest.config(jsonObject));
   }
 
-  private void doCodeCheck(File f, List<Diagnostic> issues, String jsonBody) throws IOException, InterruptedException {
+  private void doCodeCheck(File f, List<Diagnostic> issues, String jsonBody) throws InterruptedException {
     // codeCheck is blocking, so run it in a separate Thread
     Thread t = new Thread(() -> {
-      underTest.codeCheck(f, i -> issues.add(i));
+      underTest.codeCheck(f, issues::add);
     });
     t.start();
 
@@ -390,7 +390,7 @@ class OmnisharpEndpointsTests {
     t.join(1000);
   }
 
-  private void codeCheckFailed(File f, String message) throws IOException, InterruptedException {
+  private void codeCheckFailed(File f, String message) throws InterruptedException {
     // codeCheck is blocking, so run it in a separate Thread
     Thread t = new Thread(() -> {
       underTest.codeCheck(f, i -> {
@@ -420,7 +420,7 @@ class OmnisharpEndpointsTests {
     return f.getAbsolutePath().replaceAll("\\\\", Matcher.quoteReplacement("\\\\"));
   }
 
-  private void emulateReceivedMessage(String msg) throws IOException {
+  private void emulateReceivedMessage(String msg) {
     responseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, msg);
   }
 

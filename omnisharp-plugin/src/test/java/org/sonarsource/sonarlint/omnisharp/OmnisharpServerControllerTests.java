@@ -203,7 +203,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentOmnisharpFlavor() throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, true, false, null, null, null, null, 1, 1),
       "Using a different flavor of OmniSharp, OmniSharp has to be restarted");
   }
@@ -211,7 +211,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentLoadOnDemand() throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, true, null, null, null, null, 1, 1),
       "Using a different load projects on demand setting, OmniSharp has to be restarted");
   }
