@@ -44,6 +44,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.utils.System2;
+import org.slf4j.event.Level;
 import org.sonar.api.utils.log.LoggerLevel;
 import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
@@ -229,7 +230,7 @@ class OmnisharpServerControllerTests {
     second.run();
     verify(endpoints).stopServer();
     assertThat(processedOutput).containsExactly("STARTED", "STARTED");
-    assertThat(logTester.logs(LoggerLevel.INFO)).contains(expectedMsg);
+    assertThat(logTester.logs(Level.INFO)).contains(expectedMsg);
 
     // Same parameters, should not restart
     clearInvocations(endpoints);
@@ -287,7 +288,7 @@ class OmnisharpServerControllerTests {
   void timeoutIfServerTakeTooLongToStart() throws Exception {
     mockOmnisharpRun(waitForKeyPress());
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, this::lazyStart);
     assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
     assertThat(underTest.whenReady()).isCompletedExceptionally();
@@ -373,7 +374,7 @@ class OmnisharpServerControllerTests {
   }
 
   @Test
-  void startFailed() throws Exception {
+  void startFailed() {
     when(commandBuilder.build(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder("not existing command"));
 
     IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
