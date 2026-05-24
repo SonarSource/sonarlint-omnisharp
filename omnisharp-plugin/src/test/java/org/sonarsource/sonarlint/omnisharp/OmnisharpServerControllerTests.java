@@ -114,7 +114,7 @@ class OmnisharpServerControllerTests {
   void processTerminatesBeforeReachingStartState() throws Exception {
     mockOmnisharpRun("echo Foo");
 
-    var thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
+    var thrown = assertThrows(IllegalStateException.class, this::lazyStart);
 
     verify(endpoints).setServer(underTest);
     assertThat(processedOutput).containsExactly("Foo");
