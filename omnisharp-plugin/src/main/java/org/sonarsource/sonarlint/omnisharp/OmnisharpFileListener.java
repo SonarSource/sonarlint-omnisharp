@@ -41,7 +41,7 @@ public class OmnisharpFileListener implements ModuleFileListener {
     if (!serverController.isOmnisharpStarted()) {
       return;
     }
-    File file = event.getTarget().file();
+    File file = new File(event.getTarget().uri());
     switch (event.getType()) {
       case CREATED:
         if (file.getName().endsWith(".sln") || file.getName().endsWith(".slnx") || file.getName().endsWith(".csproj")) {

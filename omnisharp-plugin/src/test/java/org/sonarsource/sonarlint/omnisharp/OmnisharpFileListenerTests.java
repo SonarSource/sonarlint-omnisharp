@@ -77,7 +77,7 @@ class OmnisharpFileListenerTests {
 
     verify(omnisharpServer).isOmnisharpStarted();
     verifyNoMoreInteractions(omnisharpServer);
-    verify(omnisharpProtocol).fileChanged(f, expectedChangeType);
+    verify(omnisharpProtocol).fileChanged(new File(f.toURI()), expectedChangeType);
   }
 
   @ParameterizedTest
@@ -134,7 +134,7 @@ class OmnisharpFileListenerTests {
 
   private InputFile mockInputFile(File f) {
     var inputFile = mock(InputFile.class);
-    when(inputFile.file()).thenReturn(f);
+    when(inputFile.uri()).thenReturn(f.toURI());
     return inputFile;
   }
 
