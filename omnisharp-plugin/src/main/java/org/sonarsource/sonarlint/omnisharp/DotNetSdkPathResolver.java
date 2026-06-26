@@ -67,9 +67,12 @@ public final class DotNetSdkPathResolver {
       }
       current = parent;
     }
-    String lastSegment = normalized.getFileName().toString();
-    if (isSdkVersion(lastSegment)) {
-      return Optional.of(new SdkConfiguration(normalized, lastSegment));
+    Path lastSegmentPath = normalized.getFileName();
+    if (lastSegmentPath != null) {
+      String lastSegment = lastSegmentPath.toString();
+      if (isSdkVersion(lastSegment)) {
+        return Optional.of(new SdkConfiguration(normalized, lastSegment));
+      }
     }
     return Optional.empty();
   }

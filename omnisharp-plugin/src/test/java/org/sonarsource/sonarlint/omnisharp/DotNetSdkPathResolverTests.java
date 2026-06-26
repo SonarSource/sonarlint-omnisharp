@@ -48,4 +48,39 @@ class DotNetSdkPathResolverTests {
     assertThat(sdk.get().version()).isEqualTo("8.0.422");
   }
 
+  @Test
+  void fromPathHint_returns_empty_when_null() {
+    var sdk = DotNetSdkPathResolver.fromPathHint(null);
+
+    assertThat(sdk).isEmpty();
+  }
+
+  @Test
+  void fromPathHint_returns_empty_when_no_sdk_parent() {
+    var path = Path.of("/usr/share/dotnet/tools/8.0.422");
+
+    var sdk = DotNetSdkPathResolver.fromPathHint(path);
+
+    assertThat(sdk).isEmpty();
+  }
+
+  @Test
+  void fromPathHint_returns_empty_when_version_does_not_match() {
+    var path = Path.of("/usr/share/dotnet/sdk/invalid-version");
+
+    var sdk = DotNetSdkPathResolver.fromPathHint(path);
+
+    assertThat(sdk).isEmpty();
+  }
+
+  @Test
+  void fromPathHint_extracts_sdk_from_relative_version_path() {
+    var path = Path.of("6.0.100");
+
+    var sdk = DotNetSdkPathResolver.fromPathHint(path);
+
+    assertThat(sdk).isPresent();
+    assertThat(sdk.get().version()).isEqualTo("6.0.100");
+  }
+
 }
