@@ -79,6 +79,7 @@ class OmnisharpSensorTests {
 
   private final OmnisharpServerController mockServer = mock(OmnisharpServerController.class);
   private final OmnisharpEndpoints mockProtocol = mock(OmnisharpEndpoints.class);
+  private final DotNetSdkSelector mockDotNetSdkSelector = mock(DotNetSdkSelector.class);
   @RegisterExtension
   LogTesterJUnit5 logTester = new LogTesterJUnit5();
   private OmnisharpSensor underTest;
@@ -111,7 +112,8 @@ class OmnisharpSensorTests {
   @BeforeEach
   void prepare(@TempDir Path tmp) throws Exception {
     baseDir = tmp.toRealPath();
-    underTest = new OmnisharpSensor(mockServer, mockProtocol);
+    underTest = new OmnisharpSensor(mockServer, mockProtocol, mockDotNetSdkSelector);
+    when(mockDotNetSdkSelector.selectCompatibleSdkPath(any(), any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
     when(mockServer.whenReady()).thenReturn(CompletableFuture.completedFuture(null));
   }
 

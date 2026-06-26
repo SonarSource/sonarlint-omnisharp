@@ -55,10 +55,12 @@ public class OmnisharpSensor implements Sensor {
 
   private final OmnisharpServerController server;
   private final OmnisharpEndpoints omnisharpEndpoints;
+  private final DotNetSdkSelector dotNetSdkSelector;
 
-  public OmnisharpSensor(OmnisharpServerController server, OmnisharpEndpoints omnisharpEndpoints) {
+  public OmnisharpSensor(OmnisharpServerController server, OmnisharpEndpoints omnisharpEndpoints, DotNetSdkSelector dotNetSdkSelector) {
     this.server = server;
     this.omnisharpEndpoints = omnisharpEndpoints;
+    this.dotNetSdkSelector = dotNetSdkSelector;
   }
 
   @Override
@@ -84,11 +86,14 @@ public class OmnisharpSensor implements Sensor {
       Path monoExePath = context.config().get(CSharpPropertyDefinitions.getMonoExeLocation()).map(Paths::get).orElse(null);
       Path msBuildPath = context.config().get(CSharpPropertyDefinitions.getMSBuildPath()).map(Paths::get).orElse(null);
       Path solutionPath = context.config().get(CSharpPropertyDefinitions.getSolutionPath()).map(Paths::get).orElse(null);
-      boolean useFramework = context.config().getBoolean(CSharpPropertyDefinitions.getUseNet6()).orElse(false);
+      boolean useNet6 = context.config().getBoolean(CSharpPropertyDefinitions.getUseNet6()).orElse(false);
+      if (useNet6) {
+        msBuildPath = dotNetSdkSelector.selectCompatibleSdkPath(context.fileSystem().baseDir().toPath(), msBuildPath, dotnetCliExePath);
+      }
       boolean loadProjectsOnDemand = context.config().getBoolean(CSharpPropertyDefinitions.getLoadProjectsOnDemand()).orElse(false);
       int startupTimeOutSec = context.config().getInt(CSharpPropertyDefinitions.getStartupTimeout()).orElse(60);
       int loadProjectsTimeOutSec = context.config().getInt(CSharpPropertyDefinitions.getLoadProjectsTimeout()).orElse(60);
-      server.lazyStart(context.fileSystem().baseDir().toPath(), analyzerPluginPath, useFramework, loadProjectsOnDemand, dotnetCliExePath, monoExePath, msBuildPath, solutionPath,
+      server.lazyStart(context.fileSystem().baseDir().toPath(), analyzerPluginPath, useNet6, loadProjectsOnDemand, dotnetCliExePath, monoExePath, msBuildPath, solutionPath,
         startupTimeOutSec, loadProjectsTimeOutSec);
     } catch (InterruptedException e) {
       LOG.warn("Interrupted", e);
