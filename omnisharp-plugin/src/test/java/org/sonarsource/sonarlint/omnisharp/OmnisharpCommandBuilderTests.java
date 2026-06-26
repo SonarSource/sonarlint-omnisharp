@@ -154,10 +154,31 @@ class OmnisharpCommandBuilderTests {
   }
 
   @Test
-  void buildCommand_pass_msbuild_location(@TempDir Path projectBaseDir, @TempDir Path solutionFile, @TempDir Path msbuildPath) {
-    var pb = underTest.buildNet6(projectBaseDir, null, msbuildPath, solutionFile, false);
+  void buildCommand_pass_sdk_location(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
+    var sdkPath = Path.of("/usr/share/dotnet/sdk/8.0.422");
+    var pb = underTest.buildNet6(projectBaseDir, null, sdkPath, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "Sdk:Path=" + sdkPath,
+      "Sdk:Version=8.0.422",
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      solutionFile.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
+  void buildCommand_legacy_pass_msbuild_location(@TempDir Path projectBaseDir, @TempDir Path solutionFile, @TempDir Path msbuildPath) {
+    when(system2.isOsWindows()).thenReturn(false);
+
+    var pb = underTest.build(projectBaseDir, null, msbuildPath, solutionFile, false);
+    assertThat(pb.command()).containsExactly("mono",
+      omnisharpMonoLocation.resolve("OmniSharp.exe").toString(),
       "-v",
       "MsBuild:MSBuildOverride:MSBuildPath=" + msbuildPath.toString(),
       "MsBuild:loadProjectsOnDemand=false",
