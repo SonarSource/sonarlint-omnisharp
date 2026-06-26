@@ -48,10 +48,4 @@ class DotNetSdkPathResolverTests {
     assertThat(sdk.get().version()).isEqualTo("8.0.422");
   }
 
-  @Test
-  void isCompatibleSdkVersion_rejects_sdk_10_and_above() {
-    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("9.0.100")).isTrue();
-    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("10.0.301")).isFalse();
-  }
-
 }

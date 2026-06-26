@@ -58,7 +58,8 @@ public final class DotNetSdkPathResolver {
     Path current = normalized;
     while (current != null) {
       Path parent = current.getParent();
-      if (parent != null && "sdk".equalsIgnoreCase(parent.getFileName().toString())) {
+      Path parentName = parent != null ? parent.getFileName() : null;
+      if (parentName != null && "sdk".equalsIgnoreCase(parentName.toString())) {
         String version = current.getFileName().toString();
         if (isSdkVersion(version)) {
           return Optional.of(new SdkConfiguration(current, version));
@@ -71,23 +72,6 @@ public final class DotNetSdkPathResolver {
       return Optional.of(new SdkConfiguration(normalized, lastSegment));
     }
     return Optional.empty();
-  }
-
-  public static int parseMajorVersion(String version) {
-    int dotIndex = version.indexOf('.');
-    if (dotIndex <= 0) {
-      return -1;
-    }
-    try {
-      return Integer.parseInt(version.substring(0, dotIndex));
-    } catch (NumberFormatException e) {
-      return -1;
-    }
-  }
-
-  public static boolean isCompatibleSdkVersion(String version) {
-    int major = parseMajorVersion(version);
-    return major > 0 && major <= 9;
   }
 
   private static boolean isSdkVersion(String value) {
