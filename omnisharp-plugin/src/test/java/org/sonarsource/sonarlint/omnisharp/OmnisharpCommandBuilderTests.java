@@ -190,13 +190,12 @@ class OmnisharpCommandBuilderTests {
   }
 
   @Test
-  void buildCommand_net6_fallback_to_msbuild_location_when_sdk_version_is_incompatible(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
+  void buildCommand_net6_skips_sdk_override_when_sdk_version_is_incompatible(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
     var sdk10Path = Path.of("/usr/share/dotnet/sdk/10.0.301");
     var pb = underTest.buildNet6(projectBaseDir, null, sdk10Path, solutionFile, false);
     assertThat(pb.command()).containsExactly("dotnet",
       omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
       "-v",
-      "MsBuild:MSBuildOverride:MSBuildPath=" + sdk10Path,
       "MsBuild:loadProjectsOnDemand=false",
       "DotNet:enablePackageRestore=false",
       "--encoding",

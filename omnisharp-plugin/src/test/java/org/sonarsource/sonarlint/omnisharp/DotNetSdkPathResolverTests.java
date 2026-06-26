@@ -99,8 +99,13 @@ class DotNetSdkPathResolverTests {
   }
 
   @Test
-  void isCompatibleSdkVersion_returns_false_for_invalid_version() {
-    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("invalid")).isFalse();
+  void isCompatibleSdkVersion_returns_false_for_non_numeric_major_version() {
+    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("x.0.0")).isFalse();
+  }
+
+  @Test
+  void parseMajorVersion_returns_negative_one_for_non_numeric_major_version() {
+    assertThat(DotNetSdkPathResolver.parseMajorVersion("x.0.0")).isEqualTo(-1);
   }
 
 }

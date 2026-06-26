@@ -88,9 +88,10 @@ public class OmnisharpCommandBuilder {
     var sdkConfig = DotNetSdkPathResolver.fromPathHint(msBuildPath)
       .filter(sdk -> DotNetSdkPathResolver.isCompatibleSdkVersion(sdk.version()));
     if (sdkConfig.isPresent()) {
-      args.add("Sdk:Path=" + sdkConfig.get().path());
-      args.add("Sdk:Version=" + sdkConfig.get().version());
-    } else if (msBuildPath != null) {
+      var sdk = sdkConfig.get();
+      args.add("Sdk:Path=" + sdk.path());
+      args.add("Sdk:Version=" + sdk.version());
+    } else if (msBuildPath != null && DotNetSdkPathResolver.fromPathHint(msBuildPath).isEmpty()) {
       args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
     }
     return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);

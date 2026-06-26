@@ -28,7 +28,7 @@ public final class DotNetSdkPathResolver {
 
   private static final Pattern SDK_VERSION_PATTERN = Pattern.compile("\\d+\\.\\d+(?:\\.\\d+)?(?:[-\\w.]*)?");
   // OmniSharp 1.39.x supports .NET SDK major versions up to 9; SDK 10+ causes MSBuild project system initialization failures
-  static final int MAX_COMPATIBLE_SDK_MAJOR_VERSION = 9;
+  private static final int MAX_COMPATIBLE_SDK_MAJOR_VERSION = 9;
 
   private DotNetSdkPathResolver() {
     // utility class
