@@ -27,6 +27,8 @@ import javax.annotation.Nullable;
 public final class DotNetSdkPathResolver {
 
   private static final Pattern SDK_VERSION_PATTERN = Pattern.compile("\\d+\\.\\d+(?:\\.\\d+)?(?:[-\\w.]*)?");
+  // OmniSharp 1.39.x supports .NET SDK major versions up to 9; SDK 10+ causes MSBuild project system initialization failures
+  static final int MAX_COMPATIBLE_SDK_MAJOR_VERSION = 9;
 
   private DotNetSdkPathResolver() {
     // utility class
@@ -77,6 +79,23 @@ public final class DotNetSdkPathResolver {
       }
     }
     return Optional.empty();
+  }
+
+  public static boolean isCompatibleSdkVersion(String version) {
+    int majorVersion = parseMajorVersion(version);
+    return majorVersion >= 1 && majorVersion <= MAX_COMPATIBLE_SDK_MAJOR_VERSION;
+  }
+
+  static int parseMajorVersion(String version) {
+    int dotIndex = version.indexOf('.');
+    if (dotIndex <= 0) {
+      return -1;
+    }
+    try {
+      return Integer.parseInt(version.substring(0, dotIndex));
+    } catch (NumberFormatException e) {
+      return -1;
+    }
   }
 
   private static boolean isSdkVersion(String value) {

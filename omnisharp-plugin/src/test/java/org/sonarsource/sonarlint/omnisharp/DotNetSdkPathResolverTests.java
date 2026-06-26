@@ -83,4 +83,24 @@ class DotNetSdkPathResolverTests {
     assertThat(sdk.get().version()).isEqualTo("6.0.100");
   }
 
+  @Test
+  void isCompatibleSdkVersion_returns_true_for_sdk_8() {
+    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("8.0.422")).isTrue();
+  }
+
+  @Test
+  void isCompatibleSdkVersion_returns_true_for_sdk_9() {
+    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("9.0.100")).isTrue();
+  }
+
+  @Test
+  void isCompatibleSdkVersion_returns_false_for_sdk_10() {
+    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("10.0.301")).isFalse();
+  }
+
+  @Test
+  void isCompatibleSdkVersion_returns_false_for_invalid_version() {
+    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("invalid")).isFalse();
+  }
+
 }
