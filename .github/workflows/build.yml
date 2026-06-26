@@ -151,6 +151,13 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
+      - name: Install .NET runtimes
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            7.0.x
+
       - name: Install Mono and .NET tools
         run: |
           sudo apt-get update
@@ -160,8 +167,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-8.0 mono-complete mono-roslyn msbuild
           sudo rm -rf /var/lib/apt/lists/*
-          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --runtime dotnet --version 6.0 --install-dir /usr/share/dotnet
-          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --runtime dotnet --version 7.0 --install-dir /usr/share/dotnet
           dotnet tool install --global dotnet-sonarscanner --version 8.0
 
       - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
