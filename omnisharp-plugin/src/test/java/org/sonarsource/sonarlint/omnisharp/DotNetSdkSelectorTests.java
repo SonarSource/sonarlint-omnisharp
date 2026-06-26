@@ -41,7 +41,7 @@ class DotNetSdkSelectorTests {
 
   @Test
   void parseListSdksLine_parses_dotnet_list_output() {
-    var sdk = DotNetSdkSelector.parseListSdksLine("8.0.422 [/usr/share/dotnet/sdk/8.0.422]");
+    var sdk = DotNetSdkSelector.parseListSdksLine("8.0.422 [/usr/share/dotnet/sdk]");
 
     assertThat(sdk).isPresent();
     assertThat(sdk.get().version()).isEqualTo("8.0.422");

@@ -162,7 +162,7 @@ public class DotNetSdkSelector {
     if (!matcher.matches()) {
       return Optional.empty();
     }
-    return Optional.of(new SdkInfo(matcher.group(1), Path.of(matcher.group(2))));
+    return Optional.of(new SdkInfo(matcher.group(1), Path.of(matcher.group(2)).resolve(matcher.group(1))));
   }
 
   static int compareSdkVersions(String left, String right) {
