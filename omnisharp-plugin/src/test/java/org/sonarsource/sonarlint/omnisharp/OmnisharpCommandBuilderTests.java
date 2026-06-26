@@ -173,6 +173,23 @@ class OmnisharpCommandBuilderTests {
   }
 
   @Test
+  void buildCommand_net6_fallback_to_msbuild_location_when_sdk_not_resolvable(@TempDir Path projectBaseDir, @TempDir Path solutionFile, @TempDir Path msbuildPath) {
+    var pb = underTest.buildNet6(projectBaseDir, null, msbuildPath, solutionFile, false);
+    assertThat(pb.command()).containsExactly("dotnet",
+      omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "MsBuild:MSBuildOverride:MSBuildPath=" + msbuildPath.toString(),
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      solutionFile.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
   void buildCommand_legacy_pass_msbuild_location(@TempDir Path projectBaseDir, @TempDir Path solutionFile, @TempDir Path msbuildPath) {
     when(system2.isOsWindows()).thenReturn(false);
 

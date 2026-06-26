@@ -85,10 +85,13 @@ public class OmnisharpCommandBuilder {
       args.add("--hostPID");
       args.add(Long.toString(sonarLintRuntime.getClientPid()));
     }
-    DotNetSdkPathResolver.fromPathHint(msBuildPath).ifPresent(sdk -> {
-      args.add("Sdk:Path=" + sdk.path());
-      args.add("Sdk:Version=" + sdk.version());
-    });
+    var sdkConfig = DotNetSdkPathResolver.fromPathHint(msBuildPath);
+    if (sdkConfig.isPresent()) {
+      args.add("Sdk:Path=" + sdkConfig.get().path());
+      args.add("Sdk:Version=" + sdkConfig.get().version());
+    } else if (msBuildPath != null) {
+      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
+    }
     return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);
   }
 

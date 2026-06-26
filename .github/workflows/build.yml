@@ -158,8 +158,10 @@ jobs:
           sudo gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
           echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
           sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 dotnet-targeting-pack-6.0 dotnet-targeting-pack-7.0 mono-complete mono-roslyn msbuild
+          sudo apt-get install -y dotnet-sdk-8.0 mono-complete mono-roslyn msbuild
           sudo rm -rf /var/lib/apt/lists/*
+          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --runtime dotnet --version 6.0 --install-dir /usr/share/dotnet
+          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --runtime dotnet --version 7.0 --install-dir /usr/share/dotnet
           dotnet tool install --global dotnet-sonarscanner --version 8.0
 
       - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
