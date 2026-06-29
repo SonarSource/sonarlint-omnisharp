@@ -181,11 +181,26 @@ class DotNetSdkSelectorTests {
   }
 
   @Test
-  void listInstalledSdks_uses_windows_executable_name() {
+  void resolveDotnetExecutable_uses_windows_executable_name_on_windows() {
     when(system2.isOsWindows()).thenReturn(true);
     var underTest = new DotNetSdkSelector(system2);
 
-    assertThat(underTest.listInstalledSdks(null)).isEmpty();
+    assertThat(underTest.resolveDotnetExecutable(null)).isEqualTo("dotnet.exe");
+  }
+
+  @Test
+  void resolveDotnetExecutable_uses_unix_executable_name_on_non_windows() {
+    when(system2.isOsWindows()).thenReturn(false);
+    var underTest = new DotNetSdkSelector(system2);
+
+    assertThat(underTest.resolveDotnetExecutable(null)).isEqualTo("dotnet");
+  }
+
+  @Test
+  void resolveDotnetExecutable_uses_provided_path() {
+    var underTest = new DotNetSdkSelector(system2);
+
+    assertThat(underTest.resolveDotnetExecutable(Path.of("/custom/dotnet"))).isEqualTo("/custom/dotnet");
   }
 
   @Test

@@ -174,7 +174,7 @@ public class DotNetSdkSelector {
     }
   }
 
-  private String resolveDotnetExecutable(@Nullable Path dotnetCliPath) {
+  String resolveDotnetExecutable(@Nullable Path dotnetCliPath) {
     if (dotnetCliPath != null) {
       return dotnetCliPath.toString();
     }
