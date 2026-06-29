@@ -84,6 +84,21 @@ class DotNetSdkPathResolverTests {
   }
 
   @Test
+  void toVersionedSdkPath_appends_version_when_path_is_sdk_root() {
+    var path = Path.of("/usr/share/dotnet/sdk");
+
+    assertThat(DotNetSdkPathResolver.toVersionedSdkPath(path, "8.0.128"))
+      .isEqualTo(Path.of("/usr/share/dotnet/sdk/8.0.128"));
+  }
+
+  @Test
+  void toVersionedSdkPath_returns_path_when_already_versioned() {
+    var path = Path.of("/usr/share/dotnet/sdk/8.0.422");
+
+    assertThat(DotNetSdkPathResolver.toVersionedSdkPath(path, "8.0.422")).isEqualTo(path);
+  }
+
+  @Test
   void isCompatibleSdkVersion_returns_true_for_sdk_8() {
     assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("8.0.422")).isTrue();
   }
@@ -104,8 +119,31 @@ class DotNetSdkPathResolverTests {
   }
 
   @Test
+  void isCompatibleSdkVersion_returns_false_for_major_version_zero() {
+    assertThat(DotNetSdkPathResolver.isCompatibleSdkVersion("0.0.1")).isFalse();
+  }
+
+  @Test
   void parseMajorVersion_returns_negative_one_for_non_numeric_major_version() {
     assertThat(DotNetSdkPathResolver.parseMajorVersion("x.0.0")).isEqualTo(-1);
+  }
+
+  @Test
+  void parseMajorVersion_returns_negative_one_when_no_dot() {
+    assertThat(DotNetSdkPathResolver.parseMajorVersion("8")).isEqualTo(-1);
+  }
+
+  @Test
+  void parseMajorVersion_parses_major_version() {
+    assertThat(DotNetSdkPathResolver.parseMajorVersion("8.0.422")).isEqualTo(8);
+  }
+
+  @Test
+  void fromPathHint_accepts_version_with_prerelease_suffix() {
+    var sdk = DotNetSdkPathResolver.fromPathHint(Path.of("/usr/share/dotnet/sdk/8.0.422-preview.1"));
+
+    assertThat(sdk).isPresent();
+    assertThat(sdk.get().version()).isEqualTo("8.0.422-preview.1");
   }
 
 }

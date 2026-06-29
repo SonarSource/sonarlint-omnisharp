@@ -59,64 +59,88 @@ public class DotNetSdkSelector {
   public Path selectCompatibleSdkPath(Path projectBaseDir, @Nullable Path sdkPathHint, @Nullable Path dotnetCliPath) {
     var compatibleHint = DotNetSdkPathResolver.fromPathHint(sdkPathHint)
       .filter(sdk -> DotNetSdkPathResolver.isCompatibleSdkVersion(sdk.version()))
-      .map(DotNetSdkPathResolver.SdkConfiguration::path)
+      .map(sdk -> DotNetSdkPathResolver.toVersionedSdkPath(sdk.path(), sdk.version()))
       .orElse(null);
     if (compatibleHint != null) {
       return compatibleHint;
     }
 
-    if (sdkPathHint != null) {
-      DotNetSdkPathResolver.fromPathHint(sdkPathHint).ifPresent(sdk ->
-        LOG.info("Ignoring incompatible .NET SDK hint {} (OmniSharp 1.39.x is not compatible with SDK major version {})",
-          sdk.path(), DotNetSdkPathResolver.parseMajorVersion(sdk.version())));
-    }
+    logIncompatibleHint(sdkPathHint);
 
     var globalJsonVersion = readGlobalJsonSdkVersion(projectBaseDir);
-    var installedSdks = listInstalledSdks(dotnetCliPath).stream()
-      .filter(sdk -> DotNetSdkPathResolver.isCompatibleSdkVersion(sdk.version()))
-      .collect(Collectors.toList());
-
+    var installedSdks = filterCompatibleSdks(listInstalledSdks(dotnetCliPath));
     if (installedSdks.isEmpty()) {
       LOG.warn("No .NET SDK compatible with OmniSharp found on the machine");
       return null;
     }
 
-    var selected = globalJsonVersion
+    var selected = selectBestSdk(installedSdks, globalJsonVersion);
+    var versionedPath = DotNetSdkPathResolver.toVersionedSdkPath(selected.path(), selected.version());
+    LOG.info("Selected .NET SDK {} for OmniSharp analysis", versionedPath);
+    return versionedPath;
+  }
+
+  private void logIncompatibleHint(@Nullable Path sdkPathHint) {
+    if (sdkPathHint == null) {
+      return;
+    }
+    DotNetSdkPathResolver.fromPathHint(sdkPathHint).ifPresent(sdk ->
+      LOG.info("Ignoring incompatible .NET SDK hint {} (OmniSharp 1.39.x is not compatible with SDK major version {})",
+        sdk.path(), DotNetSdkPathResolver.parseMajorVersion(sdk.version())));
+  }
+
+  static SdkInfo selectBestSdk(List<SdkInfo> installedSdks, Optional<String> globalJsonVersion) {
+    return globalJsonVersion
       .flatMap(requested -> installedSdks.stream()
         .filter(sdk -> sdk.version().startsWith(requested) || requested.startsWith(sdk.version()))
         .max(Comparator.comparing(SdkInfo::version, DotNetSdkSelector::compareSdkVersions)))
-      .orElseGet(() -> installedSdks.stream().max(Comparator.comparing(SdkInfo::version, DotNetSdkSelector::compareSdkVersions)).orElseThrow());
-
-    LOG.info("Selected .NET SDK {} for OmniSharp analysis", selected.path());
-    return selected.path();
+      .orElseGet(() -> installedSdks.stream()
+        .max(Comparator.comparing(SdkInfo::version, DotNetSdkSelector::compareSdkVersions))
+        .orElseThrow());
   }
 
-  private static Optional<String> readGlobalJsonSdkVersion(Path projectBaseDir) {
+  static List<SdkInfo> filterCompatibleSdks(List<SdkInfo> installedSdks) {
+    return installedSdks.stream()
+      .filter(sdk -> DotNetSdkPathResolver.isCompatibleSdkVersion(sdk.version()))
+      .collect(Collectors.toList());
+  }
+
+  static Optional<String> readGlobalJsonSdkVersion(Path projectBaseDir) {
     var current = projectBaseDir.toAbsolutePath().normalize();
     while (current != null) {
       var globalJson = current.resolve("global.json");
       if (Files.isRegularFile(globalJson)) {
-        try {
-          var json = JsonParser.parseString(Files.readString(globalJson, StandardCharsets.UTF_8)).getAsJsonObject();
-          if (json.has("sdk") && json.get("sdk").isJsonObject()) {
-            JsonObject sdk = json.getAsJsonObject("sdk");
-            if (sdk.has("version")) {
-              return Optional.of(sdk.get("version").getAsString());
-            }
-          }
-        } catch (IOException e) {
-          LOG.debug("Unable to read global.json at {}", globalJson, e);
-        } catch (RuntimeException e) {
-          LOG.debug("Unable to parse global.json at {}", globalJson, e);
-        }
-        return Optional.empty();
+        return readSdkVersionFromGlobalJson(globalJson);
       }
       current = current.getParent();
     }
     return Optional.empty();
   }
 
-  private List<SdkInfo> listInstalledSdks(@Nullable Path dotnetCliPath) {
+  private static Optional<String> readSdkVersionFromGlobalJson(Path globalJson) {
+    try {
+      var json = JsonParser.parseString(Files.readString(globalJson, StandardCharsets.UTF_8)).getAsJsonObject();
+      return extractSdkVersion(json);
+    } catch (IOException e) {
+      LOG.debug("Unable to read global.json at {}", globalJson, e);
+    } catch (RuntimeException e) {
+      LOG.debug("Unable to parse global.json at {}", globalJson, e);
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<String> extractSdkVersion(JsonObject json) {
+    if (!json.has("sdk") || !json.get("sdk").isJsonObject()) {
+      return Optional.empty();
+    }
+    JsonObject sdk = json.getAsJsonObject("sdk");
+    if (!sdk.has("version")) {
+      return Optional.empty();
+    }
+    return Optional.of(sdk.get("version").getAsString());
+  }
+
+  List<SdkInfo> listInstalledSdks(@Nullable Path dotnetCliPath) {
     var dotnetExecutable = resolveDotnetExecutable(dotnetCliPath);
     var command = new ArrayList<String>();
     command.add(dotnetExecutable);
@@ -162,7 +186,9 @@ public class DotNetSdkSelector {
     if (!matcher.matches()) {
       return Optional.empty();
     }
-    return Optional.of(new SdkInfo(matcher.group(1), Path.of(matcher.group(2)).resolve(matcher.group(1))));
+    var version = matcher.group(1);
+    var path = DotNetSdkPathResolver.toVersionedSdkPath(Path.of(matcher.group(2)), version);
+    return Optional.of(new SdkInfo(version, path));
   }
 
   static int compareSdkVersions(String left, String right) {
@@ -191,7 +217,7 @@ public class DotNetSdkSelector {
     private final String version;
     private final Path path;
 
-    private SdkInfo(String version, Path path) {
+    SdkInfo(String version, Path path) {
       this.version = version;
       this.path = path;
     }

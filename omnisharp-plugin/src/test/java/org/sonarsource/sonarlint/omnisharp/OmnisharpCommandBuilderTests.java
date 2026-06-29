@@ -154,6 +154,25 @@ class OmnisharpCommandBuilderTests {
   }
 
   @Test
+  void buildCommand_pass_sdk_location_from_linux_package_layout(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
+    var sdkPath = Path.of("/usr/share/dotnet/sdk/8.0.128");
+    var pb = underTest.buildNet6(projectBaseDir, null, sdkPath, solutionFile, false);
+    assertThat(pb.command()).containsExactly("dotnet",
+      omnisharpNet6Location.resolve("OmniSharp.dll").toString(),
+      "-v",
+      "Sdk:Path=" + sdkPath,
+      "Sdk:Version=8.0.128",
+      "MsBuild:loadProjectsOnDemand=false",
+      "DotNet:enablePackageRestore=false",
+      "--encoding",
+      "utf-8",
+      "-s",
+      solutionFile.toString(),
+      "--plugin",
+      omnisharpDllServicesPath.toString());
+  }
+
+  @Test
   void buildCommand_pass_sdk_location(@TempDir Path projectBaseDir, @TempDir Path solutionFile) {
     var sdkPath = Path.of("/usr/share/dotnet/sdk/8.0.422");
     var pb = underTest.buildNet6(projectBaseDir, null, sdkPath, solutionFile, false);
