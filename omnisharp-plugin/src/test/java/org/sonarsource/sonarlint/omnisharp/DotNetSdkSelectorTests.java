@@ -174,10 +174,10 @@ class DotNetSdkSelectorTests {
   }
 
   @Test
-  void listInstalledSdks_returns_empty_when_dotnet_cli_is_invalid() {
+  void listInstalledSdks_returns_empty_when_dotnet_cli_is_invalid(@TempDir Path tempDir) {
     var underTest = new DotNetSdkSelector(system2);
 
-    assertThat(underTest.listInstalledSdks(Path.of("/nonexistent/dotnet"))).isEmpty();
+    assertThat(underTest.listInstalledSdks(tempDir.resolve("nonexistent-dotnet"))).isEmpty();
   }
 
   @Test
@@ -200,7 +200,7 @@ class DotNetSdkSelectorTests {
   void resolveDotnetExecutable_uses_provided_path() {
     var underTest = new DotNetSdkSelector(system2);
 
-    assertThat(underTest.resolveDotnetExecutable(Path.of("/custom/dotnet"))).isEqualTo("/custom/dotnet");
+    assertThat(underTest.resolveDotnetExecutable(Path.of("/custom/dotnet"))).isEqualTo(Path.of("/custom/dotnet").toString());
   }
 
   @Test
