@@ -44,7 +44,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.api.utils.System2;
-import org.sonar.api.utils.log.LoggerLevel;
+import org.slf4j.event.Level;
 import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
@@ -79,8 +79,8 @@ class OmnisharpServerControllerTests {
   private final List<String> processedOutput = new CopyOnWriteArrayList<>();
 
   @BeforeEach
-  void prepare(@TempDir Path tmpDir) throws IOException {
-    logTester.setLevel(LoggerLevel.DEBUG);
+  void prepare(@TempDir Path tmpDir) {
+    logTester.setLevel(Level.DEBUG);
     solutionDir = tmpDir.resolve("solution");
     anotherSolutionDir = tmpDir.resolve("anotherSolution");
     endpoints = mock(OmnisharpEndpoints.class);
@@ -99,7 +99,7 @@ class OmnisharpServerControllerTests {
   @Test
   void dontWriteRequestIfServerStopped() {
     underTest.writeRequestOnStdIn("foo");
-    assertThat(logTester.logs(LoggerLevel.DEBUG)).contains("Server stopped, ignoring request");
+    assertThat(logTester.logs(Level.DEBUG)).contains("Server stopped, ignoring request");
   }
 
   @Test
@@ -229,7 +229,7 @@ class OmnisharpServerControllerTests {
     second.run();
     verify(endpoints).stopServer();
     assertThat(processedOutput).containsExactly("STARTED", "STARTED");
-    assertThat(logTester.logs(LoggerLevel.INFO)).contains(expectedMsg);
+    assertThat(logTester.logs(Level.INFO)).contains(expectedMsg);
 
     // Same parameters, should not restart
     clearInvocations(endpoints);
@@ -376,7 +376,7 @@ class OmnisharpServerControllerTests {
   void startFailed() throws Exception {
     when(commandBuilder.build(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder("not existing command"));
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, this::lazyStart);
     assertThat(thrown).hasMessageContainingAll("Unable to start the Omnisharp server", "not existing command");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
 
