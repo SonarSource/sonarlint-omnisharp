@@ -163,7 +163,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentSolutionDir() throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(anotherSolutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, null, 1, 1),
       "Using a different project basedir, OmniSharp has to be restarted");
   }
@@ -171,7 +171,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentDotnetCliPath(@TempDir Path dotnetCliPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, dotnetCliPath, null, null, null, 1, 1),
       "Using a different dotnet CLI path, OmniSharp has to be restarted");
   }
@@ -179,7 +179,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentMonoPath(@TempDir Path monoPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, monoPath, null, null, 1, 1),
       "Using a different Mono location, OmniSharp has to be restarted");
   }
@@ -187,7 +187,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentMSBuildPath(@TempDir Path msBuildPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, msBuildPath, null, 1, 1),
       "Using a different MSBuild path, OmniSharp has to be restarted");
   }
@@ -195,7 +195,7 @@ class OmnisharpServerControllerTests {
   @Test
   void automaticallyRestartIfDifferentSolutionPath(@TempDir Path solutionPath) throws Exception {
     automaticallyRestartIfDifferentConfig(
-      () -> lazyStart(),
+      this::lazyStart,
       () -> underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, solutionPath, 1, 1),
       "Using a different solution path, OmniSharp has to be restarted");
   }
