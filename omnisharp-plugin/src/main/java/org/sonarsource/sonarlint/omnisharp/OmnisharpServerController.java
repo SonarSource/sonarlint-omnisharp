@@ -220,6 +220,9 @@ public class OmnisharpServerController implements Startable {
       var startedProcess = ProcessWrapper.start(processBuilder,
         s -> omnisharpResponseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, s), LOG::error);
       stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture, cachedLoadProjectsOnDemand);
+      if (!cachedLoadProjectsOnDemand) {
+        scheduleProjectsLoadedVerification(startFuture, loadProjectsFuture);
+      }
     } catch (IOException e) {
       LOG.warn("Unable to start OmniSharp", e);
       stateMachine.processStartFailed(e);
@@ -267,6 +270,26 @@ public class OmnisharpServerController implements Startable {
     if (sdkPath != null && sdkVersion != null) {
       LOG.info("Using OmniSharp SDK configuration from IDE hint: Sdk:Path={}, Sdk:Version={}", sdkPath, sdkVersion);
     }
+  }
+
+  private void scheduleProjectsLoadedVerification(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture) {
+    startFuture.whenComplete((result, error) -> {
+      if (error != null || loadProjectsFuture.isDone()) {
+        return;
+      }
+      CompletableFuture.runAsync(() -> {
+        try {
+          omnisharpEndpoints.waitForMsBuildProjectsLoaded();
+          if (!loadProjectsFuture.isDone()) {
+            loadProjectsFuture.complete(null);
+          }
+        } catch (Exception e) {
+          if (!loadProjectsFuture.isDone()) {
+            loadProjectsFuture.completeExceptionally(e);
+          }
+        }
+      });
+    });
   }
 
   public synchronized boolean writeRequestOnStdIn(String str) {

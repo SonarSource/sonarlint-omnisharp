@@ -101,7 +101,39 @@ class OmnisharpEndpointsTests {
     emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"" + firstConfigEvent + "\"}");
 
     assertThat(startFuture.isDone()).isTrue();
-    assertThat(loadProjectsFuture.isDone()).isTrue();
+    assertThat(loadProjectsFuture.isDone()).isFalse();
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_succeeds_when_projects_are_loaded() {
+    Thread t = new Thread(() -> underTest.waitForMsBuildProjectsLoaded());
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage(
+      "{\"Type\":\"response\",\"Request_seq\":1,\"Success\":true,\"Body\":{\"MsBuild\":{\"SolutionPath\":\"/foo.sln\",\"Projects\":[{\"Name\":\"App\"}]}}}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_fails_when_no_project_was_loaded() {
+    Thread t = new Thread(() -> {
+      try {
+        underTest.waitForMsBuildProjectsLoaded();
+      } catch (IllegalStateException ignored) {
+        // expected
+      }
+    });
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage(
+      "{\"Type\":\"response\",\"Request_seq\":1,\"Success\":true,\"Body\":{\"MsBuild\":{\"SolutionPath\":\"/foo.sln\",\"Projects\":[]}}}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
   }
 
   @Test
