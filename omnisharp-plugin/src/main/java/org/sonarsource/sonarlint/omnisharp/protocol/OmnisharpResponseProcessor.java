@@ -82,7 +82,7 @@ public class OmnisharpResponseProcessor {
             if (!msbuildErrors.isEmpty()) {
               LOG.error("MSBuild failed to load the project");
               // No need to wait for project loading, it might never happen
-              // firstUpdateProjectLatch.countDown();
+              // 
             }
             LOG.debug(line);
             break;

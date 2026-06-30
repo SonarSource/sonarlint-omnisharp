@@ -74,8 +74,18 @@ public class OmnisharpServerController implements Startable {
       return state == ServerState.OMNISHARP_STARTED;
     }
 
-    public synchronized void processStarted(ProcessWrapper processWrapper, CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture,
-      boolean loadProjectsOnDemand) {
+    public synchronized void processStarted(ProcessWrapper processWrapper, CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture) {
+      initProcessStarted(processWrapper, startFuture, loadProjectsFuture);
+      this.loadProjectsFuture = loadProjectsFuture
+        .thenRun(() -> LOG.info("Projects successfully loaded"));
+    }
+
+    public synchronized void processStartedLoadOnDemand(ProcessWrapper processWrapper, CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture) {
+      initProcessStarted(processWrapper, startFuture, loadProjectsFuture);
+      this.loadProjectsFuture = this.startFuture;
+    }
+
+    private void initProcessStarted(ProcessWrapper processWrapper, CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture) {
       this.processWrapper = processWrapper;
       this.terminationFuture = processWrapper.getTerminationFuture().whenComplete((r, t) -> {
         LOG.info("Omnisharp process terminated");
@@ -92,12 +102,6 @@ public class OmnisharpServerController implements Startable {
             LOG.info("OmniSharp successfully started");
           }
         });
-      if (loadProjectsOnDemand) {
-        this.loadProjectsFuture = this.startFuture;
-      } else {
-        this.loadProjectsFuture = loadProjectsFuture
-          .thenRun(() -> LOG.info("Projects successfully loaded"));
-      }
     }
 
     public synchronized void processStartFailed(IOException e) {
@@ -218,7 +222,11 @@ public class OmnisharpServerController implements Startable {
     try {
       var startedProcess = ProcessWrapper.start(processBuilder,
         s -> omnisharpResponseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, s), LOG::error);
-      stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture, cachedLoadProjectsOnDemand);
+      if (cachedLoadProjectsOnDemand) {
+        stateMachine.processStartedLoadOnDemand(startedProcess, startFuture, loadProjectsFuture);
+      } else {
+        stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture);
+      }
     } catch (IOException e) {
       LOG.warn("Unable to start OmniSharp", e);
       stateMachine.processStartFailed(e);

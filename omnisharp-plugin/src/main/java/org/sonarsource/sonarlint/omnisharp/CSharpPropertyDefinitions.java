@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sonar.api.PropertyType;
 import org.sonar.api.config.PropertyDefinition;
-import org.sonar.api.resources.Qualifiers;
 
 import static org.sonarsource.sonarlint.omnisharp.OmnisharpPluginConstants.LANGUAGE_KEY;
 
@@ -94,7 +93,7 @@ public class CSharpPropertyDefinitions {
         .name("File suffixes")
         .description("Comma-separated list of suffixes of files to analyze.")
         .multiValues(true)
-        .onQualifiers(Qualifiers.PROJECT)
+        .onConfigScopes(PropertyDefinition.ConfigScope.PROJECT)
         .build());
     result.add(
       PropertyDefinition.builder(getAnalyzerPath())
