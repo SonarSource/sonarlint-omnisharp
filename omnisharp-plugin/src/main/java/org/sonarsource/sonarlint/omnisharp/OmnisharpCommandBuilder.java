@@ -59,7 +59,7 @@ public class OmnisharpCommandBuilder {
     }
     String omnisharpNet6Loc = getMandatoryConfig(CSharpPropertyDefinitions.getOmnisharpNet6Location());
     args.add(Paths.get(omnisharpNet6Loc).resolve("OmniSharp.dll").toString());
-    return addArguments(projectBaseDir, msBuildPath, solutionPath, loadProjectsOnDemand, args);
+    return addNet6Arguments(projectBaseDir, msBuildPath, solutionPath, loadProjectsOnDemand, args);
   }
 
   public ProcessBuilder build(Path projectBaseDir, @Nullable Path monoPath, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand) {
@@ -76,18 +76,39 @@ public class OmnisharpCommandBuilder {
       String omnisharpMonoLoc = getMandatoryConfig(CSharpPropertyDefinitions.getOmnisharpMonoLocation());
       args.add(Paths.get(omnisharpMonoLoc).resolve("OmniSharp.exe").toString());
     }
-    return addArguments(projectBaseDir, msBuildPath, solutionPath, loadProjectsOnDemand, args);
+    return addLegacyArguments(projectBaseDir, msBuildPath, solutionPath, loadProjectsOnDemand, args);
   }
 
-  private ProcessBuilder addArguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
+  private ProcessBuilder addNet6Arguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
+    addHostArguments(args);
+    var resolvedSdk = DotNetSdkPathResolver.fromPathHint(msBuildPath);
+    if (resolvedSdk.isPresent()) {
+      var sdk = resolvedSdk.get();
+      args.add("Sdk:Path=" + sdk.path());
+      args.add("Sdk:Version=" + sdk.version());
+    } else if (msBuildPath != null) {
+      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
+    }
+    return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);
+  }
+
+  private ProcessBuilder addLegacyArguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
+    addHostArguments(args);
+    if (msBuildPath != null) {
+      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
+    }
+    return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);
+  }
+
+  private void addHostArguments(List<String> args) {
     args.add("-v");
     if (sonarLintRuntime.getClientPid() != 0) {
       args.add("--hostPID");
       args.add(Long.toString(sonarLintRuntime.getClientPid()));
     }
-    if (msBuildPath != null) {
-      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
-    }
+  }
+
+  private ProcessBuilder addCommonArguments(Path projectBaseDir, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
     args.add("MsBuild:loadProjectsOnDemand=" + loadProjectsOnDemand);
     args.add("DotNet:enablePackageRestore=false");
     args.add("--encoding");
