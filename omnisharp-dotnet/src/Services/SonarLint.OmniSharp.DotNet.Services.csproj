@@ -14,7 +14,7 @@
          but we're targeting the same version to be on the safe side.
     -->
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.3.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0-2.final" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
 		<PackageReference Include="System.Composition.AttributedModel" Version="9.0.0" />
