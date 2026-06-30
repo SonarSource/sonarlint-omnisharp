@@ -14,6 +14,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.6.14
       - name: Install dependencies
         run: |
           bash .github/scripts/install_dependencies.sh
@@ -48,9 +51,6 @@ jobs:
             -c Release \
             -p:CollectCoverage=true -p:CoverletOutput=TestResults/ -p:CoverletOutputFormat=opencover \
             --no-restore
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
-        with:
-          version: 2025.7.12
       - uses: SonarSource/ci-github-actions/build-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
           maven-args: -DskipIts
@@ -77,6 +77,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.6.14
 
       - name: Install dependencies
         run: |

@@ -29,9 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         with:
-          version: 2025.9.12
+          version: 2026.6.14
 
       - name: Install dependencies
         run: |
@@ -94,6 +94,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.6.14
+
       - name: Install dependencies
         run: |
           bash .github/scripts/install_dependencies.sh
@@ -139,9 +143,9 @@ jobs:
     name: QA Linux
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         with:
-          version: 2025.9.12
+          version: 2026.6.14
 
       - name: Get Vault secrets
         id: secrets
@@ -151,14 +155,14 @@ jobs:
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
 
-      - name: Install Mono and .NET tools
+      - name: Install Mono tools
         run: |
           sudo apt-get update
           sudo apt-get install -y ca-certificates gnupg
           sudo gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
           echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
           sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 mono-complete mono-roslyn msbuild
+          sudo apt-get install -y mono-complete mono-roslyn msbuild
           sudo rm -rf /var/lib/apt/lists/*
           dotnet tool install --global dotnet-sonarscanner --version 8.0
 
@@ -189,9 +193,9 @@ jobs:
     name: QA Windows
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         with:
-          version: 2025.9.12
+          version: 2026.6.14
 
       - name: Get Vault secrets
         id: secrets
@@ -200,13 +204,6 @@ jobs:
           secrets: |
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
             development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
-
-      - name: Install .NET SDKs
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            6.0.x
-            7.0.x
 
       - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         with:
@@ -237,9 +234,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         with:
-          version: 2025.9.12
+          version: 2026.6.14
 
       - name: Download .NET DLL artifact
         uses: actions/download-artifact@v5
@@ -273,9 +270,9 @@ jobs:
     name: Validate Windows
     steps:
       - uses: actions/checkout@v5 # v5.0.0
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         with:
-          version: 2025.9.12
+          version: 2026.6.14
 
       - name: Download .NET DLL artifact
         uses: actions/download-artifact@v5
