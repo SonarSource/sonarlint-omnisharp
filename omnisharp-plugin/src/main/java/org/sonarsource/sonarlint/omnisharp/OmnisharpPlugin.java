@@ -36,8 +36,7 @@ public class OmnisharpPlugin implements Plugin {
         OmnisharpServicesExtractor.class,
         OmnisharpFileListener.class,
         OmnisharpResponseProcessor.class,
-        OmnisharpCommandBuilder.class,
-        DotNetSdkSelector.class);
+        OmnisharpCommandBuilder.class);
     }
 
     context.addExtension(CSharpLanguage.class);

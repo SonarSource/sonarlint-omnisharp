@@ -27,8 +27,6 @@ import javax.annotation.Nullable;
 public final class DotNetSdkPathResolver {
 
   private static final Pattern SDK_VERSION_PATTERN = Pattern.compile("\\d+\\.\\d+(?:\\.\\d+)?(?:[-\\w.]+)?");
-  // OmniSharp 1.39.x supports .NET SDK major versions up to 9; SDK 10+ causes MSBuild project system initialization failures
-  private static final int MAX_COMPATIBLE_SDK_MAJOR_VERSION = 9;
 
   private DotNetSdkPathResolver() {
     // utility class
@@ -56,16 +54,7 @@ public final class DotNetSdkPathResolver {
     if (pathHint == null) {
       return Optional.empty();
     }
-    Path normalized = pathHint.normalize();
-    var fromSdkDirectory = extractFromSdkDirectoryStructure(normalized);
-    if (fromSdkDirectory.isPresent()) {
-      return fromSdkDirectory;
-    }
-    return extractFromRootRelativePath(normalized);
-  }
-
-  private static Optional<SdkConfiguration> extractFromSdkDirectoryStructure(Path normalized) {
-    Path current = normalized;
+    Path current = pathHint.normalize();
     while (current != null) {
       Path parent = current.getParent();
       if (parent != null && isSdkDirectory(parent)) {
@@ -74,22 +63,13 @@ public final class DotNetSdkPathResolver {
           return Optional.of(new SdkConfiguration(current, version));
         }
       }
+      if (parent == null) {
+        Path fileName = current.getFileName();
+        if (fileName != null && isSdkVersion(fileName.toString())) {
+          return Optional.of(new SdkConfiguration(current, fileName.toString()));
+        }
+      }
       current = parent;
-    }
-    return Optional.empty();
-  }
-
-  private static Optional<SdkConfiguration> extractFromRootRelativePath(Path normalized) {
-    if (normalized.getParent() != null) {
-      return Optional.empty();
-    }
-    Path lastSegmentPath = normalized.getFileName();
-    if (lastSegmentPath == null) {
-      return Optional.empty();
-    }
-    String lastSegment = lastSegmentPath.toString();
-    if (isSdkVersion(lastSegment)) {
-      return Optional.of(new SdkConfiguration(normalized, lastSegment));
     }
     return Optional.empty();
   }
@@ -97,32 +77,6 @@ public final class DotNetSdkPathResolver {
   private static boolean isSdkDirectory(Path parent) {
     var parentName = parent.getFileName();
     return parentName != null && "sdk".equalsIgnoreCase(parentName.toString());
-  }
-
-  public static Path toVersionedSdkPath(Path path, String version) {
-    Path normalized = path.normalize();
-    var fileName = normalized.getFileName();
-    if (fileName != null && fileName.toString().equals(version)) {
-      return normalized;
-    }
-    return normalized.resolve(version);
-  }
-
-  public static boolean isCompatibleSdkVersion(String version) {
-    int majorVersion = parseMajorVersion(version);
-    return majorVersion >= 1 && majorVersion <= MAX_COMPATIBLE_SDK_MAJOR_VERSION;
-  }
-
-  static int parseMajorVersion(String version) {
-    int dotIndex = version.indexOf('.');
-    if (dotIndex <= 0) {
-      return -1;
-    }
-    try {
-      return Integer.parseInt(version.substring(0, dotIndex));
-    } catch (NumberFormatException e) {
-      return -1;
-    }
   }
 
   private static boolean isSdkVersion(String value) {
