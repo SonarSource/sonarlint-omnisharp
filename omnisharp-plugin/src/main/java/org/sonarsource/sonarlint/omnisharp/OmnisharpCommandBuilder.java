@@ -76,15 +76,11 @@ public class OmnisharpCommandBuilder {
       String omnisharpMonoLoc = getMandatoryConfig(CSharpPropertyDefinitions.getOmnisharpMonoLocation());
       args.add(Paths.get(omnisharpMonoLoc).resolve("OmniSharp.exe").toString());
     }
-    return addArguments(projectBaseDir, msBuildPath, solutionPath, loadProjectsOnDemand, args);
+    return addLegacyArguments(projectBaseDir, msBuildPath, solutionPath, loadProjectsOnDemand, args);
   }
 
   private ProcessBuilder addNet6Arguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
-    args.add("-v");
-    if (sonarLintRuntime.getClientPid() != 0) {
-      args.add("--hostPID");
-      args.add(Long.toString(sonarLintRuntime.getClientPid()));
-    }
+    addHostArguments(args);
     var resolvedSdk = DotNetSdkPathResolver.fromPathHint(msBuildPath);
     if (resolvedSdk.isPresent()) {
       var sdk = resolvedSdk.get();
@@ -96,16 +92,20 @@ public class OmnisharpCommandBuilder {
     return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);
   }
 
-  private ProcessBuilder addArguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
+  private ProcessBuilder addLegacyArguments(Path projectBaseDir, @Nullable Path msBuildPath, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {
+    addHostArguments(args);
+    if (msBuildPath != null) {
+      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
+    }
+    return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);
+  }
+
+  private void addHostArguments(List<String> args) {
     args.add("-v");
     if (sonarLintRuntime.getClientPid() != 0) {
       args.add("--hostPID");
       args.add(Long.toString(sonarLintRuntime.getClientPid()));
     }
-    if (msBuildPath != null) {
-      args.add("MsBuild:MSBuildOverride:MSBuildPath=" + msBuildPath.toString());
-    }
-    return addCommonArguments(projectBaseDir, solutionPath, loadProjectsOnDemand, args);
   }
 
   private ProcessBuilder addCommonArguments(Path projectBaseDir, @Nullable Path solutionPath, boolean loadProjectsOnDemand, List<String> args) {

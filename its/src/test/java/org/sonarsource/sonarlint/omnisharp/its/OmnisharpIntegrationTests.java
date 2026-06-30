@@ -25,6 +25,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,9 +34,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FalseFileFilter;
@@ -101,8 +106,11 @@ import org.sonarsource.sonarlint.core.rpc.protocol.common.UsernamePasswordDto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class OmnisharpIntegrationTests {
+
+  private static final Pattern LIST_SDKS_PATTERN = Pattern.compile("^(\\d+\\.\\d+\\.\\d+)\\s+\\[(.+)]\\s*$", Pattern.MULTILINE);
 
   private static final String SOLUTION1_MODULE_KEY = "solution1";
   private static final String SOLUTION2_MODULE_KEY = "solution2";
@@ -267,6 +275,37 @@ class OmnisharpIntegrationTests {
         "}\n",
       "sonar.cs.internal.useNet6", "true",
       "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet8Project.sln").toString());
+
+    assertThat(issues)
+      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+      .containsOnly(
+        tuple("csharpsquid:S1116", "Remove this empty statement."),
+        tuple("csharpsquid:S1172", "Remove this unused method parameter 'list'."));
+  }
+
+  @Test
+  void analyzeNet8SolutionWithSdkPathHint(@TempDir Path tmpDir) throws Exception {
+    var sdkPathHint = findInstalledDotNetSdkPathHint(8).orElse(null);
+    assumeTrue(sdkPathHint != null && Files.isDirectory(sdkPathHint), "No .NET 8 SDK found, required for this test");
+
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet8Project");
+    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet8Project/Program.cs", "namespace DotNet8Project;\n" +
+        "\n" +
+        "public static class Class1\n" +
+        "{\n" +
+        "\n" +
+        "    public static void Method2()\n" +
+        "    {\n" +
+        "        Method([\"\", \"\"]);\n" +
+        "    }\n" +
+        "    static void Method(string[] list)\n" +
+        "    {\n" +
+        "        ;\n" +
+        "    }\n" +
+        "}\n",
+      "sonar.cs.internal.useNet6", "true",
+      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet8Project.sln").toString(),
+      "sonar.cs.internal.msBuildPath", sdkPathHint.toString());
 
     assertThat(issues)
       .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
@@ -940,6 +979,42 @@ class OmnisharpIntegrationTests {
     Path baseDir = prepareTestSolution(tmpDir, name);
     restore(baseDir);
     return baseDir;
+  }
+
+  private static Optional<Path> findInstalledDotNetSdkPathHint(int majorVersion) throws IOException, InterruptedException {
+    var process = new ProcessBuilder("dotnet", "--list-sdks").redirectErrorStream(true).start();
+    if (!process.waitFor(30, TimeUnit.SECONDS) || process.exitValue() != 0) {
+      return Optional.empty();
+    }
+    var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    Optional<Path> latestMatchingSdk = Optional.empty();
+    String latestVersion = null;
+    Matcher matcher = LIST_SDKS_PATTERN.matcher(output);
+    while (matcher.find()) {
+      var version = matcher.group(1);
+      if (!version.startsWith(majorVersion + ".")) {
+        continue;
+      }
+      if (latestVersion == null || compareSdkVersions(version, latestVersion) > 0) {
+        latestVersion = version;
+        latestMatchingSdk = Optional.of(Paths.get(matcher.group(2).trim(), version));
+      }
+    }
+    return latestMatchingSdk;
+  }
+
+  private static int compareSdkVersions(String left, String right) {
+    var leftParts = left.split("\\.");
+    var rightParts = right.split("\\.");
+    var length = Math.max(leftParts.length, rightParts.length);
+    for (var i = 0; i < length; i++) {
+      var leftPart = i < leftParts.length ? Integer.parseInt(leftParts[i]) : 0;
+      var rightPart = i < rightParts.length ? Integer.parseInt(rightParts[i]) : 0;
+      if (leftPart != rightPart) {
+        return Integer.compare(leftPart, rightPart);
+      }
+    }
+    return 0;
   }
 
   private Path prepareTestSolution(Path tmpDir, String name) throws IOException {

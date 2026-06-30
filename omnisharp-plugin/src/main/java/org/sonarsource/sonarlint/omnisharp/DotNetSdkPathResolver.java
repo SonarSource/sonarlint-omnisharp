@@ -74,9 +74,9 @@ public final class DotNetSdkPathResolver {
     return Optional.empty();
   }
 
-  private static boolean isSdkDirectory(Path parent) {
-    var parentName = parent.getFileName();
-    return parentName != null && "sdk".equalsIgnoreCase(parentName.toString());
+  private static boolean isSdkDirectory(Path directory) {
+    var directoryName = directory.getFileName();
+    return directoryName != null && "sdk".equalsIgnoreCase(directoryName.toString());
   }
 
   private static boolean isSdkVersion(String value) {
