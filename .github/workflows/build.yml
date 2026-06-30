@@ -142,6 +142,8 @@ jobs:
   qa_linux:
     needs: build_maven_parent
     runs-on: github-ubuntu-latest-m
+    env:
+      BUILD_NUMBER: ${{ needs.build_maven_parent.outputs.BUILD_NUMBER }}
     name: QA Linux
     steps:
       - uses: actions/checkout@v5
