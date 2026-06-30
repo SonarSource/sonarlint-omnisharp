@@ -209,6 +209,7 @@ public class OmnisharpServerController implements Startable {
     ProcessBuilder processBuilder;
     if (cachedUseNet6) {
       processBuilder = omnisharpCommandBuilder.buildNet6(cachedProjectBaseDir, cachedDotnetCliPath, cachedMsBuildPath, cachedSolutionPath, cachedLoadProjectsOnDemand);
+      logSdkConfigurationIfPresent(processBuilder);
     } else {
       processBuilder = omnisharpCommandBuilder.build(cachedProjectBaseDir, cachedMonoPath, cachedMsBuildPath, cachedSolutionPath, cachedLoadProjectsOnDemand);
     }
@@ -250,6 +251,21 @@ public class OmnisharpServerController implements Startable {
         LOG.error("Could not stop Omnisharp properly", e);
         throw new IllegalStateException("Could not stop Omnisharp properly", e.getCause());
       }
+    }
+  }
+
+  private static void logSdkConfigurationIfPresent(ProcessBuilder processBuilder) {
+    String sdkPath = null;
+    String sdkVersion = null;
+    for (var arg : processBuilder.command()) {
+      if (arg.startsWith("Sdk:Path=")) {
+        sdkPath = arg.substring("Sdk:Path=".length());
+      } else if (arg.startsWith("Sdk:Version=")) {
+        sdkVersion = arg.substring("Sdk:Version=".length());
+      }
+    }
+    if (sdkPath != null && sdkVersion != null) {
+      LOG.info("Using OmniSharp SDK configuration from IDE hint: Sdk:Path={}, Sdk:Version={}", sdkPath, sdkVersion);
     }
   }
 

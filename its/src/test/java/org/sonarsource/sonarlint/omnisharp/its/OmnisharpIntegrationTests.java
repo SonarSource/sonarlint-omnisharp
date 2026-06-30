@@ -111,6 +111,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class OmnisharpIntegrationTests {
 
   private static final Pattern LIST_SDKS_PATTERN = Pattern.compile("^(\\d+\\.\\d+\\.\\d+)\\s+\\[(.+)]\\s*$", Pattern.MULTILINE);
+  private static final String SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX = "Using OmniSharp SDK configuration from IDE hint:";
 
   private static final String SOLUTION1_MODULE_KEY = "solution1";
   private static final String SOLUTION2_MODULE_KEY = "solution2";
@@ -134,6 +135,7 @@ class OmnisharpIntegrationTests {
       @Override
       public void log(LogParams params) {
         System.out.println(params);
+        super.log(params);
       }
     };
     new BackendJsonRpcLauncher(clientToServerInputStream, serverToClientOutputStream);
@@ -281,12 +283,14 @@ class OmnisharpIntegrationTests {
       .containsOnly(
         tuple("csharpsquid:S1116", "Remove this empty statement."),
         tuple("csharpsquid:S1172", "Remove this unused method parameter 'list'."));
+
+    assertThat(client.getLogs()).noneMatch(log -> log.contains(SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX));
   }
 
   @Test
   void analyzeNet8SolutionWithSdkPathHint(@TempDir Path tmpDir) throws Exception {
-    var sdkPathHint = findInstalledDotNetSdkPathHint(8).orElse(null);
-    assumeTrue(sdkPathHint != null && Files.isDirectory(sdkPathHint), "No .NET 8 SDK found, required for this test");
+    var sdkHint = findInstalledDotNetSdk(8).orElse(null);
+    assumeTrue(sdkHint != null && Files.isDirectory(sdkHint.path()), "No .NET 8 SDK found — required for this test");
 
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet8Project");
     var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet8Project/Program.cs", "namespace DotNet8Project;\n" +
@@ -305,13 +309,18 @@ class OmnisharpIntegrationTests {
         "}\n",
       "sonar.cs.internal.useNet6", "true",
       "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet8Project.sln").toString(),
-      "sonar.cs.internal.msBuildPath", sdkPathHint.toString());
+      "sonar.cs.internal.msBuildPath", sdkHint.path().toString());
 
     assertThat(issues)
       .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
       .containsOnly(
         tuple("csharpsquid:S1116", "Remove this empty statement."),
         tuple("csharpsquid:S1172", "Remove this unused method parameter 'list'."));
+
+    assertThat(client.getLogs()).anyMatch(log -> log.contains(
+      SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX + " Sdk:Path=" + sdkHint.path() + ", Sdk:Version=" + sdkHint.version()
+    ));
+    assertThat(client.getLogs()).noneMatch(log -> log.contains("MsBuild:MSBuildOverride:MSBuildPath=" + sdkHint.path()));
   }
 
   @Test
@@ -981,13 +990,13 @@ class OmnisharpIntegrationTests {
     return baseDir;
   }
 
-  private static Optional<Path> findInstalledDotNetSdkPathHint(int majorVersion) throws IOException, InterruptedException {
+  private static Optional<InstalledSdk> findInstalledDotNetSdk(int majorVersion) throws IOException, InterruptedException {
     var process = new ProcessBuilder("dotnet", "--list-sdks").redirectErrorStream(true).start();
     if (!process.waitFor(30, TimeUnit.SECONDS) || process.exitValue() != 0) {
       return Optional.empty();
     }
     var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    Optional<Path> latestMatchingSdk = Optional.empty();
+    Optional<InstalledSdk> latestMatchingSdk = Optional.empty();
     String latestVersion = null;
     Matcher matcher = LIST_SDKS_PATTERN.matcher(output);
     while (matcher.find()) {
@@ -997,10 +1006,28 @@ class OmnisharpIntegrationTests {
       }
       if (latestVersion == null || compareSdkVersions(version, latestVersion) > 0) {
         latestVersion = version;
-        latestMatchingSdk = Optional.of(Paths.get(matcher.group(2).trim(), version));
+        latestMatchingSdk = Optional.of(new InstalledSdk(Paths.get(matcher.group(2).trim(), version), version));
       }
     }
     return latestMatchingSdk;
+  }
+
+  private static final class InstalledSdk {
+    private final Path path;
+    private final String version;
+
+    private InstalledSdk(Path path, String version) {
+      this.path = path;
+      this.version = version;
+    }
+
+    private Path path() {
+      return path;
+    }
+
+    private String version() {
+      return version;
+    }
   }
 
   private static int compareSdkVersions(String left, String right) {
