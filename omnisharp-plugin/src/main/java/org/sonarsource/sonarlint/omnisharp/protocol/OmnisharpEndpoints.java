@@ -111,9 +111,9 @@ public class OmnisharpEndpoints {
    * prevents any project from loading instead of waiting for the full load timeout.
    */
   public void waitForMsBuildProjectsLoaded() {
-    JsonObject response = doRequestAndWaitForResponse("/projects", null);
+    var response = doRequestAndWaitForResponse("/projects", null);
     if (!response.get("Success").getAsBoolean()) {
-      String message = getAsStringOrNull(response.get("Message"));
+      var message = getAsStringOrNull(response.get("Message"));
       throw new IllegalStateException(message != null ? message : "Unable to query OmniSharp projects");
     }
     var body = response.get("Body").getAsJsonObject();
