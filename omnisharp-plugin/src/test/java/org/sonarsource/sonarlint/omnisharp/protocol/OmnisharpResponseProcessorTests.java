@@ -20,12 +20,21 @@
 package org.sonarsource.sonarlint.omnisharp.protocol;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.sonar.api.utils.log.LoggerLevel;
+import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OmnisharpResponseProcessorTests {
+
+  @RegisterExtension
+  LogTesterJUnit5 logTester = new LogTesterJUnit5();
 
   private OmnisharpResponseProcessor underTest;
   private CompletableFuture<Void> startFuture;
@@ -33,32 +42,41 @@ class OmnisharpResponseProcessorTests {
 
   @BeforeEach
   void prepare() {
+    logTester.setLevel(LoggerLevel.DEBUG);
     underTest = new OmnisharpResponseProcessor();
     startFuture = new CompletableFuture<>();
     loadProjectsFuture = new CompletableFuture<>();
   }
 
-  @Test
-  void project_events_do_not_complete_project_loading() {
-    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture,
-      "{\"Type\":\"event\",\"Event\":\"ProjectAdded\",\"Body\":{}}");
+  @ParameterizedTest
+  @MethodSource("eventsThatDoNotCompleteProjectLoading")
+  void events_do_not_complete_project_loading(String message) {
+    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture, message);
 
     assertThat(loadProjectsFuture.isDone()).isFalse();
   }
 
-  @Test
-  void log_events_do_not_complete_project_loading() {
-    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture,
-      "{\"Type\":\"event\",\"Event\":\"log\",\"Body\":{\"LogLevel\":\"Error\",\"Message\":\"Some error\"}}");
-
-    assertThat(loadProjectsFuture.isDone()).isFalse();
+  private static Stream<String> eventsThatDoNotCompleteProjectLoading() {
+    return Stream.of(
+      "{\"Type\":\"event\",\"Event\":\"ProjectAdded\",\"Body\":{}}",
+      "{\"Type\":\"event\",\"Event\":\"log\",\"Body\":{\"LogLevel\":\"Error\",\"Message\":\"Some error\"}}",
+      "{\"Type\":\"event\",\"Event\":\"MsBuildProjectDiagnostics\",\"Body\":{\"Errors\":[\"Some MSBuild error\"]}}");
   }
 
   @Test
-  void msbuild_project_diagnostics_do_not_complete_project_loading() {
+  void msbuild_project_diagnostics_with_errors_are_logged() {
     underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture,
       "{\"Type\":\"event\",\"Event\":\"MsBuildProjectDiagnostics\",\"Body\":{\"Errors\":[\"Some MSBuild error\"]}}");
 
+    assertThat(logTester.logs(LoggerLevel.ERROR)).contains("MSBuild failed to load the project");
+  }
+
+  @Test
+  void log_event_with_missing_fields_is_ignored() {
+    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture,
+      "{\"Type\":\"event\",\"Event\":\"log\",\"Body\":{}}");
+
+    assertThat(logTester.logs()).isEmpty();
     assertThat(loadProjectsFuture.isDone()).isFalse();
   }
 

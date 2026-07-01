@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -49,13 +50,16 @@ import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 
+import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -324,7 +328,7 @@ class OmnisharpServerControllerTests {
   @Test
   void timeoutIfProjectsTakeTooLongToLoad() throws Exception {
     doAnswer(invocation -> {
-      Thread.sleep(5_000);
+      new CountDownLatch(1).await();
       return null;
     }).when(endpoints).waitForMsBuildProjectsLoaded();
 
@@ -341,9 +345,25 @@ class OmnisharpServerControllerTests {
   }
 
   @Test
+  void failWhenNoProjectsLoaded() throws Exception {
+    doThrow(new IllegalStateException("OmniSharp failed to load any MSBuild project"))
+      .when(endpoints).waitForMsBuildProjectsLoaded();
+
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
+    pressKeyWhenEndpointCallStopServer();
+
+    lazyStart();
+
+    var thrown = assertThrows(ExecutionException.class, () -> underTest.whenReady().get());
+    assertThat(thrown.getCause())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("OmniSharp failed to load any MSBuild project");
+  }
+
+  @Test
   void waitingForProjectToLoadDoesntPreventStopping() throws Exception {
     doAnswer(invocation -> {
-      Thread.sleep(60_000);
+      new CountDownLatch(1).await();
       return null;
     }).when(endpoints).waitForMsBuildProjectsLoaded();
 
@@ -354,13 +374,10 @@ class OmnisharpServerControllerTests {
 
     underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, null, 1, 9999);
 
-    // This thread will block forever, waiting for solution to load
     WaitForReady t = new WaitForReady();
     t.start();
 
-    // Give time for thread to be blocked on the future
-    Thread.sleep(100);
-    assertThat(t.isAlive()).isTrue();
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isTrue());
 
     underTest.stop();
 
