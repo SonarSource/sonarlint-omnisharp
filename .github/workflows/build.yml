@@ -155,8 +155,6 @@ jobs:
       - build_number
       - build_maven_parent
     runs-on: github-ubuntu-latest-m
-    env:
-      BUILD_NUMBER: ${{ needs.build_maven_parent.outputs.BUILD_NUMBER }}
     name: QA Linux
     env:
       BUILD_NUMBER: ${{ needs.build_number.outputs.BUILD_NUMBER }}
