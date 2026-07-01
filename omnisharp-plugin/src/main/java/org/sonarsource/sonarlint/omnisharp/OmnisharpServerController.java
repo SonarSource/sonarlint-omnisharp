@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -288,7 +289,11 @@ public class OmnisharpServerController implements Startable {
             loadProjectsFuture.completeExceptionally(e);
           }
         }
-      });
+      }, Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "omnisharp-projects-verification");
+        t.setDaemon(true);
+        return t;
+      }));
     });
   }
 
