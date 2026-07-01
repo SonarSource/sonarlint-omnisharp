@@ -105,6 +105,28 @@ public class OmnisharpEndpoints {
     doRequest("/stopserver", null);
   }
 
+  /**
+   * Waits until OmniSharp has finished its MSBuild project loading queue, then verifies that at least one project was loaded.
+   * The {@code /projects} endpoint blocks until the queue is empty, so this fails fast when MSBuild initialization
+   * prevents any project from loading instead of waiting for the full load timeout.
+   */
+  public void waitForMsBuildProjectsLoaded() {
+    var response = doRequestAndWaitForResponse("/projects", null);
+    if (!response.get("Success").getAsBoolean()) {
+      var message = getAsStringOrNull(response.get("Message"));
+      throw new IllegalStateException(message != null ? message : "Unable to query OmniSharp projects");
+    }
+    var body = response.get("Body").getAsJsonObject();
+    var msBuild = body.get("MsBuild");
+    if (msBuild == null || msBuild.isJsonNull()) {
+      throw new IllegalStateException("OmniSharp MSBuild project system is not available");
+    }
+    var projects = msBuild.getAsJsonObject().getAsJsonArray("Projects");
+    if (projects == null || projects.isEmpty()) {
+      throw new IllegalStateException("OmniSharp failed to load any MSBuild project");
+    }
+  }
+
   private static void handle(JsonObject response, Consumer<Diagnostic> issueHandler) {
     boolean success = response.get("Success").getAsBoolean();
     if (!success) {

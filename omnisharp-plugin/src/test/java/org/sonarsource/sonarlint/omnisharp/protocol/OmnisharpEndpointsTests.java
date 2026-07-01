@@ -41,6 +41,7 @@ import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints.FileChang
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -101,7 +102,78 @@ class OmnisharpEndpointsTests {
     emulateReceivedMessage("{\"Type\": \"event\", \"Event\": \"" + firstConfigEvent + "\"}");
 
     assertThat(startFuture.isDone()).isTrue();
-    assertThat(loadProjectsFuture.isDone()).isTrue();
+    assertThat(loadProjectsFuture.isDone()).isFalse();
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_succeeds_when_projects_are_loaded() {
+    Thread t = new Thread(() -> underTest.waitForMsBuildProjectsLoaded());
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage(
+      "{\"Type\":\"response\",\"Request_seq\":1,\"Success\":true,\"Body\":{\"MsBuild\":{\"SolutionPath\":\"/foo.sln\",\"Projects\":[{\"Name\":\"App\"}]}}}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_fails_when_no_project_was_loaded() {
+    Thread t = new Thread(() -> assertThatThrownBy(() -> underTest.waitForMsBuildProjectsLoaded())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("OmniSharp failed to load any MSBuild project"));
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage(
+      "{\"Type\":\"response\",\"Request_seq\":1,\"Success\":true,\"Body\":{\"MsBuild\":{\"SolutionPath\":\"/foo.sln\",\"Projects\":[]}}}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_fails_when_query_fails() {
+    Thread t = new Thread(() -> assertThatThrownBy(() -> underTest.waitForMsBuildProjectsLoaded())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Unable to query projects"));
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage(
+      "{\"Type\":\"response\",\"Request_seq\":1,\"Success\":false,\"Message\":\"Unable to query projects\"}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_fails_when_query_fails_without_message() {
+    Thread t = new Thread(() -> assertThatThrownBy(() -> underTest.waitForMsBuildProjectsLoaded())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Unable to query OmniSharp projects"));
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage("{\"Type\":\"response\",\"Request_seq\":1,\"Success\":false}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
+  }
+
+  @Test
+  void waitForMsBuildProjectsLoaded_fails_when_msbuild_unavailable() {
+    Thread t = new Thread(() -> assertThatThrownBy(() -> underTest.waitForMsBuildProjectsLoaded())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("OmniSharp MSBuild project system is not available"));
+    t.start();
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(requests).hasSize(1));
+
+    emulateReceivedMessage("{\"Type\":\"response\",\"Request_seq\":1,\"Success\":true,\"Body\":{}}");
+
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isFalse());
   }
 
   @Test

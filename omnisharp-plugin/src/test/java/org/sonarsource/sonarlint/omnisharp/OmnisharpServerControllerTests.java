@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -49,12 +50,16 @@ import org.sonar.api.testfixtures.log.LogTesterJUnit5;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpEndpoints;
 import org.sonarsource.sonarlint.omnisharp.protocol.OmnisharpResponseProcessor;
 
+import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -85,6 +90,7 @@ class OmnisharpServerControllerTests {
     anotherSolutionDir = tmpDir.resolve("anotherSolution");
     endpoints = mock(OmnisharpEndpoints.class);
     commandBuilder = mock(OmnisharpCommandBuilder.class);
+    doNothing().when(endpoints).waitForMsBuildProjectsLoaded();
     underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder);
     // Does nothing, for coverage
     underTest.start();
@@ -128,7 +134,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void startStopManyTimes() throws Exception {
-    mockOmnisharpRun(emulateStartEvent() + emulateProjectLoaded() + waitForKeyPress());
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     assertThat(underTest.isOmnisharpStarted()).isFalse();
@@ -150,7 +156,6 @@ class OmnisharpServerControllerTests {
 
     lazyStart();
     assertThat(underTest.isOmnisharpStarted()).isTrue();
-    assertThat(underTest.whenReady()).isNotCompleted();
 
     lazyStart();
     lazyStart();
@@ -295,7 +300,7 @@ class OmnisharpServerControllerTests {
 
   @Test
   void waitForProjectLoaded() throws Exception {
-    mockOmnisharpRun(emulateStartEvent() + emulateProjectLoaded() + waitForKeyPress());
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
     lazyStart();
@@ -304,6 +309,7 @@ class OmnisharpServerControllerTests {
 
     underTest.whenReady().get();
     assertThat(underTest.whenReady()).isCompleted();
+    verify(endpoints).waitForMsBuildProjectsLoaded();
   }
 
   @Test
@@ -321,6 +327,11 @@ class OmnisharpServerControllerTests {
 
   @Test
   void timeoutIfProjectsTakeTooLongToLoad() throws Exception {
+    doAnswer(invocation -> {
+      new CountDownLatch(1).await();
+      return null;
+    }).when(endpoints).waitForMsBuildProjectsLoaded();
+
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
     pressKeyWhenEndpointCallStopServer();
 
@@ -334,7 +345,28 @@ class OmnisharpServerControllerTests {
   }
 
   @Test
+  void failWhenNoProjectsLoaded() throws Exception {
+    doThrow(new IllegalStateException("OmniSharp failed to load any MSBuild project"))
+      .when(endpoints).waitForMsBuildProjectsLoaded();
+
+    mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
+    pressKeyWhenEndpointCallStopServer();
+
+    lazyStart();
+
+    var thrown = assertThrows(ExecutionException.class, () -> underTest.whenReady().get());
+    assertThat(thrown.getCause())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("OmniSharp failed to load any MSBuild project");
+  }
+
+  @Test
   void waitingForProjectToLoadDoesntPreventStopping() throws Exception {
+    doAnswer(invocation -> {
+      new CountDownLatch(1).await();
+      return null;
+    }).when(endpoints).waitForMsBuildProjectsLoaded();
+
     underTest = new OmnisharpServerController(endpoints, new FakeOmnisharpResponseProcessor(), commandBuilder);
 
     mockOmnisharpRun(emulateStartEvent() + waitForKeyPress());
@@ -342,13 +374,10 @@ class OmnisharpServerControllerTests {
 
     underTest.lazyStart(solutionDir, OmnisharpTestUtils.ANALYZER_JAR, false, false, null, null, null, null, 1, 9999);
 
-    // This thread will block forever, waiting for solution to load
     WaitForReady t = new WaitForReady();
     t.start();
 
-    // Give time for thread to be blocked on the future
-    Thread.sleep(100);
-    assertThat(t.isAlive()).isTrue();
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(t.isAlive()).isTrue());
 
     underTest.stop();
 
@@ -405,10 +434,6 @@ class OmnisharpServerControllerTests {
     return "echo " + FakeOmnisharpResponseProcessor.STARTED_EVENT + "\n";
   }
 
-  private String emulateProjectLoaded() {
-    return "echo " + FakeOmnisharpResponseProcessor.LOADED_EVENT + "\n";
-  }
-
   private String waitForKeyPress() {
     if (System2.INSTANCE.isOsWindows()) {
       // Prevent pause to write "Press any key to continue..." to stdout
@@ -432,18 +457,12 @@ class OmnisharpServerControllerTests {
   private class FakeOmnisharpResponseProcessor extends OmnisharpResponseProcessor {
 
     private static final String STARTED_EVENT = "STARTED";
-    private static final String LOADED_EVENT = "LOADED";
 
     @Override
     public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line) {
       processedOutput.add(line);
-      switch (line) {
-        case STARTED_EVENT:
-          startFuture.complete(null);
-          break;
-        case LOADED_EVENT:
-          loadProjectsFuture.complete(null);
-          break;
+      if (STARTED_EVENT.equals(line)) {
+        startFuture.complete(null);
       }
     }
   }

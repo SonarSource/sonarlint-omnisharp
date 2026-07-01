@@ -72,7 +72,6 @@ public class OmnisharpResponseProcessor {
           case "ProjectChanged":
           case "ProjectRemoved":
             LOG.debug(line);
-            loadProjectsFuture.complete(null);
             break;
           case "Diagnostic":
             // For now we ignore diagnostics "pushed" by Omnisharp
@@ -81,8 +80,6 @@ public class OmnisharpResponseProcessor {
             var msbuildErrors = jsonObject.get("Body").getAsJsonObject().get("Errors").getAsJsonArray();
             if (!msbuildErrors.isEmpty()) {
               LOG.error("MSBuild failed to load the project");
-              // No need to wait for project loading, it might never happen
-              // firstUpdateProjectLatch.countDown();
             }
             LOG.debug(line);
             break;
@@ -96,8 +93,13 @@ public class OmnisharpResponseProcessor {
   }
 
   private static void handleLog(JsonObject jsonObject) {
-    String level = jsonObject.get("LogLevel").getAsString();
-    String message = jsonObject.get("Message").getAsString();
+    var logLevelElement = jsonObject.get("LogLevel");
+    var messageElement = jsonObject.get("Message");
+    if (logLevelElement == null || logLevelElement.isJsonNull() || messageElement == null || messageElement.isJsonNull()) {
+      return;
+    }
+    String level = logLevelElement.getAsString();
+    String message = messageElement.getAsString();
     LOG.debug("Omnisharp: [" + level + "] " + message);
   }
 
