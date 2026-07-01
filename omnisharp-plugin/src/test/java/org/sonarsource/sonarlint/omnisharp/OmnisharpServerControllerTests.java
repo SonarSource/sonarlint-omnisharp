@@ -444,6 +444,8 @@ class OmnisharpServerControllerTests {
         case LOADED_EVENT:
           loadProjectsFuture.complete(null);
           break;
+        default:
+          break;
       }
     }
   }
