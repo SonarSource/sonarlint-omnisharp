@@ -219,7 +219,7 @@ public class OmnisharpServerController implements Startable {
     LOG.debug(processBuilder.command().stream().collect(joining(" ")));
     try {
       var startedProcess = ProcessWrapper.start(processBuilder,
-        s -> omnisharpResponseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, s), LOG::error);
+        s -> omnisharpResponseProcessor.handleOmnisharpOutput(startFuture, s), LOG::error);
       stateMachine.processStarted(startedProcess, startFuture, loadProjectsFuture, cachedLoadProjectsOnDemand);
       if (!cachedLoadProjectsOnDemand) {
         scheduleProjectsLoadedVerification(startFuture, loadProjectsFuture);

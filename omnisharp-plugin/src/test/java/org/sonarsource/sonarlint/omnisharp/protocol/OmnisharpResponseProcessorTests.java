@@ -51,7 +51,7 @@ class OmnisharpResponseProcessorTests {
   @ParameterizedTest
   @MethodSource("eventsThatDoNotCompleteProjectLoading")
   void events_do_not_complete_project_loading(String message) {
-    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture, message);
+    underTest.handleOmnisharpOutput(startFuture, message);
 
     assertThat(loadProjectsFuture.isDone()).isFalse();
   }
@@ -65,7 +65,7 @@ class OmnisharpResponseProcessorTests {
 
   @Test
   void msbuild_project_diagnostics_with_errors_are_logged() {
-    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture,
+    underTest.handleOmnisharpOutput(startFuture,
       "{\"Type\":\"event\",\"Event\":\"MsBuildProjectDiagnostics\",\"Body\":{\"Errors\":[\"Some MSBuild error\"]}}");
 
     assertThat(logTester.logs(LoggerLevel.ERROR)).contains("MSBuild failed to load the project");
@@ -73,7 +73,7 @@ class OmnisharpResponseProcessorTests {
 
   @Test
   void log_event_with_missing_fields_is_ignored() {
-    underTest.handleOmnisharpOutput(startFuture, loadProjectsFuture,
+    underTest.handleOmnisharpOutput(startFuture,
       "{\"Type\":\"event\",\"Event\":\"log\",\"Body\":{}}");
 
     assertThat(logTester.logs()).isEmpty();
