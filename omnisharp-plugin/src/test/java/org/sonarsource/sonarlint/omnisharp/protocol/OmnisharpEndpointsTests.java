@@ -21,7 +21,6 @@ package org.sonarsource.sonarlint.omnisharp.protocol;
 
 import com.google.gson.JsonObject;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -62,7 +61,7 @@ class OmnisharpEndpointsTests {
   private OmnisharpResponseProcessor responseProcessor;
 
   @BeforeEach
-  void prepare() throws IOException {
+  void prepare() {
     requests.clear();
     startFuture = new CompletableFuture<>();
     loadProjectsFuture = new CompletableFuture<>();
@@ -177,7 +176,7 @@ class OmnisharpEndpointsTests {
   }
 
   @Test
-  void stopServer() throws Exception {
+  void stopServer() {
     underTest.stopServer();
 
     assertThat(requests).containsExactly("{\"Type\":\"request\",\"Seq\":1,\"Command\":\"/stopserver\"}");

@@ -292,7 +292,7 @@ class OmnisharpServerControllerTests {
   void timeoutIfServerTakeTooLongToStart() throws Exception {
     mockOmnisharpRun(waitForKeyPress());
 
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> lazyStart());
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, this::lazyStart);
     assertThat(thrown).hasMessage("Timeout waiting for Omnisharp server to start");
     assertThat(underTest.isOmnisharpStarted()).isFalse();
     assertThat(underTest.whenReady()).isCompletedExceptionally();
@@ -402,7 +402,7 @@ class OmnisharpServerControllerTests {
   }
 
   @Test
-  void startFailed() throws Exception {
+  void startFailed() {
     when(commandBuilder.build(any(), any(), any(), any(), anyBoolean())).thenReturn(new ProcessBuilder("not existing command"));
 
     IllegalStateException thrown = assertThrows(IllegalStateException.class, this::lazyStart);
