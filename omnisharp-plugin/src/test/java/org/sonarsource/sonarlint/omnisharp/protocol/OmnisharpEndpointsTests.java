@@ -493,7 +493,7 @@ class OmnisharpEndpointsTests {
   }
 
   private void emulateReceivedMessage(String msg) {
-    responseProcessor.handleOmnisharpOutput(startFuture, loadProjectsFuture, msg);
+    responseProcessor.handleOmnisharpOutput(startFuture, msg);
   }
 
 }

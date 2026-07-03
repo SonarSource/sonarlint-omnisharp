@@ -459,7 +459,7 @@ class OmnisharpServerControllerTests {
     private static final String STARTED_EVENT = "STARTED";
 
     @Override
-    public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line) {
+    public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, String line) {
       processedOutput.add(line);
       if (STARTED_EVENT.equals(line)) {
         startFuture.complete(null);

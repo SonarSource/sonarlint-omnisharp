@@ -36,7 +36,7 @@ public class OmnisharpResponseProcessor {
 
   private final ConcurrentHashMap<Long, OmnisharpResponseHandler> responseLatchQueue = new ConcurrentHashMap<>();
 
-  public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line) {
+  public void handleOmnisharpOutput(CompletableFuture<Void> startFuture, String line) {
     JsonObject jsonObject;
     try {
       jsonObject = JsonParser.parseString(line).getAsJsonObject();
@@ -44,10 +44,10 @@ public class OmnisharpResponseProcessor {
       LOG.debug(line);
       return;
     }
-    handleJsonMessage(startFuture, loadProjectsFuture, line, jsonObject);
+    handleJsonMessage(startFuture, line, jsonObject);
   }
 
-  private void handleJsonMessage(CompletableFuture<Void> startFuture, CompletableFuture<Void> loadProjectsFuture, String line, JsonObject jsonObject) {
+  private void handleJsonMessage(CompletableFuture<Void> startFuture, String line, JsonObject jsonObject) {
     String type = jsonObject.get("Type").getAsString();
     switch (type) {
       case "response":
