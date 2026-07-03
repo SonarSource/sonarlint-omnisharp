@@ -227,11 +227,13 @@ class OmnisharpServerControllerTests {
 
     System.out.println("First run");
     first.run();
+    underTest.whenReady().get();
     assertThat(underTest.isOmnisharpStarted()).isTrue();
     verify(endpoints, never()).stopServer();
 
     System.out.println("Second run");
     second.run();
+    underTest.whenReady().get();
     verify(endpoints).stopServer();
     assertThat(processedOutput).containsExactly("STARTED", "STARTED");
     assertThat(logTester.logs(Level.INFO)).contains(expectedMsg);
