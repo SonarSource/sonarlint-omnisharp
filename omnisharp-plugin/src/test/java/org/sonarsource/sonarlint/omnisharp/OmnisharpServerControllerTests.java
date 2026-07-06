@@ -283,7 +283,7 @@ class OmnisharpServerControllerTests {
     underTest.writeRequestOnStdIn("");
 
     // give time for process to die
-    Thread.sleep(1000);
+    await().atMost(5, SECONDS).untilAsserted(() -> assertThat(underTest.isOmnisharpStarted()).isFalse());
 
     underTest.stop();
 
