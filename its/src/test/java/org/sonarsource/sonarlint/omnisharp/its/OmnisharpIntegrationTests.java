@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -105,6 +106,7 @@ import org.sonarsource.sonarlint.core.rpc.protocol.common.UsernamePasswordDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -122,6 +124,9 @@ class OmnisharpIntegrationTests {
 
   private static SonarLintRpcServer backend;
   private static MockSonarLintRpcClientDelegate client;
+  // The C#/OmniSharp analyzer loads on demand and asynchronously; it is warmed up once before the tests
+  // run (see warmUpAnalyzerIfNeeded).
+  private static boolean analyzerWarmedUp;
 
   @BeforeAll
   static void prepare(@TempDir Path tmpDir) throws Exception {
@@ -170,11 +175,47 @@ class OmnisharpIntegrationTests {
   }
 
   @BeforeEach
-  void cleanupClient() {
+  void cleanupClient(@TempDir Path tmpDir) throws Exception {
     backend.getConfigurationService().didAddConfigurationScopes(new DidAddConfigurationScopesParams(List.of(
       new ConfigurationScopeDto(SOLUTION1_MODULE_KEY, null, false, SOLUTION1_MODULE_KEY, null),
       new ConfigurationScopeDto(SOLUTION2_MODULE_KEY, null, false, SOLUTION2_MODULE_KEY, null)
     )));
+    client.clear();
+    warmUpAnalyzerIfNeeded(tmpDir);
+  }
+
+  /**
+   * The C#/OmniSharp analyzer is provided as an on-demand plugin that downloads and loads
+   * asynchronously, so the first analysis of the session can complete before it is ready and report
+   * nothing. Re-run a known-issue analysis until issues are reported — meaning the analyzer is loaded —
+   * once, before the tests run. In particular this makes assertions expecting <em>no</em> issues
+   * meaningful (an empty result then reflects "analyzed, nothing raised" rather than "not ready yet").
+   */
+  private void warmUpAnalyzerIfNeeded(Path tmpDir) throws Exception {
+    if (analyzerWarmedUp) {
+      return;
+    }
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
+    await().atMost(Duration.ofMinutes(2)).pollInterval(Duration.ofSeconds(3))
+      .untilAsserted(() -> {
+        triggerCSharpAnalysis(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs",
+          "using System;\n" +
+            "\n" +
+            "namespace ConsoleApp1\n" +
+            "{\n" +
+            "    class Program\n" +
+            "    {\n" +
+            "        private void Foo(string a)\n" +
+            "        {\n" +
+            "            Console.WriteLine(\"Hello World!\");\n" +
+            "        }\n" +
+            "    }\n" +
+            "}",
+          "sonar.cs.internal.useNet6", "true",
+          "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString());
+        assertThat(client.getRaisedIssues(SOLUTION1_MODULE_KEY)).isNotEmpty();
+      });
+    analyzerWarmedUp = true;
     client.clear();
   }
 
@@ -373,7 +414,7 @@ class OmnisharpIntegrationTests {
         "Console.WriteLine(\"Hello, World!\");",
       "sonar.cs.internal.useNet6", "false",
       "sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString());
-    var issues2 = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "// TODO foo\n" +
+    var issues2 = analyzeCSharpFileExpectingNoIssues(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "// TODO foo\n" +
         "Console.WriteLine(\"Hello, World!\");",
       "sonar.cs.internal.useNet6", "false",
       "sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString());
@@ -427,7 +468,7 @@ class OmnisharpIntegrationTests {
   @Test
   void analyzeBlazorApp_IgnoresRazorFiles(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "BlazorApp");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "BlazorApp/Components/App.razor",
+    var issues = analyzeCSharpFileExpectingNoIssues(SOLUTION1_MODULE_KEY, baseDir.toString(), "BlazorApp/Components/App.razor",
         "@code {" +
         "        // TODO" +
         "    }\n",
@@ -1068,7 +1109,25 @@ class OmnisharpIntegrationTests {
     }
   }
 
-  private List<RaisedIssueDto> analyzeCSharpFile(String configScopeId, String baseDir, String filePathStr, String content, String... properties) throws Exception {
+  private List<RaisedIssueDto> analyzeCSharpFile(String configScopeId, String baseDir, String filePathStr, String content, String... properties) {
+    triggerCSharpAnalysis(configScopeId, baseDir, filePathStr, content, properties);
+    // Issues are published asynchronously (and only once the on-demand analyzer has loaded), so wait
+    // for them to arrive.
+    await().atMost(Duration.ofSeconds(60))
+      .untilAsserted(() -> assertThat(client.getRaisedIssues(configScopeId)).isNotEmpty());
+    return drainRaisedIssues(configScopeId);
+  }
+
+  private List<RaisedIssueDto> analyzeCSharpFileExpectingNoIssues(String configScopeId, String baseDir, String filePathStr, String content, String... properties) {
+    triggerCSharpAnalysis(configScopeId, baseDir, filePathStr, content, properties);
+    // The analyzer is warmed up before the tests run, so an empty result here reflects "analyzed,
+    // nothing raised". Give any late publication a moment, then assert none arrived.
+    await().pollDelay(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(10))
+      .untilAsserted(() -> assertThat(client.getRaisedIssues(configScopeId)).isEmpty());
+    return drainRaisedIssues(configScopeId);
+  }
+
+  private void triggerCSharpAnalysis(String configScopeId, String baseDir, String filePathStr, String content, String... properties) {
     var filePath = Path.of("projects").resolve(baseDir).resolve(filePathStr);
     var fileUri = filePath.toUri();
     backend.getFileService().didUpdateFileSystem(new DidUpdateFileSystemParams(List.of(),
@@ -1084,9 +1143,9 @@ class OmnisharpIntegrationTests {
     ).join();
 
     assertThat(analyzeResponse.getFailedAnalysisFiles()).isEmpty();
-    // it could happen that the notification is not yet received while the analysis request is finished.
-    // await().atMost(Duration.ofMillis(200)).untilAsserted(() -> assertThat(((MockSonarLintRpcClientDelegate) client).getRaisedIssues(configScopeId)).isNotEmpty());
-    Thread.sleep(200);
+  }
+
+  private List<RaisedIssueDto> drainRaisedIssues(String configScopeId) {
     var raisedIssues = client.getRaisedIssues(configScopeId);
     client.getRaisedIssues().clear();
     return raisedIssues != null ? raisedIssues : List.of();
