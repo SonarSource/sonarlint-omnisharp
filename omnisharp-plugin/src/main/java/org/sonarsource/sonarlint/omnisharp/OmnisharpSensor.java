@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Normalizer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -125,6 +126,7 @@ public class OmnisharpSensor implements Sensor {
   private void analyze(SensorContext context, FilePredicate predicate) {
     JsonObject config = buildRulesConfig(context);
     omnisharpEndpoints.config(config);
+    Map<Path, InputFile> inputFilesByPath = indexInputFiles(context);
 
     ProgressReport progressReport = new ProgressReport("Report about progress of OmniSharp analyzer", TimeUnit.SECONDS.toMillis(10));
     progressReport.start(StreamSupport.stream(context.fileSystem().inputFiles(predicate).spliterator(), false).map(InputFile::toString).collect(Collectors.toList()));
@@ -137,7 +139,7 @@ public class OmnisharpSensor implements Sensor {
           cancelled = true;
           break;
         }
-        scanFile(context, inputFile);
+        scanFile(context, inputFilesByPath, inputFile);
         progressReport.nextFile();
       }
       successfullyCompleted = !cancelled;
@@ -169,7 +171,7 @@ public class OmnisharpSensor implements Sensor {
     return config;
   }
 
-  private void scanFile(SensorContext context, InputFile f) {
+  private void scanFile(SensorContext context, Map<Path, InputFile> inputFilesByPath, InputFile f) {
     String buffer;
     try {
       buffer = f.contents();
@@ -177,41 +179,41 @@ public class OmnisharpSensor implements Sensor {
       throw new IllegalStateException("Unable to read file buffer", e);
     }
     omnisharpEndpoints.updateBuffer(f.file(), buffer);
-    omnisharpEndpoints.codeCheck(f.file(), diag -> handle(context, diag));
+    omnisharpEndpoints.codeCheck(f.file(), diag -> handle(context, inputFilesByPath, diag));
   }
 
-  private static void handle(SensorContext context, Diagnostic diag) {
+  private static void handle(SensorContext context, Map<Path, InputFile> inputFilesByPath, Diagnostic diag) {
     var ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, diag.getId());
     if (context.activeRules().find(ruleKey) != null) {
       var diagFilePath = Paths.get(diag.getFilename());
-      var diagInputFile = findInputFile(context, diagFilePath);
+      var diagInputFile = findInputFile(inputFilesByPath, diagFilePath);
       if (diagInputFile != null) {
         var newIssue = context.newIssue();
         newIssue
           .forRule(ruleKey)
           .at(createLocation(newIssue, diag, diagInputFile));
-        handleSecondaryLocations(context, diag, newIssue);
-        handleQuickFixes(context, diag, newIssue);
+        handleSecondaryLocations(inputFilesByPath, diag, newIssue);
+        handleQuickFixes(inputFilesByPath, diag, newIssue);
         newIssue.save();
       }
     }
   }
 
-  private static void handleQuickFixes(SensorContext context, Diagnostic diag, NewIssue newIssue) {
+  private static void handleQuickFixes(Map<Path, InputFile> inputFilesByPath, Diagnostic diag, NewIssue newIssue) {
     var quickFixes = diag.getQuickFixes();
     if (quickFixes != null && quickFixes.length > 0) {
       newIssue.setQuickFixAvailable(true);
       for (var quickFix : quickFixes) {
-        handleQuickFix(context, quickFix, newIssue);
+        handleQuickFix(inputFilesByPath, quickFix, newIssue);
       }
     }
   }
 
-  static void handleQuickFix(SensorContext context, QuickFix quickFix, NewIssue newIssue) {
+  static void handleQuickFix(Map<Path, InputFile> inputFilesByPath, QuickFix quickFix, NewIssue newIssue) {
     var newQuickFix = newIssue.newQuickFix();
     newQuickFix.message(quickFix.getMessage());
     for (Fix fix : quickFix.getFixes()) {
-      var fixInputFile = findInputFile(context, Paths.get(fix.getFilename()));
+      var fixInputFile = findInputFile(inputFilesByPath, Paths.get(fix.getFilename()));
       if (fixInputFile != null) {
         var newInputFileEdit = newQuickFix.newInputFileEdit()
           .on(fixInputFile);
@@ -227,12 +229,12 @@ public class OmnisharpSensor implements Sensor {
     newIssue.addQuickFix(newQuickFix);
   }
 
-  private static void handleSecondaryLocations(SensorContext context, Diagnostic diag, NewIssue newIssue) {
+  private static void handleSecondaryLocations(Map<Path, InputFile> inputFilesByPath, Diagnostic diag, NewIssue newIssue) {
     var additionalLocations = diag.getAdditionalLocations();
     if (additionalLocations != null) {
       for (var additionalLocation : additionalLocations) {
         var additionalFilePath = Paths.get(additionalLocation.getFilename());
-        var additionalFilePathInputFile = findInputFile(context, additionalFilePath);
+        var additionalFilePathInputFile = findInputFile(inputFilesByPath, additionalFilePath);
         if (additionalFilePathInputFile != null) {
           newIssue.addLocation(createLocation(newIssue, additionalLocation, additionalFilePathInputFile));
         }
@@ -240,12 +242,18 @@ public class OmnisharpSensor implements Sensor {
     }
   }
 
-  private static InputFile findInputFile(SensorContext context, Path filePath) {
-    var normalizedFilePath = normalizePath(filePath);
-    return StreamSupport.stream(context.fileSystem().inputFiles(context.fileSystem().predicates().all()).spliterator(), false)
-      .filter(inputFile -> normalizedFilePath.equals(normalizePath(Paths.get(inputFile.uri()))))
-      .findFirst()
-      .orElse(null);
+  private static Map<Path, InputFile> indexInputFiles(SensorContext context) {
+    Map<Path, InputFile> inputFilesByPath = new HashMap<>();
+    for (InputFile inputFile : context.fileSystem().inputFiles(context.fileSystem().predicates().all())) {
+      if ("file".equalsIgnoreCase(inputFile.uri().getScheme())) {
+        inputFilesByPath.putIfAbsent(normalizePath(Paths.get(inputFile.uri())), inputFile);
+      }
+    }
+    return inputFilesByPath;
+  }
+
+  private static InputFile findInputFile(Map<Path, InputFile> inputFilesByPath, Path filePath) {
+    return inputFilesByPath.get(normalizePath(filePath));
   }
 
   private static Path normalizePath(Path path) {
