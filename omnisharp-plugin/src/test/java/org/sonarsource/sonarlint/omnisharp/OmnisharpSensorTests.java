@@ -151,11 +151,12 @@ class OmnisharpSensorTests {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
 
-    Path filePath = baseDir.resolve("Foo.cs");
+    Path filePath = baseDir.resolve("diretório").resolve("TipoPrestaçãoColeção.cs");
+    Files.createDirectories(filePath.getParent());
     String content = "Console.WriteLine(\"Hello World!\");";
     Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
 
-    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+    InputFile file = TestInputFileBuilder.create("", "diretório/TipoPrestaçãoColeção.cs")
       .setModuleBaseDir(baseDir)
       .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
@@ -338,17 +339,20 @@ class OmnisharpSensorTests {
     RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
     sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
 
-    Path filePath = baseDir.resolve("Foo.cs");
+    Path filePath = baseDir.resolve("diretório").resolve("TipoPrestaçãoColeção.cs");
+    Files.createDirectories(filePath.getParent());
     String content = "Console.WriteLine(\"Hello World!\");";
     Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
 
-    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+    InputFile file = TestInputFileBuilder.create("", "diretório/TipoPrestaçãoColeção.cs")
       .setModuleBaseDir(baseDir)
       .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
       .setCharset(StandardCharsets.UTF_8)
       .initMetadata(content)
       .build();
     sensorContext.fileSystem().add(file);
+
+    assertThat(file.uri().toASCIIString()).contains("diret%C3%B3rio/TipoPresta%C3%A7%C3%A3oCole%C3%A7%C3%A3o.cs");
 
     ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
 

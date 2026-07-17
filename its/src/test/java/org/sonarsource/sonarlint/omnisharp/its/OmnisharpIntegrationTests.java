@@ -220,6 +220,34 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
+  void analyzeCSharpFileWithUnicodePath(@TempDir Path tmpDir) throws Exception {
+    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
+    backend.getRulesService().updateStandaloneRulesConfiguration(new UpdateStandaloneRulesConfigurationParams(Map.of(
+      "csharpsquid:S103", new StandaloneRuleConfigDto(true, Map.of())
+    )));
+    var relativePath = "ConsoleApp1/diretório/TipoPrestaçãoColeção.cs";
+    var content = "namespace ConsoleApp1\n"
+      + "{\n"
+      + "    public static class TipoPrestaçãoColeção\n"
+      + "    {\n"
+      + "        public const string Message = \"" + "x".repeat(180) + "\";\n"
+      + "        public static string Nome => Message;\n"
+      + "    }\n"
+      + "}";
+    var filePath = baseDir.resolve(relativePath);
+    Files.createDirectories(filePath.getParent());
+    Files.writeString(filePath, content, StandardCharsets.UTF_8);
+
+    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), relativePath, content,
+      "sonar.cs.internal.useNet6", "true",
+      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
+
+    assertThat(issues)
+      .extracting(RaisedIssueDto::getRuleKey)
+      .containsExactly("csharpsquid:S103");
+  }
+
+  @Test
   void analyzeNet6Solution(@TempDir Path tmpDir) throws Exception {
     Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
     var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "// TODO foo\\n\"\n" +

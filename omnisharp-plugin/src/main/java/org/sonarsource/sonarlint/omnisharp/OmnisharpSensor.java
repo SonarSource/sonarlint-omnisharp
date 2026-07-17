@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.Normalizer;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -240,7 +241,15 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static InputFile findInputFile(SensorContext context, Path filePath) {
-    return context.fileSystem().inputFile(context.fileSystem().predicates().is(filePath.toFile()));
+    var normalizedFilePath = normalizePath(filePath);
+    return StreamSupport.stream(context.fileSystem().inputFiles(context.fileSystem().predicates().all()).spliterator(), false)
+      .filter(inputFile -> normalizedFilePath.equals(normalizePath(Paths.get(inputFile.uri()))))
+      .findFirst()
+      .orElse(null);
+  }
+
+  private static Path normalizePath(Path path) {
+    return Paths.get(Normalizer.normalize(path.toAbsolutePath().normalize().toString(), Normalizer.Form.NFC));
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
