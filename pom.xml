@@ -44,7 +44,7 @@
     <junit.version>5.9.1</junit.version>
     <sonarlint-core.version>11.8.0.86062</sonarlint-core.version>
     <jdk.min.version>11</jdk.min.version>
-    <omnisharp.version>1.39.15</omnisharp.version>
+    <omnisharp.version>1.39.15.1-sonar</omnisharp.version>
     <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
     <analyzer.version>10.29.0.143774</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
