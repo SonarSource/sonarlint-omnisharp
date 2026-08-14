@@ -22,6 +22,7 @@ package org.sonarsource.sonarlint.omnisharp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -240,7 +241,12 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static InputFile findInputFile(SensorContext context, Path filePath) {
-    return context.fileSystem().inputFile(context.fileSystem().predicates().is(filePath.toFile()));
+    // filePath comes from the OmniSharp analyzer as a plain filesystem path. Converting it to a URI via
+    // File/Path#toUri() does not percent-encode non-ASCII characters, whereas the URI initially provided by the
+    // client (and stored on the indexed InputFile) may be percent-encoded (e.g. Visual Studio's client does escape
+    // it). Normalizing to the ASCII form on both sides avoids a false negative in URIPredicate#apply.
+    var escapedUri = URI.create(filePath.toUri().toASCIIString());
+    return context.fileSystem().inputFile(context.fileSystem().predicates().hasURI(escapedUri));
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
