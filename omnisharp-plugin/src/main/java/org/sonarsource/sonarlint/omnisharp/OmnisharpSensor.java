@@ -241,10 +241,13 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static InputFile findInputFile(SensorContext context, Path filePath) {
+    // default java uri doesn't escape non-acii characters
     var unescapedUri = filePath.toUri();
     var escapedUri = URI.create(unescapedUri.toASCIIString());
     var predicates = context.fileSystem().predicates();
-    return context.fileSystem().inputFile(predicates.or(predicates.hasURI(escapedUri), predicates.hasURI(unescapedUri)));
+    // context file system contains URIs as they come from the client, which may be escaped
+    // so we look for both escaped and unescaped URIs when matching back the issue file path (returned by the C# side of omnisharp) to InputFile
+    return context.fileSystem().inputFile(predicates.or(predicates.hasURI(escapedUri), predicates.hasURI(unescapedUri))); // some front
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
