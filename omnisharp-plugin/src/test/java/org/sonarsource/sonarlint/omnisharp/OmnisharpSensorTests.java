@@ -378,6 +378,50 @@ class OmnisharpSensorTests {
   }
 
   @Test
+  void reportIssueForFileWithNonAsciiCharactersInPath() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
+
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    String fileName = "Fôö.cs";
+    Path filePath = baseDir.resolve(fileName);
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", fileName)
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<Diagnostic> issueConsumer = captor.getValue();
+
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
+
+    issueConsumer.accept(diag);
+
+    assertThat(sensorContext.allIssues()).extracting(Issue::ruleKey, i -> i.primaryLocation().inputComponent(), i -> i.primaryLocation().message())
+      .containsOnly(tuple(ruleKey, file, "Don't do this"));
+  }
+
+  @Test
   void ignoreIssuesOnOtherFiles() throws Exception {
     SensorContextTester sensorContext = SensorContextTester.create(baseDir);
     sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());

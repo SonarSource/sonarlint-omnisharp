@@ -241,12 +241,10 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static InputFile findInputFile(SensorContext context, Path filePath) {
-    // filePath comes from the OmniSharp analyzer as a plain filesystem path. Converting it to a URI via
-    // File/Path#toUri() does not percent-encode non-ASCII characters, whereas the URI initially provided by the
-    // client (and stored on the indexed InputFile) may be percent-encoded (e.g. Visual Studio's client does escape
-    // it). Normalizing to the ASCII form on both sides avoids a false negative in URIPredicate#apply.
-    var escapedUri = URI.create(filePath.toUri().toASCIIString());
-    return context.fileSystem().inputFile(context.fileSystem().predicates().hasURI(escapedUri));
+    var unescapedUri = filePath.toUri();
+    var escapedUri = URI.create(unescapedUri.toASCIIString());
+    var predicates = context.fileSystem().predicates();
+    return context.fileSystem().inputFile(predicates.or(predicates.hasURI(escapedUri), predicates.hasURI(unescapedUri)));
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
