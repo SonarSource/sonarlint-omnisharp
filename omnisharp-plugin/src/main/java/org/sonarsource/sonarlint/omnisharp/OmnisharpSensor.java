@@ -247,7 +247,7 @@ public class OmnisharpSensor implements Sensor {
     var predicates = context.fileSystem().predicates();
     // context file system contains URIs as they come from the client, which may be escaped
     // so we look for both escaped and unescaped URIs when matching back the issue file path (returned by the C# side of omnisharp) to InputFile
-    return context.fileSystem().inputFile(predicates.or(predicates.hasURI(escapedUri), predicates.hasURI(unescapedUri))); // some front
+    return context.fileSystem().inputFile(predicates.or(predicates.hasURI(escapedUri), predicates.hasURI(unescapedUri)));
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
