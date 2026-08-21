@@ -20,6 +20,7 @@
 package org.sonarsource.sonarlint.omnisharp;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -375,6 +376,165 @@ class OmnisharpSensorTests {
         i -> i.primaryLocation().textRange().end().line(),
         i -> i.primaryLocation().textRange().end().lineOffset())
       .containsOnly(tuple(ruleKey, file, "Don't do this", 1, 0, 1, 4));
+  }
+
+  @Test
+  void reportIssueForFileWithNonAsciiCharactersInPath() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
+
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    String fileName = "Fôö.cs";
+    Path filePath = baseDir.resolve(fileName);
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", fileName)
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<Diagnostic> issueConsumer = captor.getValue();
+
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
+
+    issueConsumer.accept(diag);
+
+    assertThat(sensorContext.allIssues()).extracting(Issue::ruleKey, i -> i.primaryLocation().inputComponent(), i -> i.primaryLocation().message())
+      .containsOnly(tuple(ruleKey, file, "Don't do this"));
+  }
+
+  @Test
+  void reportIssueWhenRegisteredInputFileUriIsEscapedButDiagnosticPathIsNot() throws Exception {
+    // Simulates a client (e.g. VS/Rider) that indexes files under a percent-escaped URI,
+    // while OmniSharp reports diagnostics using plain (unescaped) OS paths for the same file.
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
+
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    String fileName = "Fôö.cs";
+    Path filePath = baseDir.resolve(fileName);
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = spy(TestInputFileBuilder.create("", fileName)
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build());
+    when(file.uri()).thenReturn(URI.create(filePath.toUri().toASCIIString()));
+    sensorContext.fileSystem().add(file);
+
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<Diagnostic> issueConsumer = captor.getValue();
+
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
+
+    issueConsumer.accept(diag);
+
+    assertThat(sensorContext.allIssues()).extracting(Issue::ruleKey, i -> i.primaryLocation().inputComponent(), i -> i.primaryLocation().message())
+      .containsOnly(tuple(ruleKey, file, "Don't do this"));
+  }
+
+  @Test
+  void processSecondaryLocationWhenRegisteredInputFileUriIsEscaped() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
+
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    String content = "Console.WriteLine(\"Hello World!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    String secondaryFileName = "Bär.cs";
+    Path secondaryFilePath = baseDir.resolve(secondaryFileName);
+    Files.write(secondaryFilePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    InputFile secondaryFile = spy(TestInputFileBuilder.create("", secondaryFileName)
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build());
+    when(secondaryFile.uri()).thenReturn(URI.create(secondaryFilePath.toUri().toASCIIString()));
+    sensorContext.fileSystem().add(secondaryFile);
+
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<Diagnostic> issueConsumer = captor.getValue();
+
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
+
+    DiagnosticLocation secondary = mock(DiagnosticLocation.class);
+    when(secondary.getFilename()).thenReturn(secondaryFilePath.toString());
+    when(secondary.getLine()).thenReturn(1);
+    when(secondary.getColumn()).thenReturn(1);
+    when(secondary.getEndLine()).thenReturn(1);
+    when(secondary.getEndColumn()).thenReturn(5);
+    when(secondary.getText()).thenReturn("Secondary on escaped-URI file");
+
+    when(diag.getAdditionalLocations()).thenReturn(new DiagnosticLocation[]{secondary});
+
+    issueConsumer.accept(diag);
+
+    Issue issue = sensorContext.allIssues().iterator().next();
+    assertThat(issue.flows()).hasSize(1);
+    assertThat(issue.flows().get(0).locations()).extracting(l -> l.inputComponent(), l -> l.message())
+      .containsOnly(tuple(secondaryFile, "Secondary on escaped-URI file"));
   }
 
   @Test

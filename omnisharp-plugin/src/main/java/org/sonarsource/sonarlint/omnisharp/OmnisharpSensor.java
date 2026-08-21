@@ -22,6 +22,7 @@ package org.sonarsource.sonarlint.omnisharp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -240,7 +241,13 @@ public class OmnisharpSensor implements Sensor {
   }
 
   private static InputFile findInputFile(SensorContext context, Path filePath) {
-    return context.fileSystem().inputFile(context.fileSystem().predicates().is(filePath.toFile()));
+    // default java uri doesn't escape non-acii characters
+    var unescapedUri = filePath.toUri();
+    var escapedUri = URI.create(unescapedUri.toASCIIString());
+    var predicates = context.fileSystem().predicates();
+    // context file system contains URIs as they come from the client, which may be escaped
+    // so we look for both escaped and unescaped URIs when matching back the issue file path (returned by the C# side of omnisharp) to InputFile
+    return context.fileSystem().inputFile(predicates.or(predicates.hasURI(escapedUri), predicates.hasURI(unescapedUri)));
   }
 
   private static NewIssueLocation createLocation(NewIssue newIssue, DiagnosticLocation location, InputFile inputFile) {
