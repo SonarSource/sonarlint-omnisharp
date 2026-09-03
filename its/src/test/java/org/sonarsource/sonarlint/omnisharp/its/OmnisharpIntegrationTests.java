@@ -21,277 +21,169 @@ package org.sonarsource.sonarlint.omnisharp.its;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.FalseFileFilter;
-import org.apache.commons.io.filefilter.RegexFileFilter;
-import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.sonarlint.core.rpc.client.ClientJsonRpcLauncher;
-import org.sonarsource.sonarlint.core.rpc.client.ConnectionNotFoundException;
-import org.sonarsource.sonarlint.core.rpc.client.SonarLintCancelChecker;
-import org.sonarsource.sonarlint.core.rpc.client.SonarLintRpcClientDelegate;
-import org.sonarsource.sonarlint.core.rpc.impl.BackendJsonRpcLauncher;
-import org.sonarsource.sonarlint.core.rpc.protocol.SonarLintRpcServer;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.analysis.AnalyzeFilesAndTrackParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.analysis.DidChangeAnalysisPropertiesParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.config.binding.BindingSuggestionDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.config.scope.ConfigurationScopeDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.config.scope.DidAddConfigurationScopesParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.config.scope.DidRemoveConfigurationScopeParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.file.DidUpdateFileSystemParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.BackendCapability;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.ClientConstantInfoDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.HttpConfigurationDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.InitializeParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.LanguageSpecificRequirements;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.OmnisharpRequirementsDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.initialize.TelemetryClientConstantAttributesDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.StandaloneRuleConfigDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.UpdateStandaloneRulesConfigurationParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.backend.tracking.TaintVulnerabilityDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.binding.AssistBindingParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.binding.AssistBindingResponse;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.binding.NoBindingSuggestionFoundParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.connection.AssistCreatingConnectionParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.connection.AssistCreatingConnectionResponse;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.connection.ConnectionSuggestionDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.fix.FixSuggestionDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.hotspot.HotspotDetailsDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.http.GetProxyPasswordAuthenticationResponse;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.http.ProxyDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.http.X509CertificateDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.issue.IssueDetailsDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.issue.RaisedIssueDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.log.LogParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.message.MessageType;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.message.ShowSoonUnsupportedMessageParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.progress.ReportProgressParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.progress.StartProgressParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.smartnotification.ShowSmartNotificationParams;
-import org.sonarsource.sonarlint.core.rpc.protocol.client.telemetry.TelemetryClientLiveAttributesResponse;
-import org.sonarsource.sonarlint.core.rpc.protocol.common.ClientFileDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.common.Either;
-import org.sonarsource.sonarlint.core.rpc.protocol.common.Language;
-import org.sonarsource.sonarlint.core.rpc.protocol.common.TokenDto;
-import org.sonarsource.sonarlint.core.rpc.protocol.common.UsernamePasswordDto;
+import org.slf4j.event.Level;
+import org.sonar.api.batch.rule.ActiveRules;
+import org.sonar.api.batch.sensor.issue.Issue;
+import org.sonar.api.testfixtures.log.LogTesterJUnit5;
+import org.sonarsource.sonarlint.plugin.api.module.file.ModuleFileEvent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.sonarsource.sonarlint.omnisharp.its.OmnisharpAnalysisHarness.activeRule;
+import static org.sonarsource.sonarlint.omnisharp.its.OmnisharpAnalysisHarness.activeRules;
+import static org.sonarsource.sonarlint.omnisharp.its.OmnisharpAnalysisHarness.activeRulesBuilder;
 
+/**
+ * Drives the packaged plugin against a real OmniSharp process and the real C# analyzer, on the test
+ * solutions under {@code src/test/projects}: starting the right OmniSharp flavor, feeding it the
+ * active rules and their parameters, and mapping the diagnostics it returns back to issues and
+ * quick fixes.
+ */
 class OmnisharpIntegrationTests {
 
   private static final Pattern LIST_SDKS_PATTERN = Pattern.compile("^(\\d+\\.\\d+\\.\\d+)\\s+\\[(.+)]\\s*$", Pattern.MULTILINE);
   private static final String SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX = "Using OmniSharp SDK configuration from IDE hint:";
 
-  private static final String SOLUTION1_MODULE_KEY = "solution1";
-  private static final String SOLUTION2_MODULE_KEY = "solution2";
-
-  private static final ClientConstantInfoDto IT_CLIENT_INFO = new ClientConstantInfoDto("clientName", "integrationTests");
-  private static final TelemetryClientConstantAttributesDto IT_TELEMETRY_ATTRIBUTES = new TelemetryClientConstantAttributesDto("SLO# ITs", "SonarLint OmniSharp ITs",
-    "1.2.3", "4.5.6", Collections.emptyMap());
-
-  private static SonarLintRpcServer backend;
-  private static MockSonarLintRpcClientDelegate client;
-  // The C#/OmniSharp analyzer loads on demand and asynchronously; it is warmed up once before the tests
-  // run (see warmUpAnalyzerIfNeeded).
-  private static boolean analyzerWarmedUp;
-
-  @BeforeAll
-  static void prepare(@TempDir Path tmpDir) throws Exception {
-    var clientToServerOutputStream = new PipedOutputStream();
-    var clientToServerInputStream = new PipedInputStream(clientToServerOutputStream);
-
-    var serverToClientOutputStream = new PipedOutputStream();
-    var serverToClientInputStream = new PipedInputStream(serverToClientOutputStream);
-
-    client = new MockSonarLintRpcClientDelegate() {
-      @Override
-      public void log(LogParams params) {
-        System.out.println(params);
-        super.log(params);
-      }
-    };
-    new BackendJsonRpcLauncher(clientToServerInputStream, serverToClientOutputStream);
-    var clientLauncher = new ClientJsonRpcLauncher(serverToClientInputStream, clientToServerOutputStream, client);
-    backend = clientLauncher.getServerProxy();
-
-    var slHome = tmpDir.resolve("sonarlintHome");
-    Files.createDirectories(slHome);
-    var pluginJar = FileUtils
-      .listFiles(Paths.get("../omnisharp-plugin/target/").toAbsolutePath().normalize().toFile(), new RegexFileFilter("^sonarlint-omnisharp-plugin-([0-9.]+)(-SNAPSHOT)*.jar$"),
-        FalseFileFilter.FALSE)
-      .iterator().next().toPath();
-
-    var ossAnalyserPath = new File("target/analyzer/sonarcsharp.jar").toPath();
-    // TODO Use different paths, for now both are the same
-    var enterpriseAnalyserPath = new File("target/analyzer/sonarcsharp.jar").toPath();
-    var omnisharpMonoPath = new File("target/omnisharp-mono").toPath();
-    var omnisharpWinPath = new File("target/omnisharp-win").toPath();
-    var omnisharpNet6Path = new File("target/omnisharp-net6").toPath();
-
-    backend.initialize(
-        new InitializeParams(IT_CLIENT_INFO, IT_TELEMETRY_ATTRIBUTES, HttpConfigurationDto.defaultConfig(), null, Set.of(BackendCapability.SECURITY_HOTSPOTS),
-          slHome.resolve("storage"),
-          slHome.resolve("work"),
-          Set.of(pluginJar), Collections.emptyMap(),
-          Set.of(org.sonarsource.sonarlint.core.rpc.protocol.common.Language.CS), Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-          Collections.emptyList(), slHome.toString(), Map.of(),
-          false, new LanguageSpecificRequirements(null,
-          new OmnisharpRequirementsDto(omnisharpMonoPath, omnisharpNet6Path, omnisharpWinPath, ossAnalyserPath, enterpriseAnalyserPath)),
-          false, null))
-      .get();
-  }
-
-  @BeforeEach
-  void cleanupClient(@TempDir Path tmpDir) throws Exception {
-    backend.getConfigurationService().didAddConfigurationScopes(new DidAddConfigurationScopesParams(List.of(
-      new ConfigurationScopeDto(SOLUTION1_MODULE_KEY, null, false, SOLUTION1_MODULE_KEY, null),
-      new ConfigurationScopeDto(SOLUTION2_MODULE_KEY, null, false, SOLUTION2_MODULE_KEY, null)
-    )));
-    client.clear();
-    warmUpAnalyzerIfNeeded(tmpDir);
-  }
-
   /**
-   * The C#/OmniSharp analyzer is provided as an on-demand plugin that downloads and loads
-   * asynchronously, so the first analysis of the session can complete before it is ready and report
-   * nothing. Re-run a known-issue analysis until issues are reported — meaning the analyzer is loaded —
-   * once, before the tests run. In particular this makes assertions expecting <em>no</em> issues
-   * meaningful (an empty result then reflects "analyzed, nothing raised" rather than "not ready yet").
+   * The rules the assertions below rely on. All of them belong to the C# analyzer default profile,
+   * which is the profile SonarLint activates; keeping the set explicit keeps the expected issues
+   * stable as that profile grows.
    */
-  private void warmUpAnalyzerIfNeeded(Path tmpDir) throws Exception {
-    if (analyzerWarmedUp) {
-      return;
-    }
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
-    await().atMost(Duration.ofMinutes(2)).pollInterval(Duration.ofSeconds(3))
-      .untilAsserted(() -> {
-        triggerCSharpAnalysis(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs",
-          "using System;\n" +
-            "\n" +
-            "namespace ConsoleApp1\n" +
-            "{\n" +
-            "    class Program\n" +
-            "    {\n" +
-            "        private void Foo(string a)\n" +
-            "        {\n" +
-            "            Console.WriteLine(\"Hello World!\");\n" +
-            "        }\n" +
-            "    }\n" +
-            "}",
-          "sonar.cs.internal.useNet6", "true",
-          "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString());
-        assertThat(client.getRaisedIssues(SOLUTION1_MODULE_KEY)).isNotEmpty();
-      });
-    analyzerWarmedUp = true;
-    client.clear();
-  }
+  private static final String[] DEFAULT_ACTIVE_RULE_KEYS = {
+    "csharpsquid:S1116",
+    "csharpsquid:S1118",
+    "csharpsquid:S1135",
+    "csharpsquid:S1144",
+    "csharpsquid:S1172",
+    "csharpsquid:S1871",
+    "csharpsquid:S2094",
+    "csharpsquid:S2190",
+    "csharpsquid:S2325",
+    "csharpsquid:S3903"
+  };
+
+  private static final Function<Issue, Object> RULE_KEY = issue -> issue.ruleKey().toString();
+  private static final Function<Issue, Object> MESSAGE = issue -> issue.primaryLocation().message();
+
+  private static final String TODO_AND_HELLO_WORLD = "// TODO foo\n"
+    + "Console.WriteLine(\"Hello, World!\");";
+
+  private static final String DOTNET8_PROGRAM_WITH_COLLECTION_EXPRESSION = "namespace DotNet8Project;\n"
+    + "\n"
+    + "public static class Class1\n"
+    + "{\n"
+    + "\n"
+    + "    public static void Method2()\n"
+    + "    {\n"
+    + "        Method([\"\", \"\"]);\n"
+    + "    }\n"
+    + "    static void Method(string[] list)\n"
+    + "    {\n"
+    + "        ;\n"
+    + "    }\n"
+    + "}\n";
+
+  @RegisterExtension
+  LogTesterJUnit5 logTester = new LogTesterJUnit5();
+
+  @TempDir
+  Path tmpDir;
+
+  private final List<OmnisharpAnalysisHarness> harnesses = new ArrayList<>();
 
   @AfterEach
-  void cleanupBackend() {
-    backend.getConfigurationService().didRemoveConfigurationScope(new DidRemoveConfigurationScopeParams(SOLUTION1_MODULE_KEY));
-    backend.getConfigurationService().didRemoveConfigurationScope(new DidRemoveConfigurationScopeParams(SOLUTION2_MODULE_KEY));
-    // Reset rules configuration
-    backend.getRulesService().updateStandaloneRulesConfiguration(new UpdateStandaloneRulesConfigurationParams(Map.of()));
-  }
-
-  @AfterAll
-  @SuppressWarnings("java:S2925")
-  static void stop() throws InterruptedException {
-    Thread.sleep(5000);
-    backend.shutdown().join();
+  void stopOmnisharp() {
+    harnesses.forEach(OmnisharpAnalysisHarness::close);
+    harnesses.clear();
   }
 
   @Test
-  void analyzeNet5Solution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program.cs", "using System;\n" +
-        "\n" +
-        "namespace ConsoleApp1\n" +
-        "{\n" +
-        "    class Program\n" +
-        "    {\n" +
-        "        static void Main(string[] args)\n" +
-        "        {\n" +
-        "            // TODO foo\n" +
-        "            Console.WriteLine(\"Hello World!\");\n" +
-        "        }\n" +
-        "    }\n" +
-        "}",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
+  void analyzeNet5Solution() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("ConsoleAppNet5");
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var result = newHarness().analyze(baseDir, "ConsoleApp1/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        static void Main(string[] args)\n"
+        + "        {\n"
+        + "            // TODO foo\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      defaultActiveRules(),
+      net6OmnisharpOn(baseDir.resolve("ConsoleApp1.sln")));
+
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
   @Test
-  void analyzeNet6Solution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "// TODO foo\\n\"\n" +
-        "        + \"Console.WriteLine(\\\"Hello, World!\\\");",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString());
+  void analyzeNet6Solution() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("DotNet6Project");
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var result = newHarness().analyze(baseDir, "DotNet6Project/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");",
+      defaultActiveRules(),
+      net6OmnisharpOn(baseDir.resolve("DotNet6Project.sln")));
+
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
   @Test
-  void analyzeNet7Solution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet7Project");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet7Project/Program.cs", "// TODO foo\n" +
-        "Console.WriteLine(\"Hello, World!\");\n" +
-        "public sealed record Foo\n" +
-        "{\n" +
-        "    public required Bar Baz { get; init; }  // \"Bar\" is flagged with S1104: Fields should not have public accessibility\n" +
-        "}\n" +
-        "\n" +
-        "public sealed record Bar\n" +
-        "{\n" +
-        "}",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet7Project.sln").toString());
+  void analyzeNet7Solution() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("DotNet7Project");
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var result = newHarness().analyze(baseDir, "DotNet7Project/Program.cs",
+      "// TODO foo\n"
+        + "Console.WriteLine(\"Hello, World!\");\n"
+        + "public sealed record Foo\n"
+        + "{\n"
+        + "    public required Bar Baz { get; init; }  // \"Bar\" is flagged with S1104: Fields should not have public accessibility\n"
+        + "}\n"
+        + "\n"
+        + "public sealed record Bar\n"
+        + "{\n"
+        + "}",
+      defaultActiveRules(),
+      net6OmnisharpOn(baseDir.resolve("DotNet7Project.sln")));
+
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."),
         tuple("csharpsquid:S3903", "Move 'Foo' into a named namespace."),
@@ -300,320 +192,213 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void analyzeNet8Solution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet8Project");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet8Project/Program.cs", "namespace DotNet8Project;\n" +
-        "\n" +
-        "public static class Class1\n" +
-        "{\n" +
-        "\n" +
-        "    public static void Method2()\n" +
-        "    {\n" +
-        "        Method([\"\", \"\"]);\n" +
-        "    }\n" +
-        "    static void Method(string[] list)\n" +
-        "    {\n" +
-        "        ;\n" +
-        "    }\n" +
-        "}\n",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet8Project.sln").toString());
+  void analyzeNet8Solution() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("DotNet8Project");
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var result = newHarness().analyze(baseDir, "DotNet8Project/Program.cs", DOTNET8_PROGRAM_WITH_COLLECTION_EXPRESSION,
+      defaultActiveRules(),
+      net6OmnisharpOn(baseDir.resolve("DotNet8Project.sln")));
+
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1116", "Remove this empty statement."),
         tuple("csharpsquid:S1172", "Remove this unused method parameter 'list'."));
 
-    assertThat(client.getLogs()).noneMatch(log -> log.contains(SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX));
+    assertThat(logTester.logs()).noneMatch(log -> log.contains(SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX));
   }
 
   @Test
-  void analyzeNet8SolutionWithSdkPathHint(@TempDir Path tmpDir) throws Exception {
+  void analyzeNet8SolutionWithSdkPathHint() throws Exception {
     var sdkHint = findInstalledDotNetSdk(8).orElse(null);
     assumeTrue(sdkHint != null && Files.isDirectory(sdkHint.path()), "No .NET 8 SDK found — required for this test");
+    // The command line OmniSharp is started with is logged at debug level
+    logTester.setLevel(Level.DEBUG);
 
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet8Project");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet8Project/Program.cs", "namespace DotNet8Project;\n" +
-        "\n" +
-        "public static class Class1\n" +
-        "{\n" +
-        "\n" +
-        "    public static void Method2()\n" +
-        "    {\n" +
-        "        Method([\"\", \"\"]);\n" +
-        "    }\n" +
-        "    static void Method(string[] list)\n" +
-        "    {\n" +
-        "        ;\n" +
-        "    }\n" +
-        "}\n",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet8Project.sln").toString(),
-      "sonar.cs.internal.msBuildPath", sdkHint.path().toString());
+    var baseDir = prepareTestSolutionAndRestore("DotNet8Project");
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var properties = new HashMap<>(net6OmnisharpOn(baseDir.resolve("DotNet8Project.sln")));
+    properties.put("sonar.cs.internal.msBuildPath", sdkHint.path().toString());
+
+    var result = newHarness().analyze(baseDir, "DotNet8Project/Program.cs", DOTNET8_PROGRAM_WITH_COLLECTION_EXPRESSION,
+      defaultActiveRules(), properties);
+
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1116", "Remove this empty statement."),
         tuple("csharpsquid:S1172", "Remove this unused method parameter 'list'."));
 
-    assertThat(client.getLogs()).anyMatch(log -> log.contains(
-      SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX + " Sdk:Path=" + sdkHint.path() + ", Sdk:Version=" + sdkHint.version()
-    ));
-    assertThat(client.getLogs()).noneMatch(log -> log.contains("MsBuild:MSBuildOverride:MSBuildPath=" + sdkHint.path()));
+    assertThat(logTester.logs()).anyMatch(log -> log.contains(
+      SDK_CONFIGURATION_FROM_IDE_HINT_LOG_PREFIX + " Sdk:Path=" + sdkHint.path() + ", Sdk:Version=" + sdkHint.version()));
+    assertThat(logTester.logs()).noneMatch(log -> log.contains("MsBuild:MSBuildOverride:MSBuildPath=" + sdkHint.path()));
   }
 
   @Test
-  void provideQuickFixes(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "using System;\n" +
-        "\n" +
-        "namespace ConsoleApp1\n" +
-        "{\n" +
-        "    class Program\n" +
-        "    {\n" +
-        "        private void Foo(string a)\n" +
-        "        {\n" +
-        "            Console.WriteLine(\"Hello World!\");\n" +
-        "        }\n" +
-        "    }\n" +
-        "}",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNet6Project.sln").toString());
+  void provideQuickFixes() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("DotNet6Project");
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var result = newHarness().analyze(baseDir, "DotNet6Project/Program.cs",
+      "using System;\n"
+        + "\n"
+        + "namespace ConsoleApp1\n"
+        + "{\n"
+        + "    class Program\n"
+        + "    {\n"
+        + "        private void Foo(string a)\n"
+        + "        {\n"
+        + "            Console.WriteLine(\"Hello World!\");\n"
+        + "        }\n"
+        + "    }\n"
+        + "}",
+      defaultActiveRules(),
+      net6OmnisharpOn(baseDir.resolve("DotNet6Project.sln")));
+
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S2325", "Make 'Foo' a static method."),
         tuple("csharpsquid:S1172", "Remove this unused method parameter 'a'."),
-        tuple("csharpsquid:S1144", "Remove the unused private method 'Foo'.")
-      );
+        tuple("csharpsquid:S1144", "Remove the unused private method 'Foo'."));
+    assertThat(result.issues())
+      .filteredOn(issue -> "csharpsquid:S1172".equals(issue.ruleKey().toString()))
+      .allMatch(Issue::isQuickFixAvailable);
 
-    var issueWithFix = issues.get(1);
-    var quickFixes = issueWithFix.getQuickFixes();
+    var quickFixes = result.quickFixesOf("csharpsquid:S1172");
     assertThat(quickFixes).hasSize(1);
     var quickFix = quickFixes.get(0);
     assertThat(quickFix.message()).isEqualTo("Remove unused parameter");
     assertThat(quickFix.fileEdits()).hasSize(1);
-    assertThat(quickFix.fileEdits().get(0).target().toString()).endsWith("DotNet6Project/Program.cs");
-    assertThat(quickFix.fileEdits().get(0).textEdits()).hasSize(1);
-    assertThat(quickFix.fileEdits().get(0).textEdits().get(0).range().getStartLine()).isEqualTo(7);
-    assertThat(quickFix.fileEdits().get(0).textEdits().get(0).range().getStartLineOffset()).isEqualTo(25);
-    assertThat(quickFix.fileEdits().get(0).textEdits().get(0).range().getEndLine()).isEqualTo(7);
-    assertThat(quickFix.fileEdits().get(0).textEdits().get(0).range().getEndLineOffset()).isEqualTo(33);
-    assertThat(quickFix.fileEdits().get(0).textEdits().get(0).newText()).isEmpty();
+    assertThat(quickFix.fileEdits().get(0).target().uri().toString()).endsWith("DotNet6Project/Program.cs");
+    assertThat(quickFix.fileEdits().get(0).textEdits())
+      .extracting(edit -> edit.range().start().line(), edit -> edit.range().start().lineOffset(),
+        edit -> edit.range().end().line(), edit -> edit.range().end().lineOffset(), edit -> edit.newText())
+      .containsExactly(tuple(7, 25, 7, 33, ""));
   }
 
   @Test
   // FIXME - still failing on Windows
   @DisabledOnOs(OS.WINDOWS)
-  void analyzeMixedSolutionWithOldOmnisharp(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "SolutionMixingCoreAndFramework");
-    var issues1 = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNetFramework4_8/Program.cs", "// TODO foo\n" +
-        "Console.WriteLine(\"Hello, World!\");",
-      "sonar.cs.internal.useNet6", "false",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString());
-    var issues2 = analyzeCSharpFileExpectingNoIssues(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "// TODO foo\n" +
-        "Console.WriteLine(\"Hello, World!\");",
-      "sonar.cs.internal.useNet6", "false",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString());
+  void analyzeMixedSolutionWithOldOmnisharp() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("SolutionMixingCoreAndFramework");
+    var harness = newHarness();
+    var properties = legacyOmnisharpOn(baseDir.resolve("MixSolution.sln"));
 
-    assertThat(issues1)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    var frameworkResult = harness.analyze(baseDir, "DotNetFramework4_8/Program.cs", TODO_AND_HELLO_WORLD, defaultActiveRules(), properties);
+    var net6Result = harness.analyze(baseDir, "DotNet6Project/Program.cs", TODO_AND_HELLO_WORLD, defaultActiveRules(), properties);
+
+    assertThat(frameworkResult.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
-    assertThat(issues2).isEmpty();
+    // The .NET 6 project is not loaded by the legacy (Mono/net472) OmniSharp flavor
+    assertThat(net6Result.issues()).isEmpty();
   }
 
   @Test
-    // FIXME - was failing on Windows, now failing on Linux and MacOS too?
-    // Tracked as https://sonarsource.atlassian.net/browse/SLOMNI-5
-  void analyzeMixedSolutionWithNet6Omnisharp(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "SolutionMixingCoreAndFramework");
-    var issues1 = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNetFramework4_8/Program.cs", "// TODO foo\n" +
-        "Console.WriteLine(\"Hello, World!\");",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString());
-    var issues2 = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNet6Project/Program.cs", "// TODO foo\n" +
-        "Console.WriteLine(\"Hello, World!\");",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("MixSolution.sln").toString());
+  // FIXME - was failing on Windows, now failing on Linux and MacOS too?
+  // Tracked as https://sonarsource.atlassian.net/browse/SLOMNI-5
+  void analyzeMixedSolutionWithNet6Omnisharp() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("SolutionMixingCoreAndFramework");
+    var harness = newHarness();
+    var properties = net6OmnisharpOn(baseDir.resolve("MixSolution.sln"));
+
+    var frameworkResult = harness.analyze(baseDir, "DotNetFramework4_8/Program.cs", TODO_AND_HELLO_WORLD, defaultActiveRules(), properties);
+    var net6Result = harness.analyze(baseDir, "DotNet6Project/Program.cs", TODO_AND_HELLO_WORLD, defaultActiveRules(), properties);
 
     // XXX Not sure if this is actually expected
-    assertThat(issues1)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(frameworkResult.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
-    assertThat(issues2)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
-      .containsOnly(
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
-  }
-
-  @Test
-  void analyzeFramework4_8Solution(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "DotNetFramework4_8");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "DotNetFramework4_8/Program.cs", "// TODO foo\n" +
-        "Console.WriteLine(\"Hello, World!\");",
-      "sonar.cs.internal.useNet6", "false",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("DotNetFramework4_8.sln").toString());
-
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(net6Result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
   @Test
-  void analyzeBlazorApp_IgnoresRazorFiles(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "BlazorApp");
-    var issues = analyzeCSharpFileExpectingNoIssues(SOLUTION1_MODULE_KEY, baseDir.toString(), "BlazorApp/Components/App.razor",
-        "@code {" +
-        "        // TODO" +
-        "    }\n",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("BlazorApp.sln").toString());
+  void analyzeFramework4_8Solution() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("DotNetFramework4_8");
 
-    assertThat(issues).isEmpty();
-  }
+    var result = newHarness().analyze(baseDir, "DotNetFramework4_8/Program.cs", TODO_AND_HELLO_WORLD,
+      defaultActiveRules(),
+      legacyOmnisharpOn(baseDir.resolve("DotNetFramework4_8.sln")));
 
-  // @Test
-  // FIXME Not sure what is broken
-  void testAnalyzeNewFileAddedAfterOmnisharpStartup(@TempDir Path tmpDir) throws Exception {
-    testAnalyzeNewFileAddedAfterOmnisharpStartup(tmpDir, false);
-  }
-
-  //@Test
-  // FIXME Not sure what is broken
-  void testAnalyzeNewFileAddedAfterOmnisharpStartupWithLoadOnDemand(@TempDir Path tmpDir) throws Exception {
-    testAnalyzeNewFileAddedAfterOmnisharpStartup(tmpDir, true);
-  }
-
-  private void testAnalyzeNewFileAddedAfterOmnisharpStartup(Path tmpDir, boolean loadOnDemand) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program.cs", "using System;\n" +
-        "\n" +
-        "namespace ConsoleApp1\n" +
-        "{\n" +
-        "    class Program\n" +
-        "    {\n" +
-        "        static void Main(string[] args)\n" +
-        "        {\n" +
-        "            // TODO foo\n" +
-        "            Console.WriteLine(\"Hello World!\");\n" +
-        "        }\n" +
-        "    }\n" +
-        "}",
-      "sonar.cs.internal.useNet6", "false",
-      "sonar.cs.internal.loadProjectsOnDemand", String.valueOf(loadOnDemand),
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
-
-    String logLoadOnDemand = "Omnisharp: [INFORMATION] Skip loading projects listed in solution file or under target directory because MsBuild:LoadProjectsOnDemand is true.";
-    if (loadOnDemand) {
-      assertThat(client.getLogs()).contains(logLoadOnDemand);
-    } else {
-      assertThat(client.getLogs()).doesNotContain(logLoadOnDemand);
-    }
-
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
-
-    var newFilePath = baseDir.resolve("ConsoleApp1/Program2.cs");
-    backend.getFileService().didUpdateFileSystem(new DidUpdateFileSystemParams(List.of(), List.of(new ClientFileDto(
-      baseDir.resolve("ConsoleApp1/Program2.cs").toUri(), newFilePath, SOLUTION1_MODULE_KEY, false, "UTF-8", newFilePath, "", Language.CS, false)), List.of()));
-
-    // Give time for Omnisharp to process the file event
-    Thread.sleep(1000);
-
-    issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program2.cs", "using System;\n"
-        + "\n"
-        + "namespace ConsoleApp1\n"
-        + "{\n"
-        + "    class Program2\n"
-        + "    {\n"
-        + "        static void Main(string[] args)\n"
-        + "        {\n"
-        + "            Console.WriteLine(\"Hello World!\");\n"
-        + "            // TODO foo\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.loadProjectsOnDemand", String.valueOf(loadOnDemand),
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString()
-    );
-
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
-      .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
   @Test
-  void testRuleActivation(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
+  void analyzeBlazorApp_IgnoresRazorFiles() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("BlazorApp");
 
-    var analyzedContent = "using System;\n" +
-      "\n" +
-      "namespace ConsoleApp1\n" +
-      "{\n" +
-      "    class Program\n" +
-      "    {\n" +
-      "        public void test(int x)\n" +
-      "        {\n" +
-      "          if (x == 0)\n" +
-      "          {\n" +
-      "            DoSomething();\n" +
-      "          }\n" +
-      "          else if (x == 1)\n" +
-      "          {\n" +
-      "            DoSomething();\n" +
-      "          } \n" +
-      "        }\n" +
-      "        public void DoSomething(){\n" +
-      "          // TODO foo\n" +
-      "        }\n" +
-      "    }\n" +
-      "}";
+    var result = newHarness().analyze(baseDir, "BlazorApp/Components/App.razor",
+      "@code {"
+        + "        // TODO"
+        + "    }\n",
+      defaultActiveRules(),
+      net6OmnisharpOn(baseDir.resolve("BlazorApp.sln")));
 
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program.cs", analyzedContent,
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
+    assertThat(result.issues()).isEmpty();
+  }
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+  @Test
+  void activatingAndDeactivatingRules() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("ConsoleAppNet5");
+    var harness = newHarness();
+    var properties = net6OmnisharpOn(baseDir.resolve("ConsoleApp1.sln"));
+    var content = "using System;\n"
+      + "\n"
+      + "namespace ConsoleApp1\n"
+      + "{\n"
+      + "    class Program\n"
+      + "    {\n"
+      + "        public void test(int x)\n"
+      + "        {\n"
+      + "          if (x == 0)\n"
+      + "          {\n"
+      + "            DoSomething();\n"
+      + "          }\n"
+      + "          else if (x == 1)\n"
+      + "          {\n"
+      + "            DoSomething();\n"
+      + "          } \n"
+      + "        }\n"
+      + "        public void DoSomething(){\n"
+      + "          // TODO foo\n"
+      + "        }\n"
+      + "    }\n"
+      + "}";
+
+    var withTodoRule = harness.analyze(baseDir, "ConsoleApp1/Program.cs", content,
+      activeRules("csharpsquid:S1871", "csharpsquid:S1135"), properties);
+
+    assertThat(withTodoRule.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1871", "Either merge this branch with the identical one on line 10 or change one of the implementations."),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
 
-    issues.clear();
+    // S1135 off, S126 (not in the default profile) on
+    var withElseRule = harness.analyze(baseDir, "ConsoleApp1/Program.cs", content,
+      activeRules("csharpsquid:S1871", "csharpsquid:S126"), properties);
 
-    backend.getRulesService().updateStandaloneRulesConfiguration(new UpdateStandaloneRulesConfigurationParams(Map.of(
-      "csharpsquid:S1135", new StandaloneRuleConfigDto(false, Map.of()),
-      "csharpsquid:S126", new StandaloneRuleConfigDto(true, Map.of())
-    )));
-
-    issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program.cs", analyzedContent,
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
-
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(withElseRule.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1871", "Either merge this branch with the identical one on line 10 or change one of the implementations."),
         tuple("csharpsquid:S126", "Add the missing 'else' clause with either the appropriate action or a suitable comment as to why no action is taken."));
   }
 
   @Test
-  void testRuleParameter(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-
-    var analyzedContent = "using System;\n"
+  void passingRuleParametersToTheAnalyzer() throws Exception {
+    var baseDir = prepareTestSolutionAndRestore("ConsoleAppNet5");
+    var harness = newHarness();
+    var properties = net6OmnisharpOn(baseDir.resolve("ConsoleApp1.sln"));
+    var content = "using System;\n"
       + "\n"
       + "namespace ConsoleApp1\n"
       + "{\n"
@@ -644,30 +429,24 @@ class OmnisharpIntegrationTests {
       + "    }\n"
       + "}";
 
-    var issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program.cs", analyzedContent,
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
+    var withDefaultThreshold = harness.analyze(baseDir, "ConsoleApp1/Program.cs", content, defaultActiveRules(), properties);
 
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(withDefaultThreshold.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed."),
         tuple("csharpsquid:S2190", "Add a way to break out of this method's recursion."),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
 
-    issues.clear();
+    var withRaisedThreshold = harness.analyze(baseDir, "ConsoleApp1/Program.cs", content,
+      activeRulesBuilder(DEFAULT_ACTIVE_RULE_KEYS)
+        .addRule(activeRule("csharpsquid:S3776").setParam("threshold", "20").build())
+        .build(),
+      properties);
 
-    backend.getRulesService().updateStandaloneRulesConfiguration(new UpdateStandaloneRulesConfigurationParams(Map.of(
-      "csharpsquid:S3776", new StandaloneRuleConfigDto(true, Map.of("threshold", "20"))
-    )));
-
-    issues = analyzeCSharpFile(SOLUTION1_MODULE_KEY, baseDir.toString(), "ConsoleApp1/Program.cs", analyzedContent,
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
-
-    assertThat(issues)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(withRaisedThreshold.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("csharpsquid:S3776", "Refactor this method to reduce its Cognitive Complexity from 21 to the 20 allowed."),
@@ -676,359 +455,162 @@ class OmnisharpIntegrationTests {
   }
 
   @Test
-  void testChangingSolutions(@TempDir Path tmpDir) throws Exception {
-    Path solution1BaseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-    Path solution2BaseDir = prepareTestSolutionAndRestore(tmpDir, "DotNet6Project");
+  void analyzeTwoSolutionsConcurrently() throws Exception {
+    var solution1BaseDir = prepareTestSolutionAndRestore("ConsoleAppNet5");
+    var solution2BaseDir = prepareTestSolutionAndRestore("DotNet6Project");
 
-    var issuesConsole1 = analyzeCSharpFile(SOLUTION1_MODULE_KEY, solution1BaseDir.toString(), "ConsoleApp1/Program.cs", "using System;\n" +
-        "\n" +
-        "namespace ConsoleApp1\n" +
-        "{\n" +
-        "    class Program\n" +
-        "    {\n" +
-        "        static void Main(string[] args)\n" +
-        "        {\n" +
-        "            // TODO foo\n" +
-        "            Console.WriteLine(\"Hello World!\");\n" +
-        "        }\n" +
-        "    }\n" +
-        "}",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", solution1BaseDir.resolve("ConsoleApp1.sln").toString());
+    var solution1Result = newHarness().analyze(solution1BaseDir, "ConsoleApp1/Program.cs",
+      todoProgram("ConsoleApp1"),
+      defaultActiveRules(),
+      net6OmnisharpOn(solution1BaseDir.resolve("ConsoleApp1.sln")));
+    var solution2Result = newHarness().analyze(solution2BaseDir, "DotNet6Project/Program.cs",
+      todoProgram("ConsoleApp2"),
+      defaultActiveRules(),
+      net6OmnisharpOn(solution2BaseDir.resolve("DotNet6Project.sln")));
 
-    var issuesConsole2 = analyzeCSharpFile(SOLUTION2_MODULE_KEY, solution2BaseDir.toString(), "DotNet6Project/Program.cs", "using System;\n"
-        + "\n"
-        + "namespace ConsoleApp2\n"
-        + "{\n"
-        + "    class Program\n"
-        + "    {\n"
-        + "        static void Main(string[] args)\n"
-        + "        {\n"
-        + "            // TODO foo\n"
-        + "            Console.WriteLine(\"Hello World!\");\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      "sonar.cs.internal.useNet6", "true",
-      "sonar.cs.internal.solutionPath", solution2BaseDir.resolve("DotNet6Project.sln").toString());
-
-    assertThat(issuesConsole1)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(solution1Result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
-
-    assertThat(issuesConsole2)
-      .extracting(RaisedIssueDto::getRuleKey, RaisedIssueDto::getPrimaryMessage)
+    assertThat(solution2Result.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
         tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
         tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
-  /*
   @Test
-  void testMultipleSolutionsInSameFolder(@TempDir Path tmpDir) throws Exception {
-    sonarlintEngine.declareModule(MODULE_INFO_2);
+  @Disabled("FIXME Not sure what is broken")
+  void analyzeNewFileAddedAfterOmnisharpStartup() throws Exception {
+    analyzeNewFileAddedAfterOmnisharpStartup(false);
+  }
 
-    // emulate a repo that contains multiple solutions
-    Path repoBaseDir = prepareTestSolution(tmpDir, "ConsoleAppWithTwoSlnNotInRoot");
+  @Test
+  @Disabled("FIXME Not sure what is broken")
+  void analyzeNewFileAddedAfterOmnisharpStartupWithLoadOnDemand() throws Exception {
+    analyzeNewFileAddedAfterOmnisharpStartup(true);
+  }
 
-    ClientInputFile inputFile1 = prepareInputFile(repoBaseDir, "ConsoleApp1/Program1.cs",
+  private void analyzeNewFileAddedAfterOmnisharpStartup(boolean loadOnDemand) throws Exception {
+    // The OmniSharp output telling us whether projects were loaded eagerly is logged at debug level
+    logTester.setLevel(Level.DEBUG);
+    var baseDir = prepareTestSolutionAndRestore("ConsoleAppNet5");
+    var harness = newHarness();
+    var properties = Map.of(
+      "sonar.cs.internal.useNet6", "false",
+      "sonar.cs.internal.loadProjectsOnDemand", String.valueOf(loadOnDemand),
+      "sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString());
+
+    var firstResult = harness.analyze(baseDir, "ConsoleApp1/Program.cs", todoProgram("ConsoleApp1"), defaultActiveRules(), properties);
+
+    var logLoadOnDemand = "Omnisharp: [INFORMATION] Skip loading projects listed in solution file or under target directory"
+      + " because MsBuild:LoadProjectsOnDemand is true.";
+    if (loadOnDemand) {
+      assertThat(logTester.logs()).contains(logLoadOnDemand);
+    } else {
+      assertThat(logTester.logs()).doesNotContain(logLoadOnDemand);
+    }
+    assertThat(firstResult.issues())
+      .extracting(RULE_KEY, MESSAGE)
+      .containsOnly(
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
+
+    harness.fireFileEvent(baseDir, "ConsoleApp1/Program2.cs", ModuleFileEvent.Type.CREATED);
+
+    var newFileResult = harness.analyze(baseDir, "ConsoleApp1/Program2.cs",
       "using System;\n"
         + "\n"
         + "namespace ConsoleApp1\n"
-        + "{\n"
-        + "    class Program1\n"
-        + "    {\n"
-        + "        static void Main(string[] args)\n"
-        + "        {\n"
-        + "            // TODO foo\n"
-        + "            Console.WriteLine(\"Hello World!\");\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      false);
-
-    ClientInputFile inputFile2 = prepareInputFile(repoBaseDir, "ConsoleApp2/Program2.cs",
-      "using System;\n"
-        + "\n"
-        + "namespace ConsoleApp2\n"
         + "{\n"
         + "    class Program2\n"
         + "    {\n"
         + "        static void Main(string[] args)\n"
         + "        {\n"
-        + "            // TODO foo\n"
         + "            Console.WriteLine(\"Hello World!\");\n"
+        + "            // TODO foo\n"
         + "        }\n"
         + "    }\n"
         + "}",
-      false);
+      defaultActiveRules(), properties);
 
-    final List<Issue> issuesConsole1 = new ArrayList<>();
-    Path solution1Sln = repoBaseDir.resolve("Solution/ConsoleApp1.sln");
-    restore(solution1Sln);
-    StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
-      .setModuleKey(SOLUTION1_MODULE_KEY)
-      .setBaseDir(repoBaseDir)
-      .addInputFiles(inputFile1, inputFile2)
-      .putExtraProperty("sonar.cs.internal.useNet6", "true")
-      .putExtraProperty("sonar.cs.internal.solutionPath", solution1Sln.toString())
-      .build();
-    sonarlintEngine.analyze(analysisConfiguration1, issuesConsole1::add, null, null);
-
-    assertThat(issuesConsole1)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
-        Issue::getSeverity)
+    assertThat(newFileResult.issues())
+      .extracting(RULE_KEY, MESSAGE)
       .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile1.getPath(), MAJOR),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile1.getPath(), INFO));
-    // No issues in ConsoleApp2/Program2.cs because it is not part of Solution
-
-    final List<Issue> issuesConsole2 = new ArrayList<>();
-    Path solution2Sln = repoBaseDir.resolve("Solution/ConsoleApp2.sln");
-    restore(solution2Sln);
-    StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
-      .setModuleKey(SOLUTION2_MODULE_KEY)
-      .setBaseDir(repoBaseDir)
-      .addInputFiles(inputFile1, inputFile2)
-      .putExtraProperty("sonar.cs.internal.useNet6", "true")
-      .putExtraProperty("sonar.cs.internal.solutionPath", solution2Sln.toString())
-      .build();
-    sonarlintEngine.analyze(analysisConfiguration2, issuesConsole2::add, null, null);
-
-    assertThat(issuesConsole2)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
-        Issue::getSeverity)
-      .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 18, inputFile2.getPath(), MAJOR),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile2.getPath(), INFO));
-    // No issues in ConsoleApp1/Program1.cs because it is not part of Solution
+        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration."),
+        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment."));
   }
 
-  @Test
-  void testAnalyzeFileinANewProject(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-    ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
-      "using System;\n"
-        + "\n"
-        + "namespace ConsoleApp1\n"
-        + "{\n"
-        + "    class Program\n"
-        + "    {\n"
-        + "        static void Main(string[] args)\n"
-        + "        {\n"
-        + "            // TODO foo\n"
-        + "            Console.WriteLine(\"Hello World!\");\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      false);
-
-    final List<Issue> issues = new ArrayList<>();
-
-    StandaloneAnalysisConfiguration analysisConfiguration1 = StandaloneAnalysisConfiguration.builder()
-      .setBaseDir(baseDir)
-      .addInputFile(inputFile)
-      .setModuleKey(SOLUTION1_MODULE_KEY)
-      .putExtraProperty("sonar.cs.internal.useNet6", "true")
-      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
-      .build();
-    sonarlintEngine.analyze(analysisConfiguration1, issues::add, null, null);
-
-    assertThat(issues)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine,
-        Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
-        Issue::getSeverity)
-      .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17,
-          inputFile.getPath(), MAJOR),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
-
-    // Emulate project creation
-    FileUtils.copyDirectory(new File("src/test/projects/ConsoleApp1WithTestProject"), baseDir.toFile());
-    restore(baseDir);
-
-    sonarlintEngine.declareModule(MODULE_INFO_2);
-
-    ClientInputFile slnInputFile = prepareInputFile(baseDir, "ConsoleApp1.sln",
-      null,
-      false);
-    ClientInputFile csprojInputFile = prepareInputFile(baseDir, "TestProject1/TestProject1.csproj",
-      null,
-      false);
-
-    sonarlintEngine.fireModuleFileEvent(SOLUTION1_MODULE_KEY, ClientModuleFileEvent.of(csprojInputFile, ModuleFileEvent.Type.CREATED));
-    sonarlintEngine.fireModuleFileEvent(SOLUTION1_MODULE_KEY, ClientModuleFileEvent.of(slnInputFile, ModuleFileEvent.Type.MODIFIED));
-
-    ClientInputFile testInputFile = prepareInputFile(baseDir, "TestProject1/UnitTest1.cs",
-      "using NUnit.Framework;\n"
-        + "\n"
-        + "namespace TestProject1\n"
-        + "{\n"
-        + "    public class Tests\n"
-        + "    {\n"
-        + "        [SetUp]\n"
-        + "        public void Setup()\n"
-        + "        {\n"
-        + "        }\n"
-        + "\n"
-        + "        [Test]\n"
-        + "        void Test1()\n"
-        + "        {\n"
-        + "            // TODO foo\n"
-        + "            Assert.Pass();\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      false);
-
-    sonarlintEngine.fireModuleFileEvent(SOLUTION1_MODULE_KEY, ClientModuleFileEvent.of(testInputFile, ModuleFileEvent.Type.CREATED));
-
-    issues.clear();
-    StandaloneAnalysisConfiguration analysisConfiguration2 = StandaloneAnalysisConfiguration.builder()
-      .setBaseDir(baseDir)
-      .addInputFile(testInputFile)
-      .setModuleKey(SOLUTION1_MODULE_KEY)
-      .putExtraProperty("sonar.cs.internal.useNet6", "true")
-      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
-      .build();
-    sonarlintEngine.analyze(analysisConfiguration2, issues::add, null, null);
-
-    assertThat(issues)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset, i -> i.getInputFile().getPath(),
-        Issue::getSeverity)
-      .containsOnly(
-        tuple("csharpsquid:S1186", "Add a nested comment explaining why this method is empty, throw a 'NotSupportedException' or complete the implementation.", 8, 20, 8, 25,
-          testInputFile.getPath(), CRITICAL),
-        tuple("csharpsquid:S3433", "Make this test method 'public'.", 13, 13, 13, 18, testInputFile.getPath(), BLOCKER),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 15, 15, 15, 19, testInputFile.getPath(), INFO));
+  private static String todoProgram(String namespaceName) {
+    return "using System;\n"
+      + "\n"
+      + "namespace " + namespaceName + "\n"
+      + "{\n"
+      + "    class Program\n"
+      + "    {\n"
+      + "        static void Main(string[] args)\n"
+      + "        {\n"
+      + "            // TODO foo\n"
+      + "            Console.WriteLine(\"Hello World!\");\n"
+      + "        }\n"
+      + "    }\n"
+      + "}";
   }
 
-  @Test
-  void testConcurrentAnalysis(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-    ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
-      "using System;\n"
-        + "\n"
-        + "namespace ConsoleApp1\n"
-        + "{\n"
-        + "    class Program\n"
-        + "    {\n"
-        + "        static void Main(string[] args)\n"
-        + "        {\n"
-        + "            // TODO foo\n"
-        + "            Console.WriteLine(\"Hello World!\");\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      false);
-
-    final List<List<Issue>> issuesPerThread = new ArrayList<>();
-    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
-      .setBaseDir(baseDir)
-      .addInputFile(inputFile)
-      .setModuleKey(SOLUTION1_MODULE_KEY)
-      .putExtraProperty("sonar.cs.internal.useNet6", "true")
-      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
+  private static ActiveRules defaultActiveRules() {
+    return activeRulesBuilder(DEFAULT_ACTIVE_RULE_KEYS)
+      // The parameter default that SonarLint takes from the rule definition
+      .addRule(activeRule("csharpsquid:S3776").setParam("threshold", "15").build())
       .build();
-
-    ExecutorService threadPool = Executors.newFixedThreadPool(5);
-    for (int i = 0; i < 5; i++) {
-      ArrayList<Issue> issues = new ArrayList<>();
-      issuesPerThread.add(issues);
-      threadPool.execute(() -> sonarlintEngine.analyze(analysisConfiguration, issues::add, null, null));
-    }
-    threadPool.shutdown();
-    assertThat(threadPool.awaitTermination(1, TimeUnit.MINUTES)).isTrue();
-
-    for (int i = 0; i < 5; i++) {
-      assertThat(issuesPerThread.get(i))
-        .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset,
-          issue -> issue.getInputFile().getPath(),
-          Issue::getSeverity)
-        .containsOnly(
-          tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
-          tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
-    }
   }
 
-  @Test
-  void shouldNotFailAfterFirstThreadDied(@TempDir Path tmpDir) throws Exception {
-    Path baseDir = prepareTestSolutionAndRestore(tmpDir, "ConsoleAppNet5");
-    ClientInputFile inputFile = prepareInputFile(baseDir, "ConsoleApp1/Program.cs",
-      "using System;\n"
-        + "\n"
-        + "namespace ConsoleApp1\n"
-        + "{\n"
-        + "    class Program\n"
-        + "    {\n"
-        + "        static void Main(string[] args)\n"
-        + "        {\n"
-        + "            // TODO foo\n"
-        + "            Console.WriteLine(\"Hello World!\");\n"
-        + "        }\n"
-        + "    }\n"
-        + "}",
-      false);
-
-    StandaloneAnalysisConfiguration analysisConfiguration = StandaloneAnalysisConfiguration.builder()
-      .setBaseDir(baseDir)
-      .addInputFile(inputFile)
-      .setModuleKey(SOLUTION1_MODULE_KEY)
-      .putExtraProperty("sonar.cs.internal.useNet6", "true")
-      .putExtraProperty("sonar.cs.internal.solutionPath", baseDir.resolve("ConsoleApp1.sln").toString())
-      .build();
-
-    final List<Issue> issuesThread1 = new ArrayList<>();
-    Thread thread1 = new Thread("Analysis 1") {
-      @Override
-      public void run() {
-        sonarlintEngine.analyze(analysisConfiguration, issuesThread1::add, null, null);
-      }
-    };
-    thread1.start();
-    thread1.join(60_000);
-
-    assertThat(thread1.isAlive()).isFalse();
-
-    assertThat(issuesThread1)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset,
-        issue -> issue.getInputFile().getPath(),
-        Issue::getSeverity)
-      .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
-
-    // At some point we had a bug that only appeared when waiting enough after the first thread died (unable to write to stdin, "read end
-    // dead"
-    Thread.sleep(10000);
-
-    final List<Issue> issuesThread2 = new ArrayList<>();
-    Thread thread2 = new Thread("Analysis 2") {
-      @Override
-      public void run() {
-        sonarlintEngine.analyze(analysisConfiguration, issuesThread2::add, null, null);
-      }
-    };
-    thread2.start();
-    thread2.join(60_000);
-
-    assertThat(issuesThread2)
-      .extracting(Issue::getRuleKey, Issue::getMessage, Issue::getStartLine, Issue::getStartLineOffset, Issue::getEndLine, Issue::getEndLineOffset,
-        issue -> issue.getInputFile().getPath(),
-        Issue::getSeverity)
-      .containsOnly(
-        tuple("csharpsquid:S1118", "Add a 'protected' constructor or the 'static' keyword to the class declaration.", 5, 10, 5, 17, inputFile.getPath(), MAJOR),
-        tuple("csharpsquid:S1135", "Complete the task associated to this 'TODO' comment.", 9, 15, 9, 19, inputFile.getPath(), INFO));
-
+  private static Map<String, String> net6OmnisharpOn(Path solutionPath) {
+    return Map.of(
+      "sonar.cs.internal.useNet6", "true",
+      "sonar.cs.internal.solutionPath", solutionPath.toString());
   }
-   */
 
-  private Path prepareTestSolutionAndRestore(Path tmpDir, String name) throws IOException, InterruptedException {
-    Path baseDir = prepareTestSolution(tmpDir, name);
+  private static Map<String, String> legacyOmnisharpOn(Path solutionPath) {
+    return Map.of(
+      "sonar.cs.internal.useNet6", "false",
+      "sonar.cs.internal.solutionPath", solutionPath.toString());
+  }
+
+  private OmnisharpAnalysisHarness newHarness() {
+    var harness = new OmnisharpAnalysisHarness(tmpDir.resolve("work" + harnesses.size()));
+    harnesses.add(harness);
+    return harness;
+  }
+
+  private Path prepareTestSolutionAndRestore(String name) throws IOException, InterruptedException {
+    var baseDir = prepareTestSolution(name);
     restore(baseDir);
     return baseDir;
+  }
+
+  private Path prepareTestSolution(String name) throws IOException {
+    var baseDir = tmpDir.toRealPath().resolve(name);
+    Files.createDirectories(baseDir);
+    FileUtils.copyDirectory(new File("src/test/projects/" + name), baseDir.toFile());
+    return baseDir;
+  }
+
+  private static void restore(Path solutionDirOrFile) throws IOException, InterruptedException {
+    ProcessBuilder pb;
+    if (Files.isRegularFile(solutionDirOrFile)) {
+      pb = new ProcessBuilder("dotnet", "restore", solutionDirOrFile.getFileName().toString())
+        .directory(solutionDirOrFile.getParent().toFile())
+        .inheritIO();
+    } else {
+      pb = new ProcessBuilder("dotnet", "restore")
+        .directory(solutionDirOrFile.toFile())
+        .inheritIO();
+    }
+    var process = pb.start();
+    if (process.waitFor() != 0) {
+      fail("Unable to run dotnet restore");
+    }
   }
 
   private static Optional<InstalledSdk> findInstalledDotNetSdk(int majorVersion) throws IOException, InterruptedException {
@@ -1053,6 +635,20 @@ class OmnisharpIntegrationTests {
     return latestMatchingSdk;
   }
 
+  private static int compareSdkVersions(String left, String right) {
+    var leftParts = left.split("\\.");
+    var rightParts = right.split("\\.");
+    var length = Math.max(leftParts.length, rightParts.length);
+    for (var i = 0; i < length; i++) {
+      var leftPart = i < leftParts.length ? Integer.parseInt(leftParts[i]) : 0;
+      var rightPart = i < rightParts.length ? Integer.parseInt(rightParts[i]) : 0;
+      if (leftPart != rightPart) {
+        return Integer.compare(leftPart, rightPart);
+      }
+    }
+    return 0;
+  }
+
   private static final class InstalledSdk {
     private final Path path;
     private final String version;
@@ -1069,253 +665,5 @@ class OmnisharpIntegrationTests {
     private String version() {
       return version;
     }
-  }
-
-  private static int compareSdkVersions(String left, String right) {
-    var leftParts = left.split("\\.");
-    var rightParts = right.split("\\.");
-    var length = Math.max(leftParts.length, rightParts.length);
-    for (var i = 0; i < length; i++) {
-      var leftPart = i < leftParts.length ? Integer.parseInt(leftParts[i]) : 0;
-      var rightPart = i < rightParts.length ? Integer.parseInt(rightParts[i]) : 0;
-      if (leftPart != rightPart) {
-        return Integer.compare(leftPart, rightPart);
-      }
-    }
-    return 0;
-  }
-
-  private Path prepareTestSolution(Path tmpDir, String name) throws IOException {
-    Path baseDir = tmpDir.toRealPath().resolve(name);
-    Files.createDirectories(baseDir);
-    FileUtils.copyDirectory(new File("src/test/projects/" + name), baseDir.toFile());
-    return baseDir;
-  }
-
-  private void restore(Path solutionDirOrFile) throws IOException, InterruptedException {
-    ProcessBuilder pb;
-    if (Files.isRegularFile(solutionDirOrFile)) {
-      pb = new ProcessBuilder("dotnet", "restore", solutionDirOrFile.getFileName().toString())
-        .directory(solutionDirOrFile.getParent().toFile())
-        .inheritIO();
-    } else {
-      pb = new ProcessBuilder("dotnet", "restore")
-        .directory(solutionDirOrFile.toFile())
-        .inheritIO();
-    }
-    Process process = pb.start();
-    if (process.waitFor() != 0) {
-      fail("Unable to run dotnet restore");
-    }
-  }
-
-  private List<RaisedIssueDto> analyzeCSharpFile(String configScopeId, String baseDir, String filePathStr, String content, String... properties) {
-    triggerCSharpAnalysis(configScopeId, baseDir, filePathStr, content, properties);
-    // Issues are published asynchronously (and only once the on-demand analyzer has loaded), so wait
-    // for them to arrive.
-    await().atMost(Duration.ofSeconds(60))
-      .untilAsserted(() -> assertThat(client.getRaisedIssues(configScopeId)).isNotEmpty());
-    return drainRaisedIssues(configScopeId);
-  }
-
-  private List<RaisedIssueDto> analyzeCSharpFileExpectingNoIssues(String configScopeId, String baseDir, String filePathStr, String content, String... properties) {
-    triggerCSharpAnalysis(configScopeId, baseDir, filePathStr, content, properties);
-    // The analyzer is warmed up before the tests run, so an empty result here reflects "analyzed,
-    // nothing raised". Give any late publication a moment, then assert none arrived.
-    await().pollDelay(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(10))
-      .untilAsserted(() -> assertThat(client.getRaisedIssues(configScopeId)).isEmpty());
-    return drainRaisedIssues(configScopeId);
-  }
-
-  private void triggerCSharpAnalysis(String configScopeId, String baseDir, String filePathStr, String content, String... properties) {
-    var filePath = Path.of("projects").resolve(baseDir).resolve(filePathStr);
-    var fileUri = filePath.toUri();
-    backend.getFileService().didUpdateFileSystem(new DidUpdateFileSystemParams(List.of(),
-      List.of(new ClientFileDto(fileUri, Path.of(filePathStr), configScopeId, false, "UTF-8", filePath.toAbsolutePath(), content, Language.CS, true)), List.of()));
-
-    var propertiesMap = new HashMap<String, String>();
-    for (int i = 0; i < properties.length; i += 2) {
-      propertiesMap.put(properties[i], properties[i + 1]);
-    }
-    backend.getAnalysisService().didSetUserAnalysisProperties(new DidChangeAnalysisPropertiesParams(configScopeId, propertiesMap));
-    var analyzeResponse = backend.getAnalysisService().analyzeFilesAndTrack(
-      new AnalyzeFilesAndTrackParams(configScopeId, UUID.randomUUID(), List.of(fileUri), propertiesMap, false, System.currentTimeMillis())
-    ).join();
-
-    assertThat(analyzeResponse.getFailedAnalysisFiles()).isEmpty();
-  }
-
-  private List<RaisedIssueDto> drainRaisedIssues(String configScopeId) {
-    var raisedIssues = client.getRaisedIssues(configScopeId);
-    client.getRaisedIssues().clear();
-    return raisedIssues != null ? raisedIssues : List.of();
-  }
-
-  static class MockSonarLintRpcClientDelegate implements SonarLintRpcClientDelegate {
-
-    private final Map<String, List<RaisedIssueDto>> raisedIssues = new HashMap<>();
-    private final List<String> logs = new ArrayList<>();
-
-    public List<RaisedIssueDto> getRaisedIssues(String configurationScopeId) {
-      var issues = raisedIssues.get(configurationScopeId);
-      return issues != null ? issues : List.of();
-    }
-
-    public Map<String, List<RaisedIssueDto>> getRaisedIssues() {
-      return raisedIssues;
-    }
-
-    public List<String> getLogs() {
-      return logs;
-    }
-
-    @Override
-    public void raiseIssues(String configurationScopeId, Map<URI, List<RaisedIssueDto>> issuesByFileUri, boolean isIntermediatePublication, @Nullable UUID analysisId) {
-      if (!isIntermediatePublication) {
-        raisedIssues.computeIfAbsent(configurationScopeId, k -> new ArrayList<>()).addAll(issuesByFileUri.values().stream().flatMap(List::stream).collect(Collectors.toList()));
-      }
-    }
-
-    @Override
-    public void suggestBinding(Map<String, List<BindingSuggestionDto>> suggestionsByConfigScope) {
-
-    }
-
-    @Override
-    public void suggestConnection(Map<String, List<ConnectionSuggestionDto>> suggestionsByConfigScope) {
-
-    }
-
-    @Override
-    public void openUrlInBrowser(URL url) {
-
-    }
-
-    @Override
-    public void showMessage(MessageType type, String text) {
-
-    }
-
-    @Override
-    public void log(LogParams params) {
-      this.logs.add(params.getMessage());
-    }
-
-    @Override
-    public void showSoonUnsupportedMessage(ShowSoonUnsupportedMessageParams params) {
-
-    }
-
-    @Override
-    public void showSmartNotification(ShowSmartNotificationParams params) {
-
-    }
-
-    @Override
-    public String getClientLiveDescription() {
-      return "";
-    }
-
-    @Override
-    public void showHotspot(String configurationScopeId, HotspotDetailsDto hotspotDetails) {
-
-    }
-
-    @Override
-    public void showIssue(String configurationScopeId, IssueDetailsDto issueDetails) {
-
-    }
-
-    @Override
-    public void showFixSuggestion(String configurationScopeId, String issueKey, FixSuggestionDto fixSuggestion) {
-
-    }
-
-    @Override
-    public AssistCreatingConnectionResponse assistCreatingConnection(AssistCreatingConnectionParams params, SonarLintCancelChecker cancelChecker) throws CancellationException {
-      throw new CancellationException("Unsupported in ITS");
-    }
-
-    @Override
-    public AssistBindingResponse assistBinding(AssistBindingParams params, SonarLintCancelChecker cancelChecker) throws CancellationException {
-      throw new CancellationException("Unsupported in ITS");
-    }
-
-    @Override
-    public void startProgress(StartProgressParams params) throws UnsupportedOperationException {
-
-    }
-
-    @Override
-    public void reportProgress(ReportProgressParams params) {
-
-    }
-
-    @Override
-    public void didSynchronizeConfigurationScopes(Set<String> configurationScopeIds) {
-
-    }
-
-    @Override
-    public Either<TokenDto, UsernamePasswordDto> getCredentials(String connectionId) throws ConnectionNotFoundException {
-      throw new ConnectionNotFoundException();
-    }
-
-    @Override
-    public List<ProxyDto> selectProxies(URI uri) {
-      return List.of(ProxyDto.NO_PROXY);
-    }
-
-    @Override
-    public GetProxyPasswordAuthenticationResponse getProxyPasswordAuthentication(String host, int port, String protocol, String prompt, String scheme, URL targetHost) {
-      return new GetProxyPasswordAuthenticationResponse("", "");
-    }
-
-    @Override
-    public boolean checkServerTrusted(List<X509CertificateDto> chain, String authType) {
-      return false;
-    }
-
-    @Override
-    public String matchSonarProjectBranch(String configurationScopeId, String mainBranchName, Set<String> allBranchesNames, SonarLintCancelChecker cancelChecker) {
-      return mainBranchName;
-    }
-
-    @Override
-    public void didChangeMatchedSonarProjectBranch(String configScopeId, String newMatchedBranchName) {
-
-    }
-
-    @Override
-    public TelemetryClientLiveAttributesResponse getTelemetryLiveAttributes() {
-      System.err.println("Telemetry should be disabled in ITs");
-      throw new CancellationException("Telemetry should be disabled in ITs");
-    }
-
-    @Override
-    public void didChangeTaintVulnerabilities(String configurationScopeId, Set<UUID> closedTaintVulnerabilityIds, List<TaintVulnerabilityDto> addedTaintVulnerabilities,
-      List<TaintVulnerabilityDto> updatedTaintVulnerabilities) {
-
-    }
-
-    @Override
-    public List<ClientFileDto> listFiles(String configScopeId) {
-      return List.of();
-    }
-
-    @Override
-    public void noBindingSuggestionFound(NoBindingSuggestionFoundParams params) {
-    }
-
-    @Override
-    public void didChangeAnalysisReadiness(Set<String> configurationScopeIds, boolean areReadyForAnalysis) {
-
-    }
-
-    public void clear() {
-      raisedIssues.clear();
-      logs.clear();
-    }
-
   }
 }

@@ -46,38 +46,50 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-java-client-utils</artifactId>
-      <version>${sonarlint-core.version}</version>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sonarlint-omnisharp-plugin</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.sonarsource.api.plugin</groupId>
+      <artifactId>sonar-plugin-api</artifactId>
+      <version>${sonar.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-rpc-protocol</artifactId>
-      <version>${sonarlint-core.version}</version>
+      <artifactId>sonarlint-plugin-api</artifactId>
+      <version>${sonarlint-plugin-api.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-rpc-impl</artifactId>
-      <version>${sonarlint-core.version}</version>
+      <groupId>org.sonarsource.api.plugin</groupId>
+      <artifactId>sonar-plugin-api-test-fixtures</artifactId>
+      <version>${sonar.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-rpc-java-client</artifactId>
-      <version>${sonarlint-core.version}</version>
+      <groupId>org.sonarsource.sonarqube</groupId>
+      <artifactId>sonar-plugin-api-impl</artifactId>
+      <version>${sonar.api.impl.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
-      <version>4.1.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -176,40 +188,5 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <id>download-staged-artifact</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>fetch-artifact-under-test</id>
-                <phase>generate-test-resources</phase>
-                <goals>
-                  <goal>copy</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>sonarlint-omnisharp-plugin</artifactId>
-                  <version>${project.version}</version>
-                  <type>jar</type>
-                  <overWrite>false</overWrite>
-                  <outputDirectory>../omnisharp-plugin/target</outputDirectory>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>
