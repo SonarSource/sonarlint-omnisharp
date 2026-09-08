@@ -44,9 +44,9 @@
       },
       "Microsoft.NETFramework.ReferenceAssemblies.net472": {
         "type": "Direct",
-        "requested": "[1.0.0, )",
-        "resolved": "1.0.0",
-        "contentHash": "VI0f22cH/xOlXLUVY7t6vr2Gi7cg0vzwpspNGz5isRusyspZblF7jJMw49E8mF1m071JyeVmZVkIK9c5kbiyFA=="
+        "requested": "[1.0.3, )",
+        "resolved": "1.0.3",
+        "contentHash": "0E7evZXHXaDYYiLRfpyXvCh+yzM2rNTyuZDI+ZO7UUqSc6GfjePiXTdqJGtgIKUwdI81tzQKmaWprnUiPj9hAw=="
       },
       "Moq": {
         "type": "Direct",
