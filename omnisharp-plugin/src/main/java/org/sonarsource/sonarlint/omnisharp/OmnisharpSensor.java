@@ -26,6 +26,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -254,7 +255,8 @@ public class OmnisharpSensor implements Sensor {
     return newIssue.newLocation()
       .on(inputFile)
       .at(inputFile.newRange(location.getLine(), location.getColumn() - 1, location.getEndLine(), location.getEndColumn() - 1))
-      .message(location.getText());
+      // Some rules report secondary locations without any text, and the API forbids a null message
+      .message(Objects.requireNonNullElse(location.getText(), ""));
   }
 
 }

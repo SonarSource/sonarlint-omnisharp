@@ -46,6 +46,7 @@ import org.sonar.api.batch.rule.internal.NewActiveRule;
 import org.sonar.api.batch.sensor.internal.DefaultSensorDescriptor;
 import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.batch.sensor.issue.Issue;
+import org.sonar.api.batch.sensor.issue.IssueLocation;
 import org.sonar.api.batch.sensor.issue.NewIssue;
 import org.sonar.api.batch.sensor.issue.NewIssueLocation;
 import org.sonar.api.batch.sensor.issue.NewMessageFormatting;
@@ -655,6 +656,62 @@ class OmnisharpSensorTests {
         l -> l.textRange().end().line(),
         l -> l.textRange().end().lineOffset())
       .containsOnly(tuple(file, "Secondary 1", 2, 2, 2, 4));
+  }
+
+  @Test
+  void processSecondaryLocationWithoutText() throws Exception {
+    SensorContextTester sensorContext = SensorContextTester.create(baseDir);
+    sensorContext.settings().appendProperty(CSharpPropertyDefinitions.getAnalyzerPath(), OmnisharpTestUtils.ANALYZER_JAR.toString());
+
+    RuleKey ruleKey = RuleKey.of(OmnisharpPluginConstants.REPOSITORY_KEY, "S12345");
+    sensorContext.setActiveRules(new ActiveRulesBuilder().addRule(new NewActiveRule.Builder().setRuleKey(ruleKey).build()).build());
+
+    Path filePath = baseDir.resolve("Foo.cs");
+    String content = "Console.WriteLine(\"Hello \n Woooooooooooooooooooooooooooorld!\");";
+    Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
+
+    InputFile file = TestInputFileBuilder.create("", "Foo.cs")
+      .setModuleBaseDir(baseDir)
+      .setLanguage(OmnisharpPluginConstants.LANGUAGE_KEY)
+      .setCharset(StandardCharsets.UTF_8)
+      .initMetadata(content)
+      .build();
+    sensorContext.fileSystem().add(file);
+
+    ArgumentCaptor<Consumer<Diagnostic>> captor = ArgumentCaptor.forClass(Consumer.class);
+
+    underTest.execute(sensorContext);
+
+    verify(mockProtocol).codeCheck(eq(filePath.toFile()), captor.capture());
+
+    Consumer<Diagnostic> issueConsumer = captor.getValue();
+
+    Diagnostic diag = mock(Diagnostic.class);
+    when(diag.getFilename()).thenReturn(filePath.toString());
+    when(diag.getId()).thenReturn("S12345");
+    when(diag.getLine()).thenReturn(1);
+    when(diag.getColumn()).thenReturn(1);
+    when(diag.getEndLine()).thenReturn(1);
+    when(diag.getEndColumn()).thenReturn(5);
+    when(diag.getText()).thenReturn("Don't do this");
+
+    DiagnosticLocation secondaryWithoutText = mock(DiagnosticLocation.class);
+    when(secondaryWithoutText.getFilename()).thenReturn(filePath.toString());
+    when(secondaryWithoutText.getLine()).thenReturn(2);
+    when(secondaryWithoutText.getColumn()).thenReturn(3);
+    when(secondaryWithoutText.getEndLine()).thenReturn(2);
+    when(secondaryWithoutText.getEndColumn()).thenReturn(5);
+    when(secondaryWithoutText.getText()).thenReturn(null);
+
+    when(diag.getAdditionalLocations()).thenReturn(new DiagnosticLocation[]{secondaryWithoutText});
+
+    issueConsumer.accept(diag);
+
+    Issue issue = sensorContext.allIssues().iterator().next();
+    assertThat(issue.flows()).hasSize(1);
+    assertThat(issue.flows().get(0).locations())
+      .extracting(IssueLocation::inputComponent, IssueLocation::message)
+      .containsOnly(tuple(file, ""));
   }
 
   @Test

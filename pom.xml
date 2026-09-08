@@ -42,7 +42,13 @@
     <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
     <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
     <junit.version>5.9.1</junit.version>
-    <sonarlint-core.version>11.9.0.86162</sonarlint-core.version>
+    <sonarlint-plugin-api.version>11.10.0.86211</sonarlint-plugin-api.version>
+    <!-- The following properties should match the pom.xml of sonar-dotnet for the given analyzer version -->
+    <sonar.analyzer.commons>2.24.0.4903</sonar.analyzer.commons>
+    <sonar.version>13.8.0.4399</sonar.version>
+    <sonar.api.impl.version>26.6.0.123539</sonar.api.impl.version>
+    <slf4j.version>2.0.17</slf4j.version>
+    <logback.version>1.5.25</logback.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.15.1-sonar</omnisharp.version>
     <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
