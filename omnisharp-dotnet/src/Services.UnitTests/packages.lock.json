@@ -443,8 +443,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "13.0.3",
-        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl": {
         "type": "Transitive",
@@ -1502,7 +1502,7 @@
           "Microsoft.CodeAnalysis.CSharp.Features": "[5.3.0, )",
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "[5.3.0, )",
           "Microsoft.Extensions.Logging": "[9.0.0, )",
-          "Newtonsoft.Json": "[13.0.3, )",
+          "Newtonsoft.Json": "[13.0.4, )",
           "System.Collections.Immutable": "[9.0.0, )",
           "System.Composition.AttributedModel": "[9.0.0, )",
           "System.Reactive": "[6.0.0, )"
