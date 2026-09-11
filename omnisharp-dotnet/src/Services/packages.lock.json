@@ -100,9 +100,9 @@
       },
       "System.Composition.AttributedModel": {
         "type": "Direct",
-        "requested": "[9.0.0, )",
-        "resolved": "9.0.0",
-        "contentHash": "iri00l/zIX9g4lHMY+Nz0qV1n40+jFYAmgsaiNn16xvt2RDwlqByNG4wgblagnDYxm3YSQQ0jLlC/7Xlk9CzyA=="
+        "requested": "[9.0.19, )",
+        "resolved": "9.0.19",
+        "contentHash": "xH/S4vNnY5M6oNpNTyDFvAJQPhvvEI639FT7XAVTDcFRIT0vTyKmg4zFVTV2+6/krrqumgZFAfXrk2xaTl49Eg=="
       },
       "System.Reactive": {
         "type": "Direct",
