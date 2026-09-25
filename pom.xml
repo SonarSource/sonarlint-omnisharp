@@ -44,15 +44,15 @@
     <junit.version>5.9.1</junit.version>
     <sonarlint-plugin-api.version>11.9.0.86162</sonarlint-plugin-api.version>
     <!-- The following properties should match the pom.xml of sonar-dotnet for the given analyzer version -->
-    <sonar.analyzer.commons>2.24.0.4903</sonar.analyzer.commons>
-    <sonar.version>13.8.0.4399</sonar.version>
-    <sonar.api.impl.version>26.6.0.123539</sonar.api.impl.version>
+    <sonar.analyzer.commons>2.31.0.5284</sonar.analyzer.commons>
+    <sonar.version>14.0.0.4498</sonar.version>
+    <sonar.scanner.version>13.10.0.4657</sonar.scanner.version>
     <slf4j.version>2.0.17</slf4j.version>
     <logback.version>1.5.25</logback.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.15.1-sonar</omnisharp.version>
     <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
-    <analyzer.version>10.31.0.145097</analyzer.version>
+    <analyzer.version>10.34.0.3385</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
     <sonar.organization>sonarsource</sonar.organization>
   </properties>
