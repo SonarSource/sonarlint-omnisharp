@@ -19,13 +19,12 @@
  */
 package org.sonarsource.sonarlint.omnisharp;
 
-import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.sonar.api.config.PropertyDefinitions;
-import org.sonar.api.config.internal.MapSettings;
+import org.sonar.scanner.extension.PropertyDefinitions;
+import org.sonar.scanner.plugin.api.impl.config.MapSettings;
 import org.sonar.api.resources.AbstractLanguage;
-import org.sonar.api.utils.System2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,13 +35,12 @@ class CSharpLanguageTests {
 
   @BeforeEach
   void init() {
-    PropertyDefinitions defs = new PropertyDefinitions(System2.INSTANCE,
-      new CSharpPropertyDefinitions().create());
+    PropertyDefinitions defs = new PropertyDefinitions(new CSharpPropertyDefinitions().create());
     settings = new MapSettings(defs);
     csharp = new CSharpLanguage(settings.asConfig());
   }
 
-  @Ignore("Will need to be fixed somehow")
+  @Disabled("Will need to be fixed somehow")
   void shouldGetDefaultFileSuffixes() {
     assertThat(csharp.getFileSuffixes()).containsOnly(".cs");
   }
