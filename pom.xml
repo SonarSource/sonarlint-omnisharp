@@ -48,7 +48,7 @@
     <sonar.version>14.0.0.4498</sonar.version>
     <sonar.scanner.version>13.10.0.4657</sonar.scanner.version>
     <slf4j.version>2.0.20</slf4j.version>
-    <logback.version>1.5.25</logback.version>
+    <logback.version>1.6.3</logback.version>
     <jdk.min.version>11</jdk.min.version>
     <omnisharp.version>1.39.15.1-sonar</omnisharp.version>
     <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
