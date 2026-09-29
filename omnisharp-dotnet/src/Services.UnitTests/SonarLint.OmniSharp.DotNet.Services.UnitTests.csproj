@@ -28,7 +28,7 @@
 		</PackageReference>
 
                 <!-- WARNING! Check before updating to a new version of Moq - any privacy issues? See https://github.com/moq/moq/issues/1372 -->
-		<PackageReference Include="Moq" Version="4.14.5" />
+		<PackageReference Include="Moq" Version="4.21.0" />
 
                 <PackageReference Include="MSTest.TestAdapter" Version="3.10.4" />
 		<PackageReference Include="MSTest.TestFramework" Version="3.10.4" />
