@@ -30,8 +30,8 @@
                 <!-- WARNING! Check before updating to a new version of Moq - any privacy issues? See https://github.com/moq/moq/issues/1372 -->
 		<PackageReference Include="Moq" Version="4.21.0" />
 
-                <PackageReference Include="MSTest.TestAdapter" Version="3.10.4" />
-		<PackageReference Include="MSTest.TestFramework" Version="3.10.4" />
+                <PackageReference Include="MSTest.TestAdapter" Version="4.4.1" />
+		<PackageReference Include="MSTest.TestFramework" Version="4.4.1" />
 		<PackageReference Include="SQLitePCLRaw.core" Version="2.0.7" />
 	</ItemGroup>
 
