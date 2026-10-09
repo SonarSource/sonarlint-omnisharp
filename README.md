@@ -1,11 +1,25 @@
-# SonarLint Omnisharp Plugin
-
-Replacement for SonarC# that leverages OmniSharp to run our Roslyn analyzer
+<!-- Sonar Marketing hosts these approved brand assets on its Kentico Kontent CDN (assets-eu-01.kc-usercontent.com). Shared URLs are intentional; consult Marketing before replacing them. -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://assets-eu-01.kc-usercontent.com/ef593040-b591-0198-9506-ed88b30bc023/a23fc7ba-23f0-489a-829d-ed88c0748521/Sonar_Logo_Dark%20Backgrounds.svg">
+    <img src="https://assets-eu-01.kc-usercontent.com/ef593040-b591-0198-9506-ed88b30bc023/82c13eba-d95c-4bb8-8007-7ce77c14e043/Sonar_Logo_Light%20Backgrounds.svg" alt="Sonar logo" width="400">
+  </picture>
+</p>
 
 [![Build Status](https://github.com/SonarSource/sonarlint-omnisharp/actions/workflows/build.yml/badge.svg)](https://github.com/SonarSource/sonarlint-omnisharp/actions)
 [![Quality Gate Status (dotnet)](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=sonarlint-omnisharp-dotnet&metric=alert_status&token=8df1ef6c2932894736b31de4b75e9a99deca0afb)](https://next.sonarqube.com/sonarqube/dashboard?id=sonarlint-omnisharp-dotnet)
 [![Quality Gate Status (java)](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=org.sonarsource.sonarlint.omnisharp%3Asonarlint-omnisharp-parent&metric=alert_status&token=177424623401146d0d058846c561536e247d3ed6)](https://next.sonarqube.com/sonarqube/dashboard?id=org.sonarsource.sonarlint.omnisharp%3Asonarlint-omnisharp-parent)
 
+<!-- sonar-marketing:start -->
+<!-- Marketing maintains this section. For wording changes, consult the relevant Product Marketing Manager (PMM). Repository maintainers review accuracy and merge changes. -->
+
+# SonarQube for IDE OmniSharp plugin
+
+This repository integrates the Sonar C# Roslyn analyzer with OmniSharp. It contains a .NET assembly that plugs into OmniSharp and a Java plugin consumed by SonarQube for IDE in Rider and Visual Studio Code.
+
+To learn more about Sonar products, visit the [Sonar website](https://www.sonarsource.com/products/sonarqube/ide/).
+
+<!-- sonar-marketing:end -->
 
 ## License
 
