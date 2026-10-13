@@ -41,7 +41,7 @@
   <properties>
     <gitRepositoryName>sonarlint-omnisharp</gitRepositoryName>
     <artifactsToPublish>${project.groupId}:sonarlint-omnisharp-plugin:jar</artifactsToPublish>
-    <junit.version>5.9.1</junit.version>
+    <junit.version>5.14.4</junit.version>
     <sonarlint-plugin-api.version>11.10.0.86299</sonarlint-plugin-api.version>
     <!-- The following properties should match the pom.xml of sonar-dotnet for the given analyzer version -->
     <sonar.analyzer.commons>2.33.0.5369</sonar.analyzer.commons>
