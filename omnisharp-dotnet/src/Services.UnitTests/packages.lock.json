@@ -350,8 +350,8 @@
       },
       "System.Collections.Immutable": {
         "type": "Transitive",
-        "resolved": "9.0.20",
-        "contentHash": "9wonYQ/lveTix69zYLWPA8+R/8FWMRH9JfG3ocNnnQvVzkT1g//eR72ulJJeKA1NT7UA0XK4dCg0XUhyjywORQ=="
+        "resolved": "9.0.21",
+        "contentHash": "KpZ5YA27zFHJLoWE+cT9JzU+KCJpjCrlMQ20mnGtRvfaqb/Xx/FocPpNO3SpJ0o7L1SXnUI+NQ0QuyFCqogkAA=="
       },
       "System.Composition": {
         "type": "Transitive",
@@ -474,7 +474,7 @@
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "[5.3.0, )",
           "Microsoft.Extensions.Logging": "[9.0.0, )",
           "Newtonsoft.Json": "[13.0.4, )",
-          "System.Collections.Immutable": "[9.0.20, )",
+          "System.Collections.Immutable": "[9.0.21, )",
           "System.Composition.AttributedModel": "[9.0.0, )",
           "System.Reactive": "[6.0.0, )"
         }
