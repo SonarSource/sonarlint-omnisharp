@@ -90,9 +90,9 @@
       },
       "System.Collections.Immutable": {
         "type": "Direct",
-        "requested": "[9.0.20, )",
-        "resolved": "9.0.20",
-        "contentHash": "9wonYQ/lveTix69zYLWPA8+R/8FWMRH9JfG3ocNnnQvVzkT1g//eR72ulJJeKA1NT7UA0XK4dCg0XUhyjywORQ==",
+        "requested": "[9.0.21, )",
+        "resolved": "9.0.21",
+        "contentHash": "KpZ5YA27zFHJLoWE+cT9JzU+KCJpjCrlMQ20mnGtRvfaqb/Xx/FocPpNO3SpJ0o7L1SXnUI+NQ0QuyFCqogkAA==",
         "dependencies": {
           "System.Memory": "4.5.5",
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
