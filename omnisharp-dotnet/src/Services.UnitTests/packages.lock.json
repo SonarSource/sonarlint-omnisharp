@@ -10,9 +10,9 @@
       },
       "coverlet.msbuild": {
         "type": "Direct",
-        "requested": "[3.2.0, )",
-        "resolved": "3.2.0",
-        "contentHash": "lu/eJJpqJb4qy3BGPtDD/LI5RSOwXYYyRErTyaG0OTP69llzVK3FEe74hBQx0JtLUTLEVBfERV4uGYcE1Br2sg=="
+        "requested": "[10.1.0, )",
+        "resolved": "10.1.0",
+        "contentHash": "iozrXeTbc3mBGSi+2UUL+VVbLzAJZRogo42Zq+rLQL3QiIdXoRtEWmK/BR5HvoYEo2Pam0vjHZwIVTUVmF3zrA=="
       },
       "FluentAssertions": {
         "type": "Direct",
