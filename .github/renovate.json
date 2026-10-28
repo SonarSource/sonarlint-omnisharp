@@ -2,5 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>SonarSource/renovate-config:ide-xp-team"
+  ],
+  "packageRules": [
+    {
+      "description": "Test.Sdk 18 dropped net6.0: keep the net6.0 integration test fixture on 17.13.0 or lower (remove with the fixture bump when net6.0 support is dropped)",
+      "matchPackageNames": [
+        "Microsoft.NET.Test.Sdk"
+      ],
+      "matchFileNames": [
+        "its/src/test/projects/ConsoleApp1WithTestProject/**"
+      ],
+      "allowedVersions": "<=17.13.0"
+    }
   ]
 }
