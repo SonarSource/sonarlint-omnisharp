@@ -13,6 +13,16 @@
         "its/src/test/projects/ConsoleApp1WithTestProject/**"
       ],
       "allowedVersions": "<=17.13.0"
+    },
+    {
+      "description": "NUnit 4 and later need NUnit3TestAdapter 4.5 or later, and NUnit 5 drops net6.0: keep the net6.0 integration test fixture on NUnit 3 (remove with the fixture bump when net6.0 support is dropped)",
+      "matchPackageNames": [
+        "NUnit"
+      ],
+      "matchFileNames": [
+        "its/src/test/projects/ConsoleApp1WithTestProject/**"
+      ],
+      "allowedVersions": "<4"
     }
   ]
 }
