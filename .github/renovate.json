@@ -23,6 +23,13 @@
         "its/src/test/projects/ConsoleApp1WithTestProject/**"
       ],
       "allowedVersions": "<4"
+    },
+    {
+      "description": "FluentAssertions 8 moved to the Xceed Community License (non-commercial use only): stay on the 7.x line (SLOMNI-196)",
+      "matchPackageNames": [
+        "FluentAssertions"
+      ],
+      "allowedVersions": "<8"
     }
   ]
 }
