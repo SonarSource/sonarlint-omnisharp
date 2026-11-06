@@ -25,7 +25,7 @@
       "allowedVersions": "<4"
     },
     {
-      "description": "FluentAssertions 8 moved to the Xceed Community License (non-commercial use only): stay on the 7.x line (SLOMNI-196)",
+      "description": "FluentAssertions 8 moved to the Xceed Community License (non-commercial use only): cap below 8, 7.x is the last Apache 2.0 line (SLOMNI-196)",
       "matchPackageNames": [
         "FluentAssertions"
       ],
