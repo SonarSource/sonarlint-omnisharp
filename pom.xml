@@ -45,7 +45,7 @@
     <sonarlint-plugin-api.version>11.10.1.86404</sonarlint-plugin-api.version>
     <!-- The following properties should match the pom.xml of sonar-dotnet for the given analyzer version -->
     <sonar.analyzer.commons>2.35.0.15509</sonar.analyzer.commons>
-    <sonar.version>14.0.0.4498</sonar.version>
+    <sonar.version>14.3.0.5639</sonar.version>
     <sonar.scanner.version>13.19.0.6869</sonar.scanner.version>
     <slf4j.version>2.0.20</slf4j.version>
     <logback.version>1.6.6</logback.version>
