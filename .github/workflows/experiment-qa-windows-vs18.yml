@@ -8,10 +8,12 @@ on:
   workflow_dispatch:
 
 permissions:
+  id-token: write
   contents: read
 
 jobs:
   confirm:
+    if: ${{ false }}
     runs-on: warp-custom-sonarlint-visualstudio
     timeout-minutes: 30
     strategy:
@@ -95,3 +97,69 @@ jobs:
         with:
           name: confirm-${{ matrix.variant }}
           path: out/
+
+  real_its:
+    runs-on: warp-custom-sonarlint-visualstudio
+    timeout-minutes: 45
+    name: real ITs (${{ matrix.omnisharp }})
+    strategy:
+      fail-fast: false
+      matrix:
+        omnisharp:
+          - official
+          - fork-build
+    env:
+      # Reuse the deployed plugin artifacts of a recent PR build (#427) instead of rebuilding the plugin here.
+      BUILD_NUMBER: '102204'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.9.14
+          install_args: --jobs 1
+
+      - name: Get Vault secrets
+        id: secrets
+        uses: SonarSource/vault-action-wrapper@c154b4a417b51cb98dd71137f49bf20e77c56820 # 3.4.0
+        with:
+          secrets: |
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader username | ARTIFACTORY_USERNAME;
+            development/artifactory/token/{REPO_OWNER_NAME_DASH}-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+
+      - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
+        with:
+          common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false -Dmaven.deploy.skip=true
+          artifactory-reader-role: private-reader
+
+      - name: Compile the ITs and download the official OmniSharp and analyzer
+        shell: bash
+        env:
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          mvn -B -e -V -f its/pom.xml test-compile
+
+      - name: Swap in the fork-built net472 OmniSharp (fork-build only)
+        if: matrix.omnisharp == 'fork-build'
+        shell: powershell
+        run: |
+          Expand-Archive -Path experiment-assets\omnisharp-net472-fork-build.zip -DestinationPath its\target\omnisharp-win -Force
+          foreach ($n in 'Microsoft.Bcl.AsyncInterfaces', 'System.Threading.Tasks.Extensions') {
+            Write-Host ("{0,-40} asm={1}" -f $n, [System.Reflection.AssemblyName]::GetAssemblyName((Resolve-Path "its\target\omnisharp-win\$n.dll")).Version)
+          }
+
+      - name: Run the real ITs (surefire only, so the swapped OmniSharp is not re-downloaded)
+        shell: bash
+        env:
+          ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+          ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
+        run: |
+          mvn -B -e -f its/pom.xml surefire:test -DskipTests=false
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-its-${{ matrix.omnisharp }}
+          path: '**/surefire-reports/TEST-*.xml'
