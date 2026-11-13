@@ -19,14 +19,19 @@ jobs:
       matrix:
         variant:
           - baseline
-          - patched
+          - fork-build
     steps:
       - uses: actions/checkout@v5
 
-      - name: Download OmniSharp net472
+      - name: Get OmniSharp net472 (official 1.39.15.1-sonar for baseline, fork branch build for fork-build)
         shell: powershell
         run: |
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://binaries.sonarsource.com/OmniSharp-Roslyn/1.39.15.1-sonar/omnisharp-net472.zip' -OutFile omnisharp-net472.zip
+          if ('${{ matrix.variant }}' -eq 'fork-build') {
+            Copy-Item experiment-assets\omnisharp-net472-fork-build.zip omnisharp-net472.zip
+          } else {
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://binaries.sonarsource.com/OmniSharp-Roslyn/1.39.15.1-sonar/omnisharp-net472.zip' -OutFile omnisharp-net472.zip
+          }
+          Write-Host ("zip sha256: " + (Get-FileHash omnisharp-net472.zip -Algorithm SHA256).Hash)
           Expand-Archive -Path omnisharp-net472.zip -DestinationPath omnisharp-win -Force
 
       - name: Compare assembly versions (OmniSharp vs VS 18 MSBuild)
@@ -50,42 +55,6 @@ jobs:
           Write-Host '=== MSBuild.exe.config redirects for the same assemblies'
           $cfg = Join-Path $vsBin 'MSBuild.exe.config'
           Select-String -Path $cfg -Pattern 'AsyncInterfaces|Tasks.Extensions|System.Memory|System.Buffers|CompilerServices.Unsafe|Numerics.Vectors' -Context 0,2 | ForEach-Object { $_.Line.Trim(); $_.Context.PostContext | ForEach-Object { $_.Trim() } }
-
-      - name: Patch OmniSharp with VS 18 assemblies and redirects (patched variant only)
-        if: matrix.variant == 'patched'
-        shell: powershell
-        run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $installPath = & $vswhere -latest -products '*' -property installationPath
-          $vsBin = Join-Path $installPath 'MSBuild\Current\Bin'
-          $omni = (Resolve-Path omnisharp-win).Path
-          $names = 'Microsoft.Bcl.AsyncInterfaces', 'System.Threading.Tasks.Extensions', 'System.Memory', 'System.Buffers', 'System.Runtime.CompilerServices.Unsafe', 'System.Numerics.Vectors'
-          $cfgPath = Join-Path $omni 'OmniSharp.exe.config'
-          [xml]$cfg = Get-Content -Raw $cfgPath
-          $ns = New-Object System.Xml.XmlNamespaceManager($cfg.NameTable)
-          $ns.AddNamespace('asm', 'urn:schemas-microsoft-com:asm.v1')
-          $bindings = $cfg.SelectSingleNode('//asm:assemblyBinding', $ns)
-          foreach ($n in $names) {
-            $src = Join-Path $vsBin "$n.dll"
-            if (-not (Test-Path $src)) { Write-Host "skip $n (not in VS MSBuild Bin)"; continue }
-            Copy-Item $src (Join-Path $omni "$n.dll") -Force
-            $an = [System.Reflection.AssemblyName]::GetAssemblyName($src)
-            $ver = $an.Version.ToString()
-            $token = ($an.GetPublicKeyToken() | ForEach-Object { $_.ToString('x2') }) -join ''
-            $dep = $bindings.SelectSingleNode("asm:dependentAssembly[asm:assemblyIdentity/@name='$n']", $ns)
-            if (-not $dep) {
-              $dep = $cfg.CreateElement('dependentAssembly', 'urn:schemas-microsoft-com:asm.v1')
-              $id = $cfg.CreateElement('assemblyIdentity', 'urn:schemas-microsoft-com:asm.v1')
-              $id.SetAttribute('name', $n); $id.SetAttribute('publicKeyToken', $token); $id.SetAttribute('culture', 'neutral')
-              $br = $cfg.CreateElement('bindingRedirect', 'urn:schemas-microsoft-com:asm.v1')
-              [void]$dep.AppendChild($id); [void]$dep.AppendChild($br); [void]$bindings.AppendChild($dep)
-            }
-            $br = $dep.SelectSingleNode('asm:bindingRedirect', $ns)
-            $br.SetAttribute('oldVersion', "0.0.0.0-$ver")
-            $br.SetAttribute('newVersion', $ver)
-            Write-Host "patched $n -> $ver"
-          }
-          $cfg.Save($cfgPath)
 
       - name: Run legacy OmniSharp on the 4.8 solution
         shell: powershell
