@@ -11,75 +11,90 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  confirm:
     runs-on: warp-custom-sonarlint-visualstudio
-    timeout-minutes: 60
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         variant:
-          - default
-          - msbuild-override
-          - add-components
+          - baseline
+          - patched
     steps:
       - uses: actions/checkout@v5
 
-      - name: Image inventory
+      - name: Download OmniSharp net472
         shell: powershell
         run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          Write-Host '=== vswhere -all'
-          & $vswhere -all -products '*' -format text
-          Write-Host '=== MSBuild on PATH'
-          Get-Command msbuild -All | Format-Table -AutoSize | Out-String | Write-Host
-          msbuild -version
-          Write-Host '=== .NET Framework reference assemblies'
-          Get-ChildItem "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework" -ErrorAction Continue | Select-Object -ExpandProperty Name
-          Write-Host '=== dotnet'
-          dotnet --info
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://binaries.sonarsource.com/OmniSharp-Roslyn/1.39.15.1-sonar/omnisharp-net472.zip' -OutFile omnisharp-net472.zip
+          Expand-Archive -Path omnisharp-net472.zip -DestinationPath omnisharp-win -Force
 
-      - name: Install extra VS components (add-components variant only)
-        if: matrix.variant == 'add-components'
+      - name: Compare assembly versions (OmniSharp vs VS 18 MSBuild)
         shell: powershell
-        continue-on-error: true
         run: |
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           $installPath = & $vswhere -latest -products '*' -property installationPath
-          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-          $p = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @(
-            'modify', '--installPath', "`"$installPath`"",
-            '--add', 'Microsoft.Net.ComponentGroup.4.8.DeveloperTools',
-            '--add', 'Microsoft.VisualStudio.Workload.ManagedDesktop',
-            '--quiet', '--norestart', '--wait')
-          Write-Host "VS installer modify exit code: $($p.ExitCode)"
+          $vsBin = Join-Path $installPath 'MSBuild\Current\Bin'
+          $names = 'Microsoft.Bcl.AsyncInterfaces', 'System.Threading.Tasks.Extensions', 'System.Memory', 'System.Buffers', 'System.Runtime.CompilerServices.Unsafe', 'System.Numerics.Vectors', 'Microsoft.Build', 'Microsoft.Build.Framework'
+          foreach ($n in $names) {
+            foreach ($dir in @((Resolve-Path omnisharp-win).Path, $vsBin)) {
+              $f = Join-Path $dir "$n.dll"
+              if (Test-Path $f) {
+                $an = [System.Reflection.AssemblyName]::GetAssemblyName($f)
+                Write-Host ("{0,-45} asm={1,-12} file={2,-18} in {3}" -f $n, $an.Version, (Get-Item $f).VersionInfo.FileVersion, $dir)
+              } else {
+                Write-Host ("{0,-45} (absent) in {1}" -f $n, $dir)
+              }
+            }
+          }
+          Write-Host '=== MSBuild.exe.config redirects for the same assemblies'
+          $cfg = Join-Path $vsBin 'MSBuild.exe.config'
+          Select-String -Path $cfg -Pattern 'AsyncInterfaces|Tasks.Extensions|System.Memory|System.Buffers|CompilerServices.Unsafe|Numerics.Vectors' -Context 0,2 | ForEach-Object { $_.Line.Trim(); $_.Context.PostContext | ForEach-Object { $_.Trim() } }
 
-      - name: Build the 4.8 project with the image's MSBuild
+      - name: Patch OmniSharp with VS 18 assemblies and redirects (patched variant only)
+        if: matrix.variant == 'patched'
         shell: powershell
-        continue-on-error: true
         run: |
-          $sln = (Resolve-Path 'its/src/test/projects/DotNetFramework4_8/DotNetFramework4_8.sln').Path
-          dotnet restore $sln
-          Write-Host "dotnet restore exit code: $LASTEXITCODE"
-          msbuild $sln /nologo /v:m /t:Build
-          Write-Host "msbuild exit code: $LASTEXITCODE"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -latest -products '*' -property installationPath
+          $vsBin = Join-Path $installPath 'MSBuild\Current\Bin'
+          $omni = (Resolve-Path omnisharp-win).Path
+          $names = 'Microsoft.Bcl.AsyncInterfaces', 'System.Threading.Tasks.Extensions', 'System.Memory', 'System.Buffers', 'System.Runtime.CompilerServices.Unsafe', 'System.Numerics.Vectors'
+          $cfgPath = Join-Path $omni 'OmniSharp.exe.config'
+          [xml]$cfg = Get-Content -Raw $cfgPath
+          $ns = New-Object System.Xml.XmlNamespaceManager($cfg.NameTable)
+          $ns.AddNamespace('asm', 'urn:schemas-microsoft-com:asm.v1')
+          $bindings = $cfg.SelectSingleNode('//asm:assemblyBinding', $ns)
+          foreach ($n in $names) {
+            $src = Join-Path $vsBin "$n.dll"
+            if (-not (Test-Path $src)) { Write-Host "skip $n (not in VS MSBuild Bin)"; continue }
+            Copy-Item $src (Join-Path $omni "$n.dll") -Force
+            $an = [System.Reflection.AssemblyName]::GetAssemblyName($src)
+            $ver = $an.Version.ToString()
+            $token = ($an.GetPublicKeyToken() | ForEach-Object { $_.ToString('x2') }) -join ''
+            $dep = $bindings.SelectSingleNode("asm:dependentAssembly[asm:assemblyIdentity/@name='$n']", $ns)
+            if (-not $dep) {
+              $dep = $cfg.CreateElement('dependentAssembly', 'urn:schemas-microsoft-com:asm.v1')
+              $id = $cfg.CreateElement('assemblyIdentity', 'urn:schemas-microsoft-com:asm.v1')
+              $id.SetAttribute('name', $n); $id.SetAttribute('publicKeyToken', $token); $id.SetAttribute('culture', 'neutral')
+              $br = $cfg.CreateElement('bindingRedirect', 'urn:schemas-microsoft-com:asm.v1')
+              [void]$dep.AppendChild($id); [void]$dep.AppendChild($br); [void]$bindings.AppendChild($dep)
+            }
+            $br = $dep.SelectSingleNode('asm:bindingRedirect', $ns)
+            $br.SetAttribute('oldVersion', "0.0.0.0-$ver")
+            $br.SetAttribute('newVersion', $ver)
+            Write-Host "patched $n -> $ver"
+          }
+          $cfg.Save($cfgPath)
 
       - name: Run legacy OmniSharp on the 4.8 solution
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path out | Out-Null
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://binaries.sonarsource.com/OmniSharp-Roslyn/1.39.15.1-sonar/omnisharp-net472.zip' -OutFile omnisharp-net472.zip
-          Expand-Archive -Path omnisharp-net472.zip -DestinationPath omnisharp-win -Force
           $exe = (Resolve-Path 'omnisharp-win\OmniSharp.exe').Path
           $sln = (Resolve-Path 'its/src/test/projects/DotNetFramework4_8/DotNetFramework4_8.sln').Path
-          # Same arguments as OmnisharpCommandBuilder.addLegacyArguments (minus the --plugin services DLL)
-          $omniArgs = @('-v', 'MsBuild:loadProjectsOnDemand=false', 'DotNet:enablePackageRestore=false', '--encoding', 'utf-8')
-          if ('${{ matrix.variant }}' -eq 'msbuild-override') {
-            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-            $installPath = & $vswhere -latest -products '*' -property installationPath
-            $omniArgs += "MsBuild:MSBuildOverride:MSBuildPath=$installPath\MSBuild\Current\Bin"
-          }
-          $omniArgs += @('-s', $sln)
-          Write-Host "OmniSharp args: $($omniArgs -join ' ')"
+          dotnet restore $sln | Out-Null
+          $omniArgs = @('-v', 'MsBuild:loadProjectsOnDemand=false', 'DotNet:enablePackageRestore=false', '--encoding', 'utf-8', '-s', $sln)
           $psi = New-Object System.Diagnostics.ProcessStartInfo
           $psi.FileName = $exe
           $psi.Arguments = ($omniArgs | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
@@ -90,20 +105,24 @@ jobs:
           $p = [System.Diagnostics.Process]::Start($psi)
           $outTask = $p.StandardOutput.ReadToEndAsync()
           $errTask = $p.StandardError.ReadToEndAsync()
-          Start-Sleep -Seconds 45
-          Write-Host "OmniSharp still running after 45s: $(-not $p.HasExited)"
-          if (-not $p.HasExited) { $p.Kill() }
+          Start-Sleep -Seconds 40
+          Write-Host "OmniSharp still running after 40s: $(-not $p.HasExited)"
+          if (-not $p.HasExited) {
+            Write-Host '=== modules loaded by the OmniSharp process (async/MSBuild related)'
+            $p.Refresh()
+            $p.Modules | Where-Object { $_.ModuleName -match 'AsyncInterfaces|Tasks.Extensions|System.Memory|System.Buffers|Unsafe|Microsoft.Build' } | ForEach-Object { Write-Host ("{0,-45} {1,-16} {2}" -f $_.ModuleName, $_.FileVersionInfo.FileVersion, $_.FileName) }
+            $p.Kill()
+          }
           [void]$outTask.Wait(15000)
           [void]$errTask.Wait(15000)
           $outTask.Result | Out-File -Encoding utf8 out\omnisharp-stdout.txt
           $errTask.Result | Out-File -Encoding utf8 out\omnisharp-stderr.txt
-          Write-Host '=== stdout (filtered)'
-          Select-String -Path out\omnisharp-stdout.txt -Pattern 'MSBuild|Located|Registered|Visual Studio|MsBuildProjectDiagnostics|error|fail|exception|Unable|Could not' | ForEach-Object { $_.Line.Substring(0, [Math]::Min(400, $_.Line.Length)) } | Select-Object -First 80
-          Write-Host '=== stderr'
-          Get-Content out\omnisharp-stderr.txt -TotalCount 60
+          $o = $outTask.Result
+          Write-Host ("=== RESULT variant=${{ matrix.variant }}: TypeLoadException(DisposeAsync)={0}; 'Failed to load project file'={1}; MsBuildProjectDiagnostics events={2}; 'Adding project'={3}" -f ([regex]::Matches($o, 'DisposeAsync')).Count, ([regex]::Matches($o, 'Failed to load project file')).Count, ([regex]::Matches($o, 'MsBuildProjectDiagnostics')).Count, ([regex]::Matches($o, 'Adding project')).Count)
+          Select-String -Path out\omnisharp-stdout.txt -Pattern '"LogLevel":"ERROR"|"Event":"Error"|MsBuildProjectDiagnostics|Adding project' | ForEach-Object { $_.Line.Substring(0, [Math]::Min(500, $_.Line.Length)) } | Select-Object -First 25
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: omnisharp-diagnostics-${{ matrix.variant }}
+          name: confirm-${{ matrix.variant }}
           path: out/
