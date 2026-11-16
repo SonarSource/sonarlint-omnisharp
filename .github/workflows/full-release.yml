@@ -64,12 +64,16 @@ jobs:
       # Settings land in ~/.m2 and survive the checkout inside bump-version.
       - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
         env:
+          # A provided value makes get-build-number skip its increment of the shared build_number property.
+          # The Maven version update is already skipped, so this value is unused.
+          BUILD_NUMBER: "0"
           CURRENT_VERSION: skip
           PROJECT_VERSION: skip
         with:
           artifactory-reader-role: private-reader
       - name: Remove config-maven workspace artifacts
-        run: rm -rf .actions .build_number.txt
+        # 1.4.0 writes build_number.txt (no leading dot) and leaves .actions/ symlinks
+        run: rm -rf .actions build_number.txt
       - uses: SonarSource/release-github-actions/bump-version@baea6012647dfc12521bb994b97a2a9438412e6d # 1.5.10
         with:
           version: ${{ needs.release.outputs.new-version }}
