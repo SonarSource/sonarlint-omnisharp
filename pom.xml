@@ -50,7 +50,7 @@
     <slf4j.version>2.0.20</slf4j.version>
     <logback.version>1.6.6</logback.version>
     <jdk.min.version>11</jdk.min.version>
-    <omnisharp.version>1.39.15.1-sonar</omnisharp.version>
+    <omnisharp.version>1.39.15.2-sonar</omnisharp.version>
     <omnisharp.binaries.baseUrl>https://binaries.sonarsource.com/OmniSharp-Roslyn/${omnisharp.version}</omnisharp.binaries.baseUrl>
     <analyzer.version>10.34.0.3385</analyzer.version>
     <license.name>GNU LGPL v3</license.name>
