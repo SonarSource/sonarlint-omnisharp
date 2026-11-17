@@ -62,7 +62,7 @@ jobs:
     steps:
       # Resolve dependencies through Artifactory instead of hitting Maven Central directly (avoids HTTP 429).
       # Settings land in ~/.m2 and survive the checkout inside bump-version.
-      - uses: SonarSource/ci-github-actions/config-maven@9456e3aab93a6c6d0c459b977aaa594bda102e29 # 1.4.0
+      - uses: SonarSource/ci-github-actions/config-maven@e2032bdce92b0675c839fd6a697c8bb0078985d5 # 2.5.2
         env:
           # A provided value makes get-build-number skip its increment of the shared build_number property.
           # The Maven version update is already skipped, so this value is unused.
@@ -72,8 +72,8 @@ jobs:
         with:
           artifactory-reader-role: private-reader
       - name: Remove config-maven workspace artifacts
-        # 1.4.0 writes build_number.txt (no leading dot) and leaves .actions/ symlinks
-        run: rm -rf .actions build_number.txt
+        # config-maven leaves .actions/ symlinks (absolute runner paths) in the workspace
+        run: rm -rf .actions .build_number.txt
       - uses: SonarSource/release-github-actions/bump-version@baea6012647dfc12521bb994b97a2a9438412e6d # 1.5.10
         with:
           version: ${{ needs.release.outputs.new-version }}
