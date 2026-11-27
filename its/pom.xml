@@ -10,7 +10,7 @@
 
   <artifactId>sonarlint-omnisharp-its</artifactId>
 
-  <name>SonarOmnisharp ITs</name>
+  <name>SonarLint OmniSharp Integration Tests</name>
   <description>Integration tests</description>
 
   <properties>
