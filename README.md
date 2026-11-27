@@ -53,3 +53,10 @@ You may need to restart your computer after these variables are set.
 The Java component depends on the .NET component, so the .NET component must be built first.
 
 `mvn clean verify`
+
+### Integration tests
+
+The integration tests exercise the Java sensor with the real OmniSharp process and analyzer. The test harness
+simulates IDE callbacks.
+
+After preparing the OmniSharp and .NET components above, run `mvn -pl its -am verify -DskipTests=false`.

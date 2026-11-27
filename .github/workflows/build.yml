@@ -155,7 +155,7 @@ jobs:
       - build_number
       - build_maven_parent
     runs-on: github-ubuntu-latest-m
-    name: QA Linux
+    name: Integration Tests - Linux
     env:
       BUILD_NUMBER: ${{ needs.build_number.outputs.BUILD_NUMBER }}
     steps:
@@ -189,7 +189,7 @@ jobs:
           common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false
           artifactory-reader-role: private-reader
 
-      - name: Run QA tests
+      - name: Run integration tests
         env:
           ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
           ARTIFACTORY_ACCESS_TOKEN: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
@@ -210,7 +210,7 @@ jobs:
     runs-on: warp-custom-sonarlint-visualstudio
     env:
       BUILD_NUMBER: ${{ needs.build_number.outputs.BUILD_NUMBER }}
-    name: QA Windows
+    name: Integration Tests - Windows
     steps:
       - uses: actions/checkout@v5
       - uses: SonarSource/mise-action-wrapper@65aa289d3f408f4999d13a52a14cde4f54b48442 # 2.0.0
@@ -231,7 +231,7 @@ jobs:
           common-mvn-flags: -Dmaven.install.skip=true -Dsonar.skip=true -Dcyclonedx.skip=false -Dmaven.deploy.skip=true
           artifactory-reader-role: private-reader
 
-      - name: Run QA tests
+      - name: Run integration tests
         shell: bash
         env:
           ARTIFACTORY_PASSWORD: ${{ fromJSON(steps.secrets.outputs.vault).ARTIFACTORY_ACCESS_TOKEN }}
